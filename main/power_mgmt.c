@@ -1,0 +1,550 @@
+/*
+ * power_mgmt.c
+ *
+ * 1 kHz power-management task:
+ *  • Samples all three H-bridge current sensors (DRIVE, AUX, JACK)
+ *  • Samples battery voltage (BAT)
+ *  • Applies EMA filtering on every channel
+ *  • Updates shared volatile globals for the control FSM
+ *  • Handles over-current spike protection
+ *
+ * Updated to modern ESP-IDF ADC API (line fitting)
+ * All variables now defined locally
+ *
+ * Created on: Nov 10, 2025
+ */
+
+#include <math.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include "driver/rtc_io.h"
+#include "esp_log.h"
+#include "esp_task_wdt.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_adc/adc_oneshot.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
+#include "esp_timer.h"
+#include "driver/gpio.h"
+#include "control_fsm.h"
+#include "soc/rtc_io_reg.h"
+#include "power_mgmt.h"
+
+#include "storage.h"
+#include "rtc.h"
+
+// === GPIO Pin Definitions === 
+#define PIN_V_ISENS1  ADC_CHANNEL_6   // GPIO34
+#define PIN_V_ISENS2  ADC_CHANNEL_3   // GPIO39 / VN
+#define PIN_V_ISENS3  ADC_CHANNEL_7   // GPIO35
+#define PIN_V_BATTERY ADC_CHANNEL_0   // GPIO36 / VP
+#define PIN_V_SENS_BAT PIN_V_BATTERY
+
+#define PIN_CHG_DISABLE GPIO_NUM_26
+#define PIN_CHG_BULK    GPIO_NUM_27
+
+#define AUTOZERO_THRESH 2000.0f // mA
+
+
+typedef enum {
+	CHG_T_LOWBAT = 0,
+	CHG_T_BULK = 1,
+	CHG_T_STEADY = 2,
+} charge_timer_t;
+
+#define N_CHG_TIMERS 3
+RTC_DATA_ATTR charge_state_t current_charge_state = CHG_STATE_BULK;
+RTC_DATA_ATTR int64_t charge_timers[N_CHG_TIMERS] = {-1};
+
+int64_t now;
+
+charge_state_t get_charging_state() { return current_charge_state; }
+
+void setTimerN(charge_timer_t i, int64_t sec) {
+	// set the timer for <sec> in the future if it's currently less than now
+	if (charge_timers[i] < now) {
+		charge_timers[i] = now + sec;
+		ESP_LOGI("BAT", "Set timer[%d] +%lld", i, (long long)sec);
+	}
+}
+
+void resetTimerN(charge_timer_t i) {
+	charge_timers[i] = -1;
+}
+void resetBatTimers() {
+	for (uint8_t i=0; i<N_CHG_TIMERS; i++)
+		resetTimerN(i);
+}
+
+bool getTimerN(charge_timer_t i) {
+	if (charge_timers[i] < 0) return false;
+	return system_rtc_get_raw_time() > charge_timers[i];
+}
+
+#define BULK_CHARGE_S  20 //2*60*60
+#define FLOAT_STEADY_S 10 //30*60
+#define LOW_DETECT_S   10 //5*60
+
+#define STEADY_MV 13000
+#define LOW_MV    12800
+
+void run_charge_fsm() {
+	now = system_rtc_get_raw_time();
+	
+	//ESP_LOGI("BAT", "FSM STATE %d", current_charge_state);
+	
+	if (rtc_is_set()) {
+		switch(current_charge_state) {
+			case CHG_STATE_BULK:
+				// turn off bulk charging and go to float when time is up
+				if (getTimerN(CHG_T_BULK)) {
+					ESP_LOGI("BAT", "BULK -> FLOAT");
+					current_charge_state = CHG_STATE_FLOAT;
+				}
+				break;
+				
+			case CHG_STATE_FLOAT:
+				if (getTimerN(CHG_T_STEADY)) {
+					ESP_LOGI("BAT", "FLOAT -> OFF");
+					current_charge_state = CHG_STATE_OFF;
+				}
+				if (get_battery_mV() > STEADY_MV) {
+					setTimerN(CHG_T_STEADY, FLOAT_STEADY_S);
+				} else {
+					resetTimerN(CHG_T_STEADY);
+				}
+				// NO break; !! float should also kick into bulk with same triggers
+			case CHG_STATE_OFF:
+			
+				// after 5 minutes of low-ish battery go into bulk charge
+				if (getTimerN(CHG_T_LOWBAT)) {
+					ESP_LOGI("BAT", " -> BULK");
+					current_charge_state = CHG_STATE_BULK;
+					setTimerN(CHG_T_BULK, BULK_CHARGE_S);
+				}
+				if (get_battery_mV() < LOW_MV) {
+					setTimerN(CHG_T_LOWBAT, LOW_DETECT_S);
+				} else {
+					resetTimerN(CHG_T_LOWBAT);
+				}
+				break;
+		}
+	} else {
+		//ESP_LOGI("BAT", " -> BULK");
+		current_charge_state = CHG_STATE_BULK;
+	}
+	
+	//rtc_gpio_hold_dis(PIN_CHG_BULK);
+	//rtc_gpio_hold_dis(PIN_CHG_DISABLE);
+	switch(current_charge_state) {
+		case CHG_STATE_BULK:
+			gpio_set_level(PIN_CHG_BULK, 1);
+			gpio_set_level(PIN_CHG_DISABLE, 0);
+			//ESP_LOGI("BAT", "BULK");
+			break;
+		case CHG_STATE_FLOAT:
+			gpio_set_level(PIN_CHG_BULK, 0);
+			gpio_set_level(PIN_CHG_DISABLE, 0);
+			//ESP_LOGI("BAT", "FLOAT");
+			break;
+		case CHG_STATE_OFF:
+			gpio_set_level(PIN_CHG_BULK, 0);
+			gpio_set_level(PIN_CHG_DISABLE, 1);
+			//ESP_LOGI("BAT", "OFF");
+			break;
+	}
+	//rtc_gpio_hold_en(PIN_CHG_BULK);
+	//rtc_gpio_hold_en(PIN_CHG_DISABLE);
+}
+
+typedef struct {
+    bool     enabled;           // Auto-zero active for this channel
+    float    threshold_ma;      // Max current to consider "zero" (mA)
+    float    learned_offset_mv; // Accumulated zero offset (mV)
+    bool     initialized;       // First valid zero established
+} autozero_t;
+static autozero_t autozero[N_BRIDGES] = {0};
+
+// === E-Fuse (Software Breaker) Configuration ===
+static const char* currentLimits_A[N_BRIDGES] = {
+    [BRIDGE_DRIVE] = "efuse_drive_A", //40000,
+    [BRIDGE_AUX]   = "efuse_aux_A", // 5000,
+    [BRIDGE_JACK]  = "efuse_jack_A" // 10000
+};
+static const float i2t_thresholds[N_BRIDGES] = { // A^2*s (tunable per bridge if needed)
+    [BRIDGE_DRIVE] = 6.0f,
+    [BRIDGE_AUX]   = 6.0f,
+    [BRIDGE_JACK]  = 6.0f
+};
+static const float i_instant[N_BRIDGES] = { // Instant trip multiplier of I_rated
+    [BRIDGE_DRIVE] = 15.0f,
+    [BRIDGE_AUX]   = 15.0f,
+    [BRIDGE_JACK]  = 15.0f
+};
+static const float cool_rate[N_BRIDGES] = { // Cooling constant (1/s)
+    [BRIDGE_DRIVE] = 0.008f,
+    [BRIDGE_AUX]   = 0.008f,
+    [BRIDGE_JACK]  = 0.008f
+};
+static const int32_t cooldown_ms[N_BRIDGES] = { // Auto-reset delay after trip
+    [BRIDGE_DRIVE] = 5000,
+    [BRIDGE_AUX]   = 5000,
+    [BRIDGE_JACK]  = 5000
+};
+
+static float    efuse_heat[N_BRIDGES] = {0};
+static uint64_t efuse_trip_time[N_BRIDGES] = {0};  // Timestamp when tripped
+static bool     efuse_tripped[N_BRIDGES] = {false};
+
+// === ADC Handles ===
+static adc_oneshot_unit_handle_t adc1_handle = NULL;
+static adc_cali_handle_t adc_cali_handle = NULL;
+
+// === EMA Filter State ===
+#define EMA_ALPHA_CURRENT  0.5f
+#define EMA_ALPHA_BATTERY  0.05f
+
+static float ema_current[N_BRIDGES] = {0};
+static bool ema_init[N_BRIDGES] = {false};
+
+static float ema_battery = 0.0f;
+static bool ema_battery_init = false;
+
+// === Shared Volatile Outputs ===
+volatile int32_t bridgeCurrents_mA[N_BRIDGES] = {0};
+volatile int32_t batteryVoltage_mV = 0;
+
+// === ADC Initialization ===
+static esp_err_t adc_init(void) {
+    if (adc1_handle != NULL) {
+        return ESP_OK; // Already initialized
+    }
+
+    // ADC1 oneshot mode
+    adc_oneshot_unit_init_cfg_t init_cfg = {
+        .unit_id = ADC_UNIT_1,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_cfg, &adc1_handle));
+
+    // Configure all channels
+    adc_oneshot_chan_cfg_t chan_cfg = {
+        .atten = ADC_ATTEN_DB_11,
+        .bitwidth = ADC_BITWIDTH_12,
+    };
+
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PIN_V_ISENS1, &chan_cfg));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PIN_V_ISENS2, &chan_cfg));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PIN_V_ISENS3, &chan_cfg));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PIN_V_SENS_BAT, &chan_cfg));
+
+    // Line fitting calibration (modern scheme)
+    adc_cali_line_fitting_config_t cali_cfg = {
+        .unit_id = ADC_UNIT_1,
+        .atten = ADC_ATTEN_DB_11,
+        .bitwidth = ADC_BITWIDTH_12,
+    };
+    ESP_ERROR_CHECK(adc_cali_create_scheme_line_fitting(&cali_cfg, &adc_cali_handle));
+
+    return ESP_OK;
+}
+
+void autozero_enable(bridge_t bridge, bool enable) {
+    if (bridge >= N_BRIDGES) return;
+    autozero[bridge].enabled = enable;
+    if (!enable) {
+        autozero[bridge].learned_offset_mv = 0.0f;
+        autozero[bridge].initialized = false;
+    }
+}
+
+void autozero_set_threshold(bridge_t bridge, float threshold_ma) {
+    if (bridge >= N_BRIDGES) return;
+    autozero[bridge].threshold_ma = fmaxf(0.0f, threshold_ma);
+}
+
+float autozero_get_offset_mv(bridge_t bridge) {
+    if (bridge >= N_BRIDGES) return 0.0f;
+    return autozero[bridge].learned_offset_mv;
+}
+
+void autozero_reset(bridge_t bridge) {
+    if (bridge >= N_BRIDGES) return;
+    autozero[bridge].learned_offset_mv = 0.0f;
+    autozero[bridge].initialized = false;
+}
+
+void autozero_reset_all(void) {
+    for (uint8_t i = 0; i < N_BRIDGES; i++) {
+        autozero_reset((bridge_t)i);
+    }
+}
+
+// === Raw Current Reading (mA) ===
+static int32_t read_bridge_current_raw(bridge_t bridge) {
+    int adc_raw = 0;
+    int voltage_mv = 0;
+    
+    adc_channel_t pin;
+    switch(bridge) {
+        case BRIDGE_DRIVE: pin = PIN_V_ISENS3; break;
+        case BRIDGE_AUX:   pin = PIN_V_ISENS1; break;
+        case BRIDGE_JACK:  pin = PIN_V_ISENS2; break;
+        default: return -42069;
+    }
+
+    if (adc_oneshot_read(adc1_handle, pin, &adc_raw) != ESP_OK) {
+        return 0;
+    }
+    if (adc_cali_raw_to_voltage(adc_cali_handle, adc_raw, &voltage_mv) != ESP_OK) {
+        return 0;
+    }
+
+    float current_sense_mv = (float)voltage_mv;
+    autozero_t *az = &autozero[bridge];
+
+    // === AUTO-ZERO LEARNING PHASE ===
+    if (az->enabled && get_bridge_state(bridge)==0) {
+        float raw_current_ma = 0.0f;
+        switch (bridge) {
+            case BRIDGE_JACK:
+            case BRIDGE_AUX:
+            	// ACS37042KLHBLT-030B3 is 30A capable and 44 mV/A
+                raw_current_ma = (current_sense_mv - 1650.0f) * 1000.0f / 44.0f;
+                break;
+            case BRIDGE_DRIVE:
+            	// ACS37220LEZATR-100B3 is 100A capable and 13.2 mV/A
+                raw_current_ma = (current_sense_mv - 1650.0f) * 1000.0f / 13.20f;
+                break;
+        }
+
+        if (fabsf(raw_current_ma) <= az->threshold_ma) {
+            // Valid zero sample
+            if (!az->initialized) {
+                az->learned_offset_mv = current_sense_mv - 1650.0f;
+                az->initialized = true;
+            } else {
+                // EMA on offset (slow adaptation)
+                float alpha = 0.1f; 
+                az->learned_offset_mv = alpha * (current_sense_mv - 1650.0f) + 
+                                       (1.0f - alpha) * az->learned_offset_mv;
+            }
+        }
+    }
+
+    // === APPLY AUTO-ZERO OFFSET ===
+    float corrected_mv = current_sense_mv - az->learned_offset_mv;
+
+    int32_t offset_mv = (int32_t)(corrected_mv - 1650.0f);
+    int32_t current_ma = 0;
+
+    switch (bridge) {
+        case BRIDGE_JACK:
+        case BRIDGE_AUX:
+            current_ma = offset_mv * 1000 / 44;      // 44 mV/A
+            break;
+        case BRIDGE_DRIVE:
+            current_ma = offset_mv * 10000 / 132;    // 13.2 mV/A
+            break;
+    }
+
+    return current_ma;
+}
+
+// === Raw Battery Voltage Reading (mV) ===
+static int32_t read_battery_voltage_raw(void)
+{
+    int adc_raw = 0;
+    int voltage_mv = 0;
+
+    if (adc_oneshot_read(adc1_handle, PIN_V_SENS_BAT, &adc_raw) != ESP_OK) {
+        return 0;
+    }
+    if (adc_cali_raw_to_voltage(adc_cali_handle, adc_raw, &voltage_mv) != ESP_OK) {
+        return 0;
+    }
+
+    // Voltage divider: 150kΩ to 1MΩ → gain = 1.15 → scale = 1150/150
+    return (int32_t)voltage_mv * 1150 / 150;
+}
+
+// === EMA Filter Update ===
+static void apply_ema(float *state, bool *init, float alpha, int32_t raw, volatile int32_t *out)
+{
+    if (!*init) {
+        *state = (float)raw;
+        *init = true;
+    } else {
+        *state = alpha * (float)raw + (1.0f - alpha) * *state;
+    }
+    *out = (int32_t)(*state + 0.5f);
+}
+
+// === Public Accessors ===
+int32_t get_bridge_mA(uint8_t bridge)
+{
+    if (bridge >= N_BRIDGES) return -1;
+    return (int32_t)bridgeCurrents_mA[bridge];
+}
+
+int32_t get_battery_mV(void)
+{
+    return (int32_t)batteryVoltage_mV;
+}
+
+// === E-Fuse: Trip Logic (called every cycle) ===
+static void efuse_update(uint8_t bridge, float I, float dt, uint64_t now)
+{
+    float I_rated = (float)get_param_i8(currentLimits_A[bridge]);
+    float I_norm = I / I_rated;
+
+    // Instant trip on extreme overcurrent
+    if (I_norm >= i_instant[bridge]) {
+        efuse_tripped[bridge] = true;
+        efuse_trip_time[bridge] = now;
+        return;
+    }
+
+    // Cooling when below threshold
+    if (I_norm < 1.1f) {
+        efuse_heat[bridge] -= efuse_heat[bridge] * cool_rate[bridge] * dt;
+        efuse_heat[bridge] = fmaxf(0.0f, efuse_heat[bridge]);
+        efuse_tripped[bridge] = false;  // Auto-clear if cooled
+        return;
+    }
+
+    // Accumulate heat (I²t)
+    efuse_heat[bridge] += (I_norm * I_norm) * dt;
+
+    if (efuse_heat[bridge] >= i2t_thresholds[bridge]) {
+        efuse_tripped[bridge] = true;
+        efuse_trip_time[bridge] = now;
+    }
+}
+
+// === E-Fuse: Auto-Reset After Cooldown ===
+static void efuse_cooldown_check(uint64_t now)
+{
+    for (uint8_t i = 0; i < N_BRIDGES; i++) {
+        if (efuse_tripped[i] && 
+            (now - efuse_trip_time[i]) >= (cooldown_ms[i] * 1000ULL)) {
+            efuse_heat[i] = 0.0f;
+            efuse_tripped[i] = false;
+        }
+    }
+}
+
+// === Public E-Fuse Controls ===
+void efuse_reset_all(void)
+{
+    for (uint8_t i = 0; i < N_BRIDGES; i++) {
+        efuse_heat[i] = 0.0f;
+        efuse_tripped[i] = false;
+    }
+}
+
+bool efuse_is_tripped(uint8_t bridge)
+{
+    if (bridge >= N_BRIDGES) return false;
+    return efuse_tripped[bridge];
+}
+
+
+// === Power Management Task ===
+void power_mgmt_task(void *param) {
+	esp_task_wdt_add(NULL);
+	
+	/*gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << PIN_CHG_DISABLE) | (1ULL << PIN_CHG_BULK),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    gpio_config(&io_conf);*/
+	
+	/*// Enable RTC GPIO domain (required for hold)
+    rtc_gpio_init(PIN_CHG_DISABLE);
+    rtc_gpio_init(PIN_CHG_BULK);
+
+    // Set as output
+    rtc_gpio_set_direction(PIN_CHG_DISABLE, RTC_GPIO_MODE_OUTPUT_ONLY);
+    rtc_gpio_set_direction(PIN_CHG_BULK, RTC_GPIO_MODE_OUTPUT_ONLY);
+
+    // Optional: set initial level (will be held)
+    //rtc_gpio_set_level(PIN_CHG_DISABLE, 1);  // e.g., start disabled
+    //rtc_gpio_set_level(PIN_CHG_BULK, 0);
+
+    // **Critical: Enable hold function**
+    rtc_gpio_hold_en(PIN_CHG_DISABLE);
+    rtc_gpio_hold_en(PIN_CHG_BULK);*/
+	
+    ESP_ERROR_CHECK(adc_init());
+
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    const TickType_t xFrequency = pdMS_TO_TICKS(20);
+    
+    // Optional: Enable auto-zero with default threshold
+	autozero_enable(BRIDGE_DRIVE, true);
+	autozero_enable(BRIDGE_AUX,  true);
+	autozero_enable(BRIDGE_JACK, true);
+	
+	autozero_set_threshold(BRIDGE_DRIVE, AUTOZERO_THRESH);
+	autozero_set_threshold(BRIDGE_AUX,  AUTOZERO_THRESH);
+	autozero_set_threshold(BRIDGE_JACK, AUTOZERO_THRESH);
+
+    //uint64_t last_wake_time = esp_timer_get_time();
+    //const uint64_t period = 5000; // 100 us => 10kHz
+    while (1) {
+	    vTaskDelayUntil(&xLastWakeTime, xFrequency);
+        uint64_t now_us = esp_timer_get_time();
+        
+        /*if (now - last_wake_time < period) {
+            uint32_t delay_us = (period - (now - last_wake_time)) / 1000;
+            if (delay_us > 0) vTaskDelay(pdMS_TO_TICKS(delay_us));
+            continue;
+        }
+        last_wake_time = now;*/
+
+        // Sample currents
+        for (uint8_t i = 0; i < N_BRIDGES; i++) {
+            int32_t raw_ma = read_bridge_current_raw((bridge_t)i);
+            apply_ema(&ema_current[i], &ema_init[i], EMA_ALPHA_CURRENT,
+                      raw_ma, &bridgeCurrents_mA[i]);
+
+            // Reset spike timer if under limit
+            /*if (bridgeCurrents_mA[i] < currentLimits_mA[i]) {
+                currentSpikeSafeTimes[i] = now + CURRENT_SPIKE_TIME_US;
+            }*/
+            
+            // === E-FUSE UPDATE ===
+            float I = (float)bridgeCurrents_mA[i] / 1000.0f;
+            float dt = 0.020f;  // 20 ms task period
+            efuse_update(i, I, dt, now_us);
+        }
+        
+        /*ESP_LOGI("PWR", "[ %6ld | %6ld | %6ld mA ] { %6ld mV }", 
+	        (long)bridgeCurrents_mA[BRIDGE_DRIVE],
+	        (long)bridgeCurrents_mA[BRIDGE_JACK],
+	        (long)bridgeCurrents_mA[BRIDGE_AUX],
+	        (long)batteryVoltage_mV);*/
+
+        // Sample battery
+        int32_t raw_bat = read_battery_voltage_raw();
+        apply_ema(&ema_battery, &ema_battery_init, EMA_ALPHA_BATTERY,
+                  raw_bat, &batteryVoltage_mV);
+                  
+        
+        //run_charge_fsm();
+        efuse_cooldown_check(now_us);
+        esp_task_wdt_reset();
+    }
+}
+
+void start_power() {
+    xTaskCreate(power_mgmt_task, "PWR", 4096, NULL, 5, NULL);
+}
+
+void shutdown_power() {
+
+}
