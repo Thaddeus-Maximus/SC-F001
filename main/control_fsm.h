@@ -7,7 +7,7 @@
 #include "freertos/queue.h"
 
 
-typedef enum { FSM_CMD_STOP, FSM_CMD_UNDO, FSM_CMD_SHUTDOWN} fsm_cmd_t;
+typedef enum { FSM_CMD_START, FSM_CMD_STOP, FSM_CMD_UNDO, FSM_CMD_SHUTDOWN} fsm_cmd_t;
 
 typedef enum {
 	STATE_IDLE = 0,
@@ -22,21 +22,33 @@ typedef enum {
 } fsm_state_t;
 
 typedef enum {
-	BRIDGE_AUX   = 0,
+	RELAY_NONE = 0,
+	RELAY_C3,
+	RELAY_B3,
+	RELAY_A3,
+	RELAY_B2,
+	RELAY_A2,
+	RELAY_B1,
+	RELAY_A1
+} relay_t;
+
+typedef enum {
+	BRIDGE_AUX   = 2,
 	BRIDGE_JACK  = 1,
-	BRIDGE_DRIVE = 2,
+	BRIDGE_DRIVE = 0,
 } bridge_t;
 
-#define N_RELAYS 6
+#define N_RELAYS 8
 #define N_BRIDGES 3
 
-void pulseOverride(bridge_t bridge, int8_t dir, int64_t pulse);
+void pulseOverride(relay_t relay/*, int64_t pulse*/);
 
-void start_fsm();
+esp_err_t fsm_init();
+esp_err_t fsm_stop();
 
 void fsm_request(fsm_cmd_t cmd);
 
-void fsm_begin_auto_move();
+//void fsm_begin_auto_move();
 
 int8_t fsm_get_current_progress(int8_t remainder);
 

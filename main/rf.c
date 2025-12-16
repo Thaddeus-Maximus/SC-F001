@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "control_fsm.h"
 #include "driver/rmt_rx.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
@@ -14,16 +15,18 @@
 #include "driver/rmt_rx.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
+#include "rf.h"
 
-#include "flash.h"
+#include "storage.h"
 
-#define RF_PIN GPIO_NUM_23
+#define TAG "RF"
+
+#define RF_PIN GPIO_NUM_25
 #define P_HIGH 1040
 #define P_LOW 340
 #define P_MARGIN 70
 #define P_SKIPMIN 250
 #define RF_DEBUG 0
-#define NUM_RF_BUTTONS 4
 
 // Struct to hold decoded RF data
 typedef struct {
@@ -37,6 +40,8 @@ typedef struct {
 // Global queue for passing decoded codes between tasks
 static QueueHandle_t g_code_queue = NULL;
 
+int learn_flag = -1;
+
 // For rmt_rx_register_event_callbacks
 static bool rfrx_done(rmt_channel_handle_t channel, const rmt_rx_done_event_data_t *edata, void *udata) {
     BaseType_t high_task_wakeup = pdFALSE;
@@ -48,6 +53,7 @@ static bool rfrx_done(rmt_channel_handle_t channel, const rmt_rx_done_event_data
 // Task that receives and decodes RF signals
 static void rf_receiver_task(void* param) {
 	esp_task_wdt_add(NULL);
+	esp_log_level_set("rmt", ESP_LOG_NONE); // disable rmt messages about hw buffer too small
     const uint16_t tlow = (P_HIGH - P_LOW - (2 * P_MARGIN));
     const uint16_t thigh = (P_HIGH - P_LOW + (2 * P_MARGIN));
     
@@ -87,7 +93,7 @@ static void rf_receiver_task(void* param) {
     ESP_LOGI("RF", "RF receiver task started on core %d", xPortGetCoreID());
     
     for(;;) {
-        if (xQueueReceive(rx_queue, &rx_data, pdMS_TO_TICKS(1000)) == pdPASS) {
+        if (xQueueReceive(rx_queue, &rx_data, pdMS_TO_TICKS(500)) == pdPASS) {
             
             size_t len = rx_data.num_symbols;
             rmt_symbol_word_t *cur = rx_data.received_symbols;
@@ -126,16 +132,44 @@ static void rf_receiver_task(void* param) {
                 
                 // If we got a valid code, send it to processing task
                 if (code) {
-                    rf_code_t rf_msg = {
-                        .code = code,
-                        .high_avg = high / 24,
-                        .low_avg = low / 24,
-                        .errors = err,
-                        .num_symbols = len
-                    };
-                    
-                    // Non-blocking send - if queue is full, just drop it
-                    xQueueSend(g_code_queue, &rf_msg, 0);
+					int64_t encoded = ((int64_t)len << 56) | code;
+					
+					ESP_LOGI(TAG, "GOT KEYCODE 0x%lx [%d]", (long) code, len);
+					
+					if (learn_flag >= 0) {
+						set_param(PARAM_KEYCODE_0 + learn_flag,
+						  (param_value_t){.i64 = encoded});
+						ESP_LOGI(TAG, "LEARNED KEYCODE");
+						learn_flag = -1;
+					} else {
+	                    rf_code_t rf_msg = {
+	                        .code = code,
+	                        .high_avg = high / 24,
+	                        .low_avg = low / 24,
+	                        .errors = err,
+	                        .num_symbols = len
+	                    };
+	                    
+	                    // Don't do this anymore. No need to pass data between threads. Just act on it.
+	                    // Non-blocking send - if queue is full, just drop it
+	                    //xQueueSend(g_code_queue, &rf_msg, 0);
+	                    
+	                    
+	                    for (uint8_t i = 0; i < NUM_RF_BUTTONS; i++) {
+							int64_t match = get_param(PARAM_KEYCODE_0+i).i64;
+				            if (encoded == match) {
+								switch (i) {
+									case 0: pulseOverride(RELAY_A1); pulseOverride(RELAY_A3); break;
+									case 1: pulseOverride(RELAY_B1); pulseOverride(RELAY_A3); break;
+									case 2: pulseOverride(RELAY_A2); break;
+									case 3: pulseOverride(RELAY_B2); break;
+									default: break;
+								}
+							}
+				        }
+	                    
+	                    
+                    }
                 }
                 
                 // Debug output - print raw symbols
@@ -182,33 +216,36 @@ static void rf_receiver_task(void* param) {
     vTaskDelete(NULL);
 }
 
-void start_rf() {
+esp_err_t rf_init() {
     g_code_queue = xQueueCreate(5, sizeof(rf_code_t));
     assert(g_code_queue);
     
-    xTaskCreate(rf_receiver_task, "RF", 4096, NULL, 10, NULL);
+    xTaskCreate(rf_receiver_task, TAG, 4096, NULL, 10, NULL);
+
+	return ESP_OK;
 }
+esp_err_t rf_stop() { return ESP_OK; }
 
 void rf_set_keycode(uint8_t index, int64_t code) {
-	char key[] = "keycode0";
-	key[7] = 48+index; // ASCII
-	
-	ESP_LOGI("RF", "SET KEYCODE[%d] = 0x%16llx", index, code);
-	
-	set_param_i64(key, code);
+	set_param(PARAM_KEYCODE_0+index, (param_value_t){.i64=code});
+}
+
+void rf_learn_keycode(uint8_t index) {
+	if (index >= 8) return;
+	learn_flag = index;
+}
+void rf_cancel_learn_keycode() {
+	learn_flag = -1;
 }
 
 int8_t rf_get_keycode() {
 	rf_code_t received_code;
 	
-	char key[] = "keycode0";
-	
 	if (xQueueReceive(g_code_queue, &received_code, 0)  == pdPASS) {
 		int64_t newcode = ((int64_t)received_code.num_symbols << 56) | received_code.code;
 		
 		for (uint8_t i = 0; i < NUM_RF_BUTTONS; i++) {
-			key[7] = 48+i; // ASCII
-            if (newcode == get_param_i64(key))
+            if (newcode == get_param(PARAM_KEYCODE_0+i).i64)
                 return i;
         }
         ESP_LOGI("RF", "Received unknown code 0x%08lx (%d) [0x%16llx]", (unsigned long)received_code.code, received_code.num_symbols, (unsigned long long) newcode);

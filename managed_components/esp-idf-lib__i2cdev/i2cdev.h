@@ -193,7 +193,7 @@ typedef struct
  *
  * @return ESP_OK on success
  */
-esp_err_t i2cdev_init(void);
+esp_err_t i2c_init(void);
 
 /**
  * @brief Release I2C subsystem (deletes all devices, buses, and mutexes)

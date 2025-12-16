@@ -14,22 +14,27 @@
 #include "storage.h"
 #include "rtc.h"
 #include "sensors.h"
+#include "esp_log.h"
 
 #define TRANSITION_DELAY_US 1000000
 
+#define TAG "FSM"
+
 static QueueHandle_t fsm_cmd_queue = NULL;
+	
+// map from relay number to bridge
+bridge_t bridge_map[] = {
+	BRIDGE_AUX,
+	BRIDGE_AUX,
+	BRIDGE_AUX,
+	BRIDGE_AUX,
+	BRIDGE_JACK,
+	BRIDGE_JACK,
+	BRIDGE_DRIVE,
+	BRIDGE_DRIVE };
 
-uint8_t relay_pins[N_RELAYS] = {
-	GPIO_NUM_13, // A1
-	GPIO_NUM_14, // B1
-	GPIO_NUM_15, // A2
-	GPIO_NUM_16, // B2
-	GPIO_NUM_17, // A3
-	GPIO_NUM_18  // B3
-	};
-
-bool relay_states[N_RELAYS] = {false};
-int64_t override_times[N_RELAYS] = {-1};
+bool relay_states[8] = {false};
+int64_t override_times[8] = {-1};
 bool enabled = false;
 
 void setRelay(int8_t relay, bool state) {
@@ -37,35 +42,23 @@ void setRelay(int8_t relay, bool state) {
 }
 
 void driveRelays() {
-	for (uint8_t i=0; i<N_RELAYS; i++) {
-		if (efuse_is_tripped(i/2))
-			gpio_set_level(relay_pins[i], 0);
-		else
-			gpio_set_level(relay_pins[i], relay_states[i]);
+	uint8_t state = 0x00;
+	for (uint8_t i=0; i<8; i++) {
+		// if we command and efuse permits it set the relay
+		if (relay_states[i] && !efuse_is_tripped(bridge_map[i])) {
+			state |= 0x01<<i;
+			set_autozero(bridge_map[i]);
+		}
 	}
+	i2c_set_relays(state);
 }
 
-int8_t bridge_polarities[3] = {
-	+1,
-	-1,
-	-1
-};
-void setBridge(bridge_t bridge, int8_t dir) {
-	dir *= bridge_polarities[bridge];
-	setRelay(bridge*2+0, dir<0);
-	setRelay(bridge*2+1, dir>0);
-}
-
-
-int8_t get_bridge_state(bridge_t bridge) {
-	if (relay_states[bridge*2 + 0]) return +1;
-	if (relay_states[bridge*2 + 1]) return -1;
-	return 0;
-}
 
 volatile fsm_state_t current_state = STATE_IDLE;
 volatile int64_t current_time = 0;
 volatile bool start_running_request = false;
+
+
 
 fsm_state_t fsm_get_state() {
 	return current_state;
@@ -79,18 +72,16 @@ static inline void set_timer(uint64_t us) {
 }
 static inline bool timer_done() { return current_time >= timer_end; }
 
-void pulseOverride(bridge_t bridge, int8_t dir, int64_t pulse) {
-	if (dir < 0)
-		override_times[bridge*2 + (bridge_polarities[bridge]>0?0:1)] = esp_timer_get_time() + pulse;
-	if (dir > 0)
-		override_times[bridge*2 + (bridge_polarities[bridge]>0?1:0)] = esp_timer_get_time() + pulse;
+void pulseOverride(relay_t relay) {
+	if (current_state == STATE_IDLE)
+		override_times[relay] = current_time + get_param(PARAM_RF_PULSE_LENGTH).u64;
 }
 
-void fsm_begin_auto_move() {
+/*void fsm_begin_auto_move() {
 	if (current_state == STATE_IDLE)
 		current_state = STATE_MOVE_START_DELAY;
 	set_timer(TRANSITION_DELAY_US);
-}
+}*/
 
 void fsm_request(fsm_cmd_t cmd)
 {
@@ -122,9 +113,10 @@ int8_t fsm_get_current_progress(int8_t denominator) {
 	return x;
 }
 
-#define JACK_TIME  (uint64_t)get_param_i8("jack_dist")*get_param_u32("jack_mspi")*1000
-#define DRIVE_TIME (uint64_t)get_param_i8("drive_dist")*get_param_u32("drive_mspf")*1000
-#define DRIVE_DIST ((int32_t)(get_param_i8("drive_dist")))*((int32_t)get_param_u32("drive_tpdf"))/10
+
+#define JACK_TIME  get_param(PARAM_JACK_MSPI ).u32 * 1000 * get_param(PARAM_JACK_DIST ).u8
+#define DRIVE_TIME get_param(PARAM_DRIVE_MSPF).u32 * 1000 * get_param(PARAM_DRIVE_DIST).u8
+#define DRIVE_DIST get_param(PARAM_DRIVE_TPDF).u32 /   10 * get_param(PARAM_DRIVE_DIST).u8
 
 void control_task(void *param) {
 	esp_task_wdt_add(NULL);
@@ -133,14 +125,6 @@ void control_task(void *param) {
     const TickType_t xFrequency = pdMS_TO_TICKS(50);
     enabled = true;
     
-    
-    
-    for (size_t i = 0; i < N_RELAYS; ++i) {
-	    gpio_reset_pin(    relay_pins[i]);
-        gpio_set_direction(relay_pins[i], GPIO_MODE_OUTPUT);
-        gpio_set_level(    relay_pins[i], 0);           // Force low
-        gpio_hold_dis(     relay_pins[i]);  // CRITICAL: Allow control after wake
-    }
 
     while (enabled) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -149,12 +133,14 @@ void control_task(void *param) {
         fsm_cmd_t cmd;
         while (xQueueReceive(fsm_cmd_queue, &cmd, 0) == pdTRUE) {
             switch (cmd) {
-                case FSM_CMD_STOP:
-                    if (current_state != STATE_IDLE &&
-                        current_state != STATE_UNDO_JACK_START &&
-                        current_state != STATE_UNDO_JACK) {
-                        current_state = STATE_IDLE;
+                case FSM_CMD_START:
+                    if (current_state == STATE_IDLE) {
+						current_state = STATE_MOVE_START_DELAY;
+						set_timer(TRANSITION_DELAY_US);
                     }
+                    break;
+                case FSM_CMD_STOP:
+                    current_state = STATE_IDLE;
                     break;
                 case FSM_CMD_UNDO:
                     if (current_state != STATE_IDLE &&
@@ -245,12 +231,12 @@ void control_task(void *param) {
             default: break;
         }
         
-/*        
+       
 		int64_t elapsed_t = (current_time-timer_start);
 		int64_t total_t = (timer_end-timer_start);
 		int32_t ticks = get_sensor_counter(SENSOR_DRIVE);
-		ESP_LOGI("FSM", "[%d] %lld / %lld ms, %ld ticks", current_state, (long long) elapsed_t, (long long) total_t, (long) ticks);
-*/
+		//ESP_LOGI("FSM", "[%d] %lld / %lld ms, %ld ticks", current_state, (long long) elapsed_t, (long long) total_t, (long) ticks);
+
         // Output control
         switch (current_state) {
             case STATE_IDLE:
@@ -261,52 +247,74 @@ void control_task(void *param) {
                     if (active) reset_shutdown_timer();
                     
                     // prohibit movement past jack limit switch
-                    if (i == BRIDGE_JACK*2+(bridge_polarities[BRIDGE_JACK]>0?0:1) && get_sensor(SENSOR_JACK))
-                    	setRelay(i, false);
-                    else
+                    //if (i == BRIDGE_JACK*2+(bridge_polarities[BRIDGE_JACK]>0?0:1) && get_sensor(SENSOR_JACK))
+                    //	setRelay(i, false);
+                    //else
                     	setRelay(i, active);
                     //if (active) ESP_LOGI("FSM", "RUN CHANNEL %d (%lld %c %lld)", i, (long long) override_times[i], active ? '>':'<', (long long) current_time);
-
+            	
                 }
                 break;
             case STATE_JACK_UP:
-                setBridge(BRIDGE_DRIVE, 0);
-                setBridge(BRIDGE_JACK, +1);
-                setBridge(BRIDGE_AUX,  +1);
+            	// jack up and fluff
+            	setRelay(RELAY_A1, false);
+            	setRelay(RELAY_B1, false);
+            	
+            	setRelay(RELAY_A2, true);
+            	setRelay(RELAY_B2, false);
+            	
+            	setRelay(RELAY_A3, true);
                 reset_shutdown_timer();
                 break;
             case STATE_DRIVE:
-                setBridge(BRIDGE_DRIVE, +1);
-                setBridge(BRIDGE_JACK,   0);
-                setBridge(BRIDGE_AUX,   +1);
+            	// drive and fluff
+            	setRelay(RELAY_A1, true);
+            	setRelay(RELAY_B1, false);
+            	
+            	setRelay(RELAY_A2, false);
+            	setRelay(RELAY_B2, false);
+            	
+            	setRelay(RELAY_A3, true);
                 reset_shutdown_timer();
                 break;
 			case STATE_UNDO_JACK:
             case STATE_JACK_DOWN:
-                setBridge(BRIDGE_DRIVE, 0);
-                setBridge(BRIDGE_JACK, -1);
-                setBridge(BRIDGE_AUX,  +1);
+            	// jack down and fluffer
+            	setRelay(RELAY_A1, false);
+            	setRelay(RELAY_B1, false);
+            	
+            	setRelay(RELAY_A2, false);
+            	setRelay(RELAY_B2, true);
+            	
+            	setRelay(RELAY_A3, true);
                 reset_shutdown_timer();
                 break;
 			case STATE_UNDO_JACK_START:
             case STATE_DRIVE_START_DELAY:
             case STATE_DRIVE_END_DELAY:
-                setBridge(BRIDGE_DRIVE,  0);
-                setBridge(BRIDGE_JACK,   0);
-                setBridge(BRIDGE_AUX,   +1);
+            	// only fluffer
+            	setRelay(RELAY_A1, false);
+            	setRelay(RELAY_B1, false);
+            	
+            	setRelay(RELAY_A2, false);
+            	setRelay(RELAY_B2, false);
+            	
+            	setRelay(RELAY_A3, true);
                 reset_shutdown_timer();
                 break;
-            default: break;
+            default:
+            	// invalid state; turn all relays off
+            	setRelay(RELAY_A1, false);
+            	setRelay(RELAY_B1, false);
+            	setRelay(RELAY_A2, false);
+            	setRelay(RELAY_B2, false);
+            	setRelay(RELAY_A3, false);
+            	break;
         }
 
         driveRelays();
             
         esp_task_wdt_reset();
-    }
-    
-    for (size_t i = 0; i < N_RELAYS; ++i) {
-        gpio_set_level(relay_pins[i], 0);
-        gpio_hold_en(relay_pins[i]);
     }
     
     if (fsm_cmd_queue != NULL) {
@@ -315,9 +323,14 @@ void control_task(void *param) {
     }
 }
 
-void start_fsm() {
+esp_err_t fsm_init() {
     if (fsm_cmd_queue == NULL) {
         fsm_cmd_queue = xQueueCreate(8, sizeof(fsm_cmd_t));
     }
     xTaskCreate(control_task, "FSM", 4096, NULL, 5, NULL);
+
+	return ESP_OK;
 }
+
+
+esp_err_t fsm_stop() { return ESP_OK; }

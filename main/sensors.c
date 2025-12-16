@@ -8,7 +8,7 @@
 
 static const char* TAG = "SENS";
 
-uint8_t sensor_pins[N_SENSORS] = {GPIO_NUM_19, GPIO_NUM_25};
+uint8_t sensor_pins[N_SENSORS] = {GPIO_NUM_27, GPIO_NUM_14};
 
 volatile int32_t sensor_count[N_SENSORS] = {0};
 static volatile uint64_t sensor_last_isr_time[N_SENSORS] = {0};
@@ -43,6 +43,7 @@ static void IRAM_ATTR sensor_isr_handler(void* arg) {
 
 // Debounce task: Processes queue, updates state & count
 static void sensor_debounce_task(void* param) {
+    esp_task_wdt_add(NULL);
     sensor_event_t evt;
     static uint64_t last_processed_time[N_SENSORS] = {0};
     static bool last_raw_state[N_SENSORS] = {false};
@@ -54,8 +55,6 @@ static void sensor_debounce_task(void* param) {
         last_raw_state[i] = level;
         last_processed_time[i] = esp_timer_get_time();
     }
-
-    esp_task_wdt_add(NULL);
     
     
 	uint8_t i = 0;
@@ -117,7 +116,7 @@ static void sensor_debounce_task(void* param) {
     }
 }
 
-void start_sensors() {
+esp_err_t sensors_init() {
     gpio_config_t io_conf = {
         .pin_bit_mask = (1ULL << sensor_pins[0]) | (1ULL << sensor_pins[1]),
         .mode = GPIO_MODE_INPUT,
@@ -130,7 +129,7 @@ void start_sensors() {
     sensor_event_queue = xQueueCreate(16, sizeof(sensor_event_t));
     if (!sensor_event_queue) {
         ESP_LOGE(TAG, "Failed to create sensor queue");
-        return;
+        return ESP_FAIL;
     }
 
     // Install ISR service
@@ -141,15 +140,19 @@ void start_sensors() {
     	sensor_stable_state[i] = !gpio_get_level(sensor_pins[i]);
     }
 
-    xTaskCreate(sensor_debounce_task, "SENS_DEBOUNCE", 3072, NULL, 6, NULL);
+    xTaskCreate(sensor_debounce_task, "SENSORS", 3072, NULL, 6, NULL);
+
+	return ESP_OK;
 }
 
-void shutdown_sensors() {
+esp_err_t sensors_stop() {
     for (uint8_t i = 0; i < N_SENSORS; i++) {
         gpio_isr_handler_remove(sensor_pins[i]);
     }
     gpio_uninstall_isr_service();
     vQueueDelete(sensor_event_queue);
+    
+	return ESP_OK;
 }
 
 // Public API

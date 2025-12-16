@@ -6,7 +6,8 @@
 #include "esp_err.h"
 
 // Public Functions
-esp_err_t i2cdev_init(void);
+esp_err_t i2c_init(void);
+esp_err_t i2c_stop(void);
 
 esp_err_t i2c_set_relays(uint8_t states);
 esp_err_t i2c_set_led1(uint8_t state);

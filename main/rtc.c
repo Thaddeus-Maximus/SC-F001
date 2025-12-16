@@ -28,15 +28,12 @@
 
 //#include "esp32/rtc_clk.h"  // For RTC_SLOW_FREQ_32K_XTAL enum and rtc_clk_slow_freq_set()
 #include "driver/rtc_io.h"  // For RTC I/O handling (optional but recommended for pin configuration)
+#include "solar.h"
 #include "storage.h"
 
 #define PIN_BTN_INTERRUPT GPIO_NUM_13
 
-#define POWER_INACTIVITY_TIMEOUT_MS 20000
-#define BATTERY_CHECK_INTERVAL_SEC  30
 uint64_t last_activity_tick = 0;
-
-#define DEEP_SLEEP_US 30000000ULL /* 30 seconds in deep sleep */
 
 // RTC_DATA_ATTR keeps this var in RTC memory; persists across sleeps (but not across boots)
 RTC_DATA_ATTR int64_t next_alarm_time_s = -1;
@@ -45,7 +42,7 @@ bool rtc_is_set() {
 	return rtc_set;
 }
 
-esp_err_t start_rtc(void) {
+esp_err_t rtc_xtal_init(void) {
     /* ---- Wake sources ---- */
     esp_sleep_enable_ext0_wakeup(PIN_BTN_INTERRUPT, 0);
     gpio_set_direction(PIN_BTN_INTERRUPT, GPIO_MODE_INPUT);
@@ -62,7 +59,7 @@ esp_err_t start_rtc(void) {
     // Select 32 kHz XTAL as slow clock source (wait for stabilization)
     //rtc_clk_slow_freq_set(RTC_SLOW_FREQ_32K_XTAL);
     // Optional: Brief delay for crystal stabilization (typically <1 ms)
-    vTaskDelay(pdMS_TO_TICKS(1));
+    //vTaskDelay(pdMS_TO_TICKS(1));
 
     //ESP_LOGI("RTC", "Configured with external 32 kHz oscillator (freq: %d Hz)", rtc_clk_slow_freq_get_hz());
 
@@ -80,9 +77,9 @@ void reset_shutdown_timer(void)
 void enter_deep_sleep(void)
 {
 	//close_current_log();
-	//fsm_request(FSM_CMD_STOP);
-    i2c_set_relays(0);
-    //esp_sleep_enable_timer_wakeup(DEEP_SLEEP_US);
+	fsm_request(FSM_CMD_STOP);
+    i2c_stop();
+    esp_sleep_enable_timer_wakeup(DEEP_SLEEP_US);
     esp_deep_sleep_start();
 }
 
@@ -91,7 +88,7 @@ void rtc_set_time(struct tm *tm) {
 	start_new_log_file();
 	struct timeval tv = { .tv_sec = mktime(tm), .tv_usec = 0 };
     settimeofday(&tv, NULL);
-    resetBatTimers();
+    reset_solar_fsm();
 }
 
 void rtc_get_time(struct tm *tm)

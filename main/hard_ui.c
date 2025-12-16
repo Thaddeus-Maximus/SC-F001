@@ -12,6 +12,11 @@
 
 
 
+// Debounce & Repeat Settings
+#define DEBOUNCE_MS        50
+#define REPEAT_MS         200
+#define REPEAT_START_MS   700
+
 static uint8_t lcd_col = 0;
 static uint8_t lcd_row = 0;
 

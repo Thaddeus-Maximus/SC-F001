@@ -2,12 +2,16 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "esp_task_wdt.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/uart.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "storage.h"
+#include <errno.h>
+#include <ctype.h>
+#include "rf.h"
 
 #define TAG "UART"
 
@@ -18,6 +22,11 @@
 static char cmd_buffer[CMD_MAX_LEN];
 static int cmd_pos = 0;
 static TaskHandle_t uart_task_handle = NULL;
+
+// TODO: Set Time
+// TODO: Pair Remote
+// TODO: Command Move
+// TODO: Show current sensor values
 
 // Parse value as either decimal or hex (0x prefix)
 static bool parse_uint64(const char *str, uint64_t *result) {
@@ -80,7 +89,7 @@ static void print_param_value(param_idx_t id, param_value_t val) {
             
         case PARAM_TYPE_i64:
             printf("%lld (0x%016llX)\n",
-              (long long)val.i64, (unsigned long long)val.u64);
+              (long long)val.i64, (unsigned long long)val.i64);
             break;
             
         case PARAM_TYPE_f32:
@@ -97,6 +106,54 @@ static void print_param_value(param_idx_t id, param_value_t val) {
             printf("UNKNOWN TYPE\n");
             break;
     }
+}
+
+static esp_err_t parse_param_value(const char *orig_str, param_type_e type, param_value_t *val) {
+    const char *str = orig_str;
+    // Skip leading whitespace
+    while (isspace((unsigned char)*str)) str++;
+
+    // Check for negative sign on unsigned integer types
+    bool is_unsigned_int = (type == PARAM_TYPE_u8 || type == PARAM_TYPE_u16 || type == PARAM_TYPE_u32 || type == PARAM_TYPE_u64);
+    if (is_unsigned_int && *str == '-') {
+        return ESP_FAIL;
+    }
+
+    char *endptr;
+    errno = 0;
+
+    switch (type) {
+        case PARAM_TYPE_u8:
+        case PARAM_TYPE_u16:
+        case PARAM_TYPE_u32:
+        case PARAM_TYPE_u64:
+            val->u64 = strtoull(str, &endptr, 0);
+            break;
+
+        case PARAM_TYPE_i8:
+        case PARAM_TYPE_i16:
+        case PARAM_TYPE_i32:
+        case PARAM_TYPE_i64:
+            val->i64 = strtoll(str, &endptr, 0);
+            break;
+
+        case PARAM_TYPE_f32:
+            val->f32 = strtof(str, &endptr);
+            break;
+
+        case PARAM_TYPE_f64:
+            val->f64 = strtod(str, &endptr);
+            break;
+
+        default:
+            return ESP_FAIL;
+    }
+
+    if (errno == ERANGE || endptr == str || *endptr != '\0') {
+        return ESP_FAIL;
+    }
+
+    return ESP_OK;
 }
 
 // Process set parameter command: sp <id> <value>
@@ -123,16 +180,13 @@ static void cmd_set_param(char *args) {
         return;
     }
     
-    // Parse value
-    uint64_t value;
-    if (!parse_uint64(val_str, &value)) {
+    param_value_t param_val = {0};
+    param_type_e type = get_param_type(id);
+    esp_err_t parse_err = parse_param_value(val_str, type, &param_val);
+    if (parse_err != ESP_OK) {
         printf("ERROR: Invalid value\n");
         return;
     }
-    
-    // Set parameter (store as u64, will be cast appropriately when used)
-    param_value_t param_val;
-    param_val.u64 = value;
     
     esp_err_t err = set_param(id, param_val);
     if (err == ESP_OK) {
@@ -259,6 +313,30 @@ static void cmd_help(char *args) {
     printf("- Parameter IDs range from 0 to %d\n\n", NUM_PARAMS - 1);
 }
 
+static void cmd_rf_learn(char *args) {
+	char *id_str = strtok(args, " \t");
+    
+    if (id_str == NULL) {
+        rf_cancel_learn_keycode();
+        return;
+    }
+    
+    // Parse parameter ID
+    uint64_t id_u64;
+    if (!parse_uint64(id_str, &id_u64)) {
+        printf("ERROR: Invalid parameter ID\n");
+        return;
+    }
+    
+    param_idx_t id = (param_idx_t)id_u64;
+    if (id < 8) {
+		printf("Listening for keycode for slot %d\n", id);
+        rf_learn_keycode(id);
+        return;
+    }
+	printf("ERROR: Keycode slot index out of bounds.\n");
+}
+
 // Parse and execute command
 static void process_command(char *cmd) {
     // Trim leading whitespace
@@ -310,6 +388,8 @@ static void process_command(char *cmd) {
         cmd_list_params(cmd);
     } else if (strcmp(command, "help") == 0) {
         cmd_help(cmd);
+    } else if (strcmp(command, "rfl") == 0) {
+        cmd_rf_learn(cmd);
     } else {
         printf("ERROR: Unknown command '%s' (type 'help' for commands)\n", command);
     }
@@ -317,9 +397,11 @@ static void process_command(char *cmd) {
 
 // UART event task
 void uart_event_task(void *pvParameters) {
+    esp_task_wdt_add(NULL);
     uint8_t data[BUF_SIZE];
     
     while (1) {
+		esp_task_wdt_reset();
         int len = uart_read_bytes(UART_NUM, data, BUF_SIZE - 1, 20 / portTICK_PERIOD_MS);
         
         if (len > 0) {
@@ -364,14 +446,14 @@ void uart_event_task(void *pvParameters) {
     }
 }
 
-void uart_start() {
+esp_err_t uart_init() {
     // Configure UART
     uart_config_t uart_config = {
-        .baud_rate = 115200,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .baud_rate  = 115200,
+        .data_bits  = UART_DATA_8_BITS,
+        .parity     = UART_PARITY_DISABLE,
+        .stop_bits  = UART_STOP_BITS_1,
+        .flow_ctrl  = UART_HW_FLOWCTRL_DISABLE,
         .source_clk = UART_SCLK_DEFAULT,
     };
     
@@ -379,24 +461,25 @@ void uart_start() {
     ESP_ERROR_CHECK(uart_param_config(UART_NUM, &uart_config));
     
     // Print startup message
-    printf("\n\n");
+    /*printf("\n\n");
     printf("=================================\n");
     printf("  ESP32 Parameter Manager\n");
     printf("=================================\n");
     printf("Type 'help' for available commands\n\n");
     printf("> ");
-    fflush(stdout);
+    fflush(stdout);*/
     
     // Create UART task    
     xTaskCreate(uart_event_task, "uart_event_task", 4096, NULL, 12, &uart_task_handle);
     
     ESP_LOGI(TAG, "UART interface started");
+    return ESP_OK;
 }
 
-void uart_stop() {
+esp_err_t uart_stop() {
     if (uart_task_handle == NULL) {
         ESP_LOGW(TAG, "UART task not running");
-        return;
+        return ESP_OK;
     }
     
     ESP_LOGI(TAG, "Shutting down UART...");
@@ -415,4 +498,6 @@ void uart_stop() {
     uart_driver_delete(UART_NUM);
     
     ESP_LOGI(TAG, "UART shutdown complete");
+    
+    return ESP_OK;
 }

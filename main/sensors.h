@@ -27,7 +27,7 @@ int32_t get_sensor_counter(sensor_t i);
 
 bool get_sensor(sensor_t i);
 
-void start_sensors();
-void shutdown_sensors();
+esp_err_t sensors_init();
+esp_err_t sensors_stop();
 
 #endif /* MAIN_SENSORS_H_ */

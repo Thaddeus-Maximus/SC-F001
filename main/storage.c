@@ -5,7 +5,7 @@
 #include "esp_crc.h"
 #include "storage.h"
 
-#define TAG "PARAMS"
+#define TAG "STORAGE"
 
 // ============================================================================
 // PARAMETER TABLE GENERATION
@@ -301,7 +301,7 @@ esp_err_t write_log(char* entry) {
         return ESP_FAIL;
     }
     
-    ESP_LOGI(TAG, "Log @ sector %lu / index %lu / offset %lu", (unsigned long) current_sector, (unsigned long) log_head_index, (unsigned long)current_offset);
+    //ESP_LOGI(TAG, "Log @ sector %lu / index %lu / offset %lu", (unsigned long) current_sector, (unsigned long) log_head_index, (unsigned long)current_offset);
     
     
     log_head_index++;

@@ -24,7 +24,7 @@
 #define TCA_REG_CONFIG1   0x07
 
 // Debounce & Repeat Settings
-#define DEBOUNCE_MS       50
+#define DEBOUNCE_MS        50
 #define REPEAT_MS         200
 #define REPEAT_START_MS   700
 
@@ -45,7 +45,7 @@ static esp_err_t tca_read_word(uint8_t reg, uint16_t *value) {
     return ret;
 }
 
-esp_err_t i2cdev_init(void) {
+esp_err_t i2c_init(void) {
     if (i2c_initted) return ESP_OK;
 
     i2c_config_t conf = {
@@ -73,6 +73,13 @@ esp_err_t i2c_set_relays(uint8_t states) {
 esp_err_t i2c_set_led1(uint8_t state) {
 	// push 3 LSB to top
 	return tca_write_word_8(TCA_REG_OUTPUT0, state<<5);
+}
+
+esp_err_t i2c_stop() {
+	if (!i2c_initted) return ESP_OK;
+	i2c_set_relays(0);
+	i2c_set_led1(0);
+	return ESP_OK;
 }
 
 #define N_BTNS 2

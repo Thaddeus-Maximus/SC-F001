@@ -2,7 +2,7 @@
 # for more information about component CMakeLists.txt files.
 
 idf_component_register(
-    SRCS main.c i2c.c rtc.c storage.c uart_comms.c # list the source files of this component
+    SRCS main.c i2c.c rtc.c storage.c uart_comms.c control_fsm.c power_mgmt.c rf.c rtc.c sensors.c solar.c # list the source files of this component
     INCLUDE_DIRS        # optional, add here public include directories
     PRIV_INCLUDE_DIRS   # optional, add here private include directories
     REQUIRES            # optional, list the public requirements (component names)

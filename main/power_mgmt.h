@@ -8,27 +8,22 @@
 #ifndef MAIN_POWER_MGMT_H_
 #define MAIN_POWER_MGMT_H_
 
+#include "control_fsm.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include "esp_err.h"
 
-typedef enum {
-	CHG_STATE_OFF = 0,
-	CHG_STATE_FLOAT = 1,
-	CHG_STATE_BULK = 2
-} charge_state_t;
-#define N_CHARGE_STATES 3
 
-charge_state_t get_charging_state();
+//void efuse_reset_all(void);               // Clear all trip states (manual/programmatic reset)
+bool efuse_is_tripped(bridge_t bridge);    // Query if bridge is currently faulted
 
-void resetBatTimers();
+float get_bridge_A(bridge_t bridge);
+float get_battery_V();
 
-void efuse_reset_all(void);               // Clear all trip states (manual/programmatic reset)
-bool efuse_is_tripped(uint8_t bridge);    // Query if bridge is currently faulted
+void set_autozero(bridge_t bridge);
 
-int32_t get_bridge_mA(uint8_t bridge);
-int32_t get_battery_mV();
-
-void start_power();
-void shutdown_power();
+esp_err_t adc_init();
+esp_err_t power_init();
+esp_err_t power_stop();
 
 #endif /* MAIN_POWER_MGMT_H_ */

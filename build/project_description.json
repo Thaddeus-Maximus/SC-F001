@@ -1,7 +1,7 @@
 {
     "version":            "1.1",
     "project_name":       "app-template",
-    "project_version":    "12092de-dirty",
+    "project_version":    "856cc05-dirty",
     "project_path":       "C:/data/stockcropper-sw-playground/SC-F001",
     "idf_path":           "C:/Espressif/frameworks/esp-idf-v5.3.1",
     "build_dir":          "C:/data/stockcropper-sw-playground/SC-F001/build",
@@ -1240,7 +1240,7 @@
             "managed_reqs": [],
             "managed_priv_reqs": [ "esp-idf-lib__tca95x5", "joltwallet__littlefs" ],
             "file": "C:/data/stockcropper-sw-playground/SC-F001/build/esp-idf/main/libmain.a",
-            "sources": [ "C:/data/stockcropper-sw-playground/SC-F001/main/main.c", "C:/data/stockcropper-sw-playground/SC-F001/main/i2c.c", "C:/data/stockcropper-sw-playground/SC-F001/main/rtc.c", "C:/data/stockcropper-sw-playground/SC-F001/main/storage.c", "C:/data/stockcropper-sw-playground/SC-F001/main/uart_comms.c" ],
+            "sources": [ "C:/data/stockcropper-sw-playground/SC-F001/main/main.c", "C:/data/stockcropper-sw-playground/SC-F001/main/i2c.c", "C:/data/stockcropper-sw-playground/SC-F001/main/rtc.c", "C:/data/stockcropper-sw-playground/SC-F001/main/storage.c", "C:/data/stockcropper-sw-playground/SC-F001/main/uart_comms.c", "C:/data/stockcropper-sw-playground/SC-F001/main/control_fsm.c", "C:/data/stockcropper-sw-playground/SC-F001/main/power_mgmt.c", "C:/data/stockcropper-sw-playground/SC-F001/main/rf.c", "C:/data/stockcropper-sw-playground/SC-F001/main/sensors.c", "C:/data/stockcropper-sw-playground/SC-F001/main/solar.c" ],
             "include_dirs": []
         },
         "mbedtls": {

@@ -18,16 +18,14 @@
 #include "esp_err.h"
 
 
-#define TRANSITION_DELAY_US 1000000
-#define OVERRIDE_PULSE_RF 160000
-#define OVERRIDE_PULSE_UX  80000
-
+#define POWER_INACTIVITY_TIMEOUT_MS 180000
+#define DEEP_SLEEP_US 120000000ULL /* 120 seconds in deep sleep */
 
 /* -------------------------------------------------------------------------- */
 /*  Public API                                                                */
 /* -------------------------------------------------------------------------- */
 
-esp_err_t start_rtc();
+esp_err_t rtc_xtal_init();
 
 bool rtc_is_set();
 
