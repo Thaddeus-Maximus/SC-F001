@@ -37,12 +37,21 @@ bool relay_states[8] = {false};
 int64_t override_times[8] = {-1};
 bool enabled = false;
 
+
+
+
+volatile fsm_state_t current_state = STATE_IDLE;
+volatile int64_t current_time = 0;
+volatile bool start_running_request = false;
+
 void setRelay(int8_t relay, bool state) {
 	relay_states[relay] = state;
 }
 
 void driveRelays() {
 	uint8_t state = 0x00;
+	relay_states[0] = (current_time / 1000000) % 2; 
+	
 	for (uint8_t i=0; i<8; i++) {
 		// if we command and efuse permits it set the relay
 		if (relay_states[i] && !efuse_is_tripped(bridge_map[i])) {
@@ -50,13 +59,10 @@ void driveRelays() {
 			set_autozero(bridge_map[i]);
 		}
 	}
+	
+	ESP_LOGI(TAG, "RELAY STATE: %x", state);
 	i2c_set_relays(state);
 }
-
-
-volatile fsm_state_t current_state = STATE_IDLE;
-volatile int64_t current_time = 0;
-volatile bool start_running_request = false;
 
 
 
