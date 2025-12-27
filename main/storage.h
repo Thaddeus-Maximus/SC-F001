@@ -122,8 +122,8 @@ extern const char* parameter_names[NUM_PARAMS];
 esp_err_t storage_init();
 esp_err_t log_init();
 
-param_value_t get_param(param_idx_t id);
-esp_err_t set_param(param_idx_t id, param_value_t val);
+param_value_t get_param_value_t(param_idx_t id);
+esp_err_t set_param_value_t(param_idx_t id, param_value_t val);
 param_type_e get_param_type(param_idx_t id);
 const char* get_param_name(param_idx_t id);
 param_value_t get_param_default(param_idx_t id);

@@ -11,7 +11,7 @@
 #include "storage.h"
 #include <errno.h>
 #include <ctype.h>
-#include "rf.h"
+#include "rf_433.h"
 
 #define TAG "UART"
 
@@ -188,7 +188,7 @@ static void cmd_set_param(char *args) {
         return;
     }
     
-    esp_err_t err = set_param(id, param_val);
+    esp_err_t err = set_param_value_t(id, param_val);
     if (err == ESP_OK) {
         printf("OK: Parameter %u (%s) set to ",
           id, get_param_name(id));
@@ -223,7 +223,7 @@ static void cmd_get_param(char *args) {
     }
     
     // Get parameter
-    param_value_t val = get_param(id);
+    param_value_t val = get_param_value_t(id);
     printf("Parameter %u (%s) = ", id, get_param_name(id));
     print_param_value(id, val);
 }
@@ -262,7 +262,7 @@ static void cmd_reset_param(char *args) {
     
     // Reset to default
     param_value_t default_val = get_param_default(id);
-    esp_err_t err = set_param(id, default_val);
+    esp_err_t err = set_param_value_t(id, default_val);
     
     if (err == ESP_OK) {
         printf("OK: Parameter %u (%s) reset to default: ",
@@ -287,7 +287,7 @@ static void cmd_list_params(char *args) {
     };
     
     for (int i = 0; i < NUM_PARAMS; i++) {
-        param_value_t val = get_param(i);
+        param_value_t val = get_param_value_t(i);
         param_type_e type = get_param_type(i);
         
         printf("%-3d | %-17s | %-4s | ", i, get_param_name(i), type_names[type]);
@@ -317,7 +317,7 @@ static void cmd_rf_learn(char *args) {
 	char *id_str = strtok(args, " \t");
     
     if (id_str == NULL) {
-        rf_cancel_learn_keycode();
+        rf_433_cancel_learn_keycode();
         return;
     }
     
@@ -331,7 +331,7 @@ static void cmd_rf_learn(char *args) {
     param_idx_t id = (param_idx_t)id_u64;
     if (id < 8) {
 		printf("Listening for keycode for slot %d\n", id);
-        rf_learn_keycode(id);
+        rf_433_learn_keycode(id);
         return;
     }
 	printf("ERROR: Keycode slot index out of bounds.\n");

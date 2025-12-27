@@ -1,0 +1,28 @@
+<!doctype html><title>Control Panel</title><style>*{color:#eee;background-color:#111;font-family:sans-serif}input{text-align:right;box-sizing:border-box;background-color:#333;border:1px solid #666;width:100%;font-family:monospace}.changed{color:#111!important;background-color:#3d3!important}#commit_btn{color:#111;cursor:pointer;background-color:#3d3;border:none;width:100%;margin-top:10px;padding:10px;font-weight:700}#commit_btn[disabled]{color:#888;cursor:not-allowed;background-color:#444}table{border-collapse:collapse;width:100%}td{border-bottom:1px solid #222;padding:8px}tr:hover{background-color:#1a1a1a}</style></head><body><table id=table><tr><td>-</td><td>System Time</td><td><input id=in_time onchange=markChanged(this) step=1 type=datetime-local></td><td></td></tr><tr><td colspan=4><button disabled id=commit_btn onclick=commit_params()>Save Changes</button></td></tr></table><input accept=.bin id=firmware_file type=file><button id=upload_btn onclick=uploadFirmware()>Upload Firmware</button><script>let param_values=[];const param_names=[`Drive Distance`,`TPDF`,`Efuse Amt`,`Gain`,`Offset`],param_units=[`in`,`ft`,`in`,`V`,`ms`];function ge(x){return document.getElementById(x)}
+// Highlight changed inputs and enable the save button
+function markChanged(el){el.classList.add(`changed`),ge(`commit_btn`).disabled=!1}
+// --- 1. GET DATA ---
+function fetchStatus(){let xhr=new XMLHttpRequest;xhr.open(`GET`,`http://192.168.4.1/status`,!0),xhr.onload=function(){if(xhr.status===200)try{console.log(xhr.responseText);let data=JSON.parse(xhr.responseText);
+// Update time field if available
+if(data.time){let date=(/* @__PURE__ */ new Date(data.time*1e3)).toISOString().slice(0,19);ge(`in_time`).value=date}
+// Store values (default to empty array if missing)
+param_values=data.params||[]}catch(e){console.error(`Error parsing JSON`,e)}
+// Always render table even if request fails or data is empty
+renderTable()},xhr.onerror=function(e){console.error(`Network error`,e),renderTable()},xhr.send()}function renderTable(){let table=ge(`table`);
+// Clear existing parameter rows (rows between index 0 and the last row)
+for(;table.rows.length>2;)table.deleteRow(1);
+// Loop through the NAMES array to ensure every input is shown
+param_names.forEach((name,i)=>{let row=table.insertRow(table.rows.length-1);row.innerHTML=`
+                    <td>${i}</td>
+                    <td>${name}</td>
+                    <td><input type="text" id="in_${i}" value="${param_values[i]!==void 0&&param_values[i]!==null?param_values[i]:`null`}" oninput="markChanged(this)"></td>
+                    <td>${param_units[i]||``}</td>
+                `})}
+// --- 2. POST DATA ---
+function commit_params(){ge(`commit_btn`).disabled=!0,document.querySelectorAll(`input.changed`).forEach(input=>{let xhr=new XMLHttpRequest;if(input.id===`in_time`){
+// Time handling
+let epoch=Math.floor(new Date(input.value).getTime()/1e3);xhr.open(`POST`,`http://192.168.4.1/st`,!0),xhr.setRequestHeader(`Content-Type`,`application/json`),xhr.send(JSON.stringify({time:epoch})),input.classList.remove(`changed`)}else{
+// Parameter handling
+let id=input.id.split(`_`)[1],val=input.value.toLowerCase()===`null`?null:parseFloat(input.value);xhr.open(`POST`,`/sp`,!0),xhr.setRequestHeader(`Content-Type`,`application/json`),xhr.onload=function(){xhr.status===200&&input.classList.remove(`changed`)},xhr.send(JSON.stringify({id:parseInt(id),value:val}))}})}function uploadFirmware(){let fileInput=ge(`firmware_file`);if(!fileInput.files.length){alert(`No file selected`);return}let file=fileInput.files[0],xhr=new XMLHttpRequest;xhr.open(`POST`,`http://192.168.4.1/ota`,!0),xhr.setRequestHeader(`Content-Type`,`application/octet-stream`),xhr.onload=function(){xhr.status===200?alert(`Upload successful. Device may reboot.`):alert(`Upload failed: `+xhr.status)},xhr.onerror=function(){alert(`Network error during upload`)},xhr.send(file)}
+// Initial Load
+window.onload=fetchStatus;</script></body></html>

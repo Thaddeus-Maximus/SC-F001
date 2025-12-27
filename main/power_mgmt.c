@@ -123,7 +123,7 @@ esp_err_t process_battery_voltage(void)
         ema_battery = (float)raw;
         ema_battery_init = true;
     } else {
-		float alpha = get_param(PARAM_ADC_ALPHA_BATTERY).f32;
+		float alpha = get_param_value_t(PARAM_ADC_ALPHA_BATTERY).f32;
 		if (isnan(raw)) {
 			ESP_LOGI(TAG, "RAW BATTERY IS NAN");
 		} else {
@@ -182,7 +182,7 @@ esp_err_t process_bridge_current(bridge_t bridge) {
         channel->ema_current = (float)raw_a;
         channel->ema_init = true;
     } else {
-        float alpha = get_param(PARAM_ADC_ALPHA_ISENS).f32;
+        float alpha = get_param_value_t(PARAM_ADC_ALPHA_ISENS).f32;
 		if (isnan(raw_a)) {
 			ESP_LOGI(TAG, "RAW BATTERY IS NAN");
 			channel->ema_current = NAN;
@@ -197,14 +197,14 @@ esp_err_t process_bridge_current(bridge_t bridge) {
     // === AUTO-ZERO LEARNING PHASE ===
     if (now > channel->az_enable_time) {
 		//ESP_LOGI(TAG, "AZING %d", bridge);
-		float db = get_param(PARAM_ADC_DB_IAZ).f32;
+		float db = get_param_value_t(PARAM_ADC_DB_IAZ).f32;
         if (isnan(db) || fabsf(channel->ema_current) <= db) {
             // Valid zero sample
             if (!channel->az_initialized) {
                 channel->az_offset = channel->ema_current;
                 channel->az_initialized = true;
             } else {
-                float alpha = get_param(PARAM_ADC_ALPHA_IAZ).f32;
+                float alpha = get_param_value_t(PARAM_ADC_ALPHA_IAZ).f32;
 				if (isnan(raw_a)) {
 					ESP_LOGI(TAG, "RAW BATTERY IS NAN");
 				} else {
@@ -231,13 +231,13 @@ esp_err_t process_bridge_current(bridge_t bridge) {
 	float I_nominal = NAN;
 	switch(bridge) {
 		case BRIDGE_DRIVE:
-			I_nominal = get_param(PARAM_EFUSE_INOM_1).f32;
+			I_nominal = get_param_value_t(PARAM_EFUSE_INOM_1).f32;
 			break;
 		case BRIDGE_JACK:
-			I_nominal = get_param(PARAM_EFUSE_INOM_2).f32;
+			I_nominal = get_param_value_t(PARAM_EFUSE_INOM_2).f32;
 			break;
 		case BRIDGE_AUX:
-			I_nominal = get_param(PARAM_EFUSE_INOM_3).f32;
+			I_nominal = get_param_value_t(PARAM_EFUSE_INOM_3).f32;
 			break;
 	}
 	
@@ -245,7 +245,7 @@ esp_err_t process_bridge_current(bridge_t bridge) {
     float I_norm = fabsf(channel->current / I_nominal);
 
     // Instant trip on extreme overcurrent
-    if (I_norm >= get_param(PARAM_EFUSE_KINST).f32) {
+    if (I_norm >= get_param_value_t(PARAM_EFUSE_KINST).f32) {
         channel->tripped = true;
         channel->trip_time = now;
 		ESP_LOGI(TAG, "FUSE TRIP: Inom: %+.5f HEAT:%+2.5f", I_norm, channel->heat);
@@ -259,7 +259,7 @@ esp_err_t process_bridge_current(bridge_t bridge) {
     if (I_norm < 1.0f) {
 		// if we are hot we radiate more heat
 		// (I^2/I^2*t) * (1/t) * t = I^2/I^2*t
-        channel->heat -= channel->heat * get_param(PARAM_EFUSE_TAUCOOL).f32 * UPDATE_S;
+        channel->heat -= channel->heat * get_param_value_t(PARAM_EFUSE_TAUCOOL).f32 * UPDATE_S;
         channel->heat = fmaxf(0.0f, channel->heat); // keep it from going negative
         // channel.tripped = false;  // Auto-clear if cooled (WTF why this is insane)
     }
@@ -267,7 +267,7 @@ esp_err_t process_bridge_current(bridge_t bridge) {
     // If built-up heat exceeds the time limit, trip
     // Recall units of heat are (current_actual^2/current_nominal^2)*time
     // Ergo, heat is measured in seconds
-    if (channel->heat > get_param(PARAM_EFUSE_HEAT_THRESH).f32) {
+    if (channel->heat > get_param_value_t(PARAM_EFUSE_HEAT_THRESH).f32) {
 		channel->tripped = true;
 		channel->trip_time = now;
 		
@@ -275,7 +275,7 @@ esp_err_t process_bridge_current(bridge_t bridge) {
 	// And enough time has passed
 	// Go ahead and reset the e-fuse
 	} else if (channel->tripped &&
-		(now - channel->trip_time) > get_param(PARAM_EFUSE_TCOOL).i64) {
+		(now - channel->trip_time) > get_param_value_t(PARAM_EFUSE_TCOOL).i64) {
 			channel->tripped = false;
 			// channel.heat = 0.0f // I think we should wait for the e-fuse to catch up
 	}

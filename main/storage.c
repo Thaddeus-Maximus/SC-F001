@@ -59,7 +59,7 @@ static bool log_initialized = false;
 // PARAMETER FUNCTIONS
 // ============================================================================
 
-param_value_t get_param(param_idx_t id) {
+param_value_t get_param_value_t(param_idx_t id) {
     if (id >= NUM_PARAMS) {
         ESP_LOGE(TAG, "Invalid parameter ID: %d", id);
         param_value_t err = {0};
@@ -68,7 +68,7 @@ param_value_t get_param(param_idx_t id) {
     return parameter_table[id];
 }
 
-esp_err_t set_param(param_idx_t id, param_value_t val) {
+esp_err_t set_param_value_t(param_idx_t id, param_value_t val) {
     if (id >= NUM_PARAMS) {
         ESP_LOGE(TAG, "Invalid parameter ID: %d", id);
         return ESP_ERR_INVALID_ARG;

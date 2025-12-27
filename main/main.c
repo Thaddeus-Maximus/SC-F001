@@ -10,7 +10,8 @@
 #include "rtc.h"
 #include "sensors.h"
 #include "solar.h"
-#include "rf.h"
+#include "rf_433.h"
+#include "webserver.h"
 
 #define TAG "MAIN"
 
@@ -140,9 +141,10 @@ void app_main(void) {
     /*** FULL BOOT ***/
     if (uart_init()    != ESP_OK) ESP_LOGE(TAG, "UART FAILED");
     if (power_init()   != ESP_OK) ESP_LOGE(TAG, "POWER FAILED");
-    if (rf_init()      != ESP_OK) ESP_LOGE(TAG, "RF FAILED");
+    if (rf_433_init()  != ESP_OK) ESP_LOGE(TAG, "RF FAILED");
     if (fsm_init()     != ESP_OK) ESP_LOGE(TAG, "FSM FAILED");
     if (sensors_init() != ESP_OK) ESP_LOGE(TAG, "SENSORS FAILED");
+    if (webserver_init() != ESP_OK) ESP_LOGE(TAG, "WEBSERVER FAILED");
 
     /*** MAIN LOOP ***/
     

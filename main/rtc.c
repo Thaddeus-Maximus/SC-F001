@@ -24,7 +24,6 @@
 #include "freertos/task.h"
 #include "i2c.h"
 #include "rtc_wdt.h"
-#include "filemgmt.h"
 
 //#include "esp32/rtc_clk.h"  // For RTC_SLOW_FREQ_32K_XTAL enum and rtc_clk_slow_freq_set()
 #include "driver/rtc_io.h"  // For RTC I/O handling (optional but recommended for pin configuration)
@@ -85,7 +84,6 @@ void enter_deep_sleep(void)
 
 void rtc_set_time(struct tm *tm) {
 	rtc_set = true;
-	start_new_log_file();
 	struct timeval tv = { .tv_sec = mktime(tm), .tv_usec = 0 };
     settimeofday(&tv, NULL);
     reset_solar_fsm();

@@ -15,7 +15,7 @@
 #include "driver/rmt_rx.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
-#include "rf.h"
+#include "rf_433.h"
 
 #include "storage.h"
 
@@ -51,7 +51,7 @@ static bool rfrx_done(rmt_channel_handle_t channel, const rmt_rx_done_event_data
 }
 
 // Task that receives and decodes RF signals
-static void rf_receiver_task(void* param) {
+static void rf_433_receiver_task(void* param) {
 	esp_task_wdt_add(NULL);
 	esp_log_level_set("rmt", ESP_LOG_NONE); // disable rmt messages about hw buffer too small
     const uint16_t tlow = (P_HIGH - P_LOW - (2 * P_MARGIN));
@@ -137,7 +137,7 @@ static void rf_receiver_task(void* param) {
 					ESP_LOGI(TAG, "GOT KEYCODE 0x%lx [%d]", (long) code, len);
 					
 					if (learn_flag >= 0) {
-						set_param(PARAM_KEYCODE_0 + learn_flag,
+						set_param_value_t(PARAM_KEYCODE_0 + learn_flag,
 						  (param_value_t){.i64 = encoded});
 						ESP_LOGI(TAG, "LEARNED KEYCODE");
 						learn_flag = -1;
@@ -156,7 +156,7 @@ static void rf_receiver_task(void* param) {
 	                    
 	                    
 	                    for (uint8_t i = 0; i < NUM_RF_BUTTONS; i++) {
-							int64_t match = get_param(PARAM_KEYCODE_0+i).i64;
+							int64_t match = get_param_value_t(PARAM_KEYCODE_0+i).i64;
 				            if (encoded == match) {
 								switch (i) {
 									case 0: pulseOverride(RELAY_A1); pulseOverride(RELAY_A3); break;
@@ -216,36 +216,36 @@ static void rf_receiver_task(void* param) {
     vTaskDelete(NULL);
 }
 
-esp_err_t rf_init() {
+esp_err_t rf_433_init() {
     g_code_queue = xQueueCreate(5, sizeof(rf_code_t));
     assert(g_code_queue);
     
-    xTaskCreate(rf_receiver_task, TAG, 4096, NULL, 10, NULL);
+    xTaskCreate(rf_433_receiver_task, TAG, 4096, NULL, 10, NULL);
 
 	return ESP_OK;
 }
-esp_err_t rf_stop() { return ESP_OK; }
+esp_err_t rf_433_stop() { return ESP_OK; }
 
-void rf_set_keycode(uint8_t index, int64_t code) {
-	set_param(PARAM_KEYCODE_0+index, (param_value_t){.i64=code});
+void rf_433_set_keycode(uint8_t index, int64_t code) {
+	set_param_value_t(PARAM_KEYCODE_0+index, (param_value_t){.i64=code});
 }
 
-void rf_learn_keycode(uint8_t index) {
+void rf_433_learn_keycode(uint8_t index) {
 	if (index >= 8) return;
 	learn_flag = index;
 }
-void rf_cancel_learn_keycode() {
+void rf_433_cancel_learn_keycode() {
 	learn_flag = -1;
 }
 
-int8_t rf_get_keycode() {
+/*int8_t rf_433_get_keycode() {
 	rf_code_t received_code;
 	
 	if (xQueueReceive(g_code_queue, &received_code, 0)  == pdPASS) {
 		int64_t newcode = ((int64_t)received_code.num_symbols << 56) | received_code.code;
 		
 		for (uint8_t i = 0; i < NUM_RF_BUTTONS; i++) {
-            if (newcode == get_param(PARAM_KEYCODE_0+i).i64)
+            if (newcode == get_param_value_t(PARAM_KEYCODE_0+i).i64)
                 return i;
         }
         ESP_LOGI("RF", "Received unknown code 0x%08lx (%d) [0x%16llx]", (unsigned long)received_code.code, received_code.num_symbols, (unsigned long long) newcode);
@@ -253,7 +253,7 @@ int8_t rf_get_keycode() {
 	return -1;
 }
 
-int64_t rf_get_raw_keycode() {
+int64_t rf_433_get_raw_keycode() {
 	rf_code_t received_code;
 	int64_t code = -1;
     if (xQueueReceive(g_code_queue, &received_code, 0) == pdPASS) {
@@ -261,8 +261,8 @@ int64_t rf_get_raw_keycode() {
 		//ESP_LOGI("RF", "Raw Code 0x%08lx (%d) [0x%16llx]", (unsigned long)received_code.code, received_code.num_symbols, (unsigned long long) code);
     }
     return code;
-}
+}*/
 
-void rf_clear_queue() {
+void rf_433_clear_queue() {
 	xQueueReset(g_code_queue);
 }

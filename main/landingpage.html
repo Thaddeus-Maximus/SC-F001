@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Control Panel</title>
+    <style>
+        * { background-color: #111; color: #eee; font-family: sans-serif; }
+        input { border: 1px solid #666; background-color: #333; font-family: monospace; text-align: right; width: 100%; box-sizing: border-box; }
+        .changed { background-color: #3d3 !important; color: #111 !important; }
+        #commit_btn { width: 100%; background-color: #3d3; color: #111; margin-top: 10px; padding: 10px; cursor: pointer; border: none; font-weight: bold; }
+        #commit_btn[disabled] { background-color: #444; color: #888; cursor: not-allowed; }
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 8px; border-bottom: 1px solid #222; }
+        tr:hover { background-color: #1a1a1a; }
+    </style>
+</head>
+<body>
+
+    <table id="table">
+        <tr>
+            <td>-</td>
+            <td>System Time</td>
+            <td><input type="datetime-local" id="in_time" step="1" onchange="markChanged(this)"/></td>
+            <td></td>
+        </tr>
+        <tr><td colspan="4"><button id="commit_btn" onclick="commit_params()" disabled>Save Changes</button></td></tr>
+    </table>
+    
+    <input type="file" id="firmware_file" accept=".bin">
+	<button id="upload_btn" onclick="uploadFirmware()">Upload Firmware</button>
+
+    <script>
+        let param_values = [];
+        const param_names = ["Drive Distance", "TPDF", "Efuse Amt", "Gain", "Offset"];
+        const param_units = ["in", "ft", "in", "V", "ms"];
+
+        function ge(x) { return document.getElementById(x); }
+
+        // Highlight changed inputs and enable the save button
+        function markChanged(el) {
+            el.classList.add("changed");
+            ge('commit_btn').disabled = false;
+        }
+
+        // --- 1. GET DATA ---
+        function fetchStatus() {
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", "http://192.168.4.1/status", true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    try {
+                    	console.log(xhr.responseText);
+                        const data = JSON.parse(xhr.responseText);
+                        
+                        // Update time field if available
+                        if(data.time) {
+                            const date = new Date(data.time * 1000).toISOString().slice(0, 19);
+                            ge('in_time').value = date;
+                        }
+
+                        // Store values (default to empty array if missing)
+                        param_values = data.params || [];
+                    } catch(e) {
+                        console.error("Error parsing JSON", e);
+                    }
+                }
+                // Always render table even if request fails or data is empty
+                renderTable();
+            };
+            xhr.onerror = function(e) {
+                console.error("Network error", e);
+                renderTable(); 
+            };
+            xhr.send();
+        }
+
+        function renderTable() {
+            const table = ge("table");
+            // Clear existing parameter rows (rows between index 0 and the last row)
+            while(table.rows.length > 2) { table.deleteRow(1); }
+
+            // Loop through the NAMES array to ensure every input is shown
+            param_names.forEach((name, i) => {
+                let row = table.insertRow(table.rows.length - 1);
+                
+                // If the server didn't send a value for this index, show "null"
+                let val = (param_values[i] !== undefined && param_values[i] !== null) 
+                          ? param_values[i] 
+                          : "null";
+
+                row.innerHTML = `
+                    <td>${i}</td>
+                    <td>${name}</td>
+                    <td><input type="text" id="in_${i}" value="${val}" oninput="markChanged(this)"></td>
+                    <td>${param_units[i] || ""}</td>
+                `;
+            });
+        }
+
+        // --- 2. POST DATA ---
+        function commit_params() {
+            ge('commit_btn').disabled = true;
+            const changedInputs = document.querySelectorAll('input.changed');
+            
+            changedInputs.forEach(input => {
+                const xhr = new XMLHttpRequest();
+                
+                if (input.id === "in_time") {
+                    // Time handling
+                    const epoch = Math.floor(new Date(input.value).getTime() / 1000);
+                    xhr.open("POST", "http://192.168.4.1/st", true);
+                    xhr.setRequestHeader("Content-Type", "application/json");
+                    xhr.send(JSON.stringify({ time: epoch }));
+                    input.classList.remove("changed");
+                } else {
+                    // Parameter handling
+                    const id = input.id.split('_')[1];
+                    // If the user typed "null", we send null; otherwise parse as float
+                    const val = (input.value.toLowerCase() === "null") ? null : parseFloat(input.value);
+                    
+                    xhr.open("POST", "/sp", true);
+                    xhr.setRequestHeader("Content-Type", "application/json");
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            input.classList.remove("changed");
+                        }
+                    };
+                    xhr.send(JSON.stringify({ id: parseInt(id), value: val }));
+                }
+            });
+        }
+        
+        function uploadFirmware() {
+		    const fileInput = ge('firmware_file');
+		    if (!fileInput.files.length) {
+		        alert('No file selected');
+		        return;
+		    }
+		    const file = fileInput.files[0];
+		    const xhr = new XMLHttpRequest();
+		    xhr.open("POST", "http://192.168.4.1/ota", true);
+		    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+		    xhr.onload = function() {
+		        if (xhr.status === 200) {
+		            alert('Upload successful. Device may reboot.');
+		        } else {
+		            alert('Upload failed: ' + xhr.status);
+		        }
+		    };
+		    xhr.onerror = function() {
+		        alert('Network error during upload');
+		    };
+		    xhr.send(file);
+		}
+
+        // Initial Load
+        window.onload = fetchStatus;
+    </script>
+</body>
+</html>

@@ -50,18 +50,18 @@ esp_err_t run_solar_fsm() {
 	//if (rtc_is_set()) {
 		switch(current_charge_state) {
 			case CHG_STATE_BULK:
-				if (now > timer+get_param(PARAM_CHG_BULK_S).i64) {
+				if (now > timer+get_param_value_t(PARAM_CHG_BULK_S).i64) {
 					current_charge_state = CHG_STATE_FLOAT;
 				}
 				
 				break;
 			case CHG_STATE_FLOAT:
 				// if we have sufficient voltage, reset the timer
-				if (vbat > get_param(PARAM_CHG_LOW_V).f32) {
+				if (vbat > get_param_value_t(PARAM_CHG_LOW_V).f32) {
 					timer = now;
 				}
 			
-				if (now > timer+get_param(PARAM_CHG_LOW_S).i64) {
+				if (now > timer+get_param_value_t(PARAM_CHG_LOW_S).i64) {
 					timer = now;
 					current_charge_state = CHG_STATE_BULK;	
 				}
