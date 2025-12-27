@@ -50,7 +50,7 @@ void setRelay(int8_t relay, bool state) {
 
 void driveRelays() {
 	uint8_t state = 0x00;
-	relay_states[0] = (current_time / 1000000) % 2; 
+	//relay_states[0] = (current_time / 1000000) % 2; // for testing purposes
 	
 	for (uint8_t i=0; i<8; i++) {
 		// if we command and efuse permits it set the relay
@@ -60,7 +60,7 @@ void driveRelays() {
 		}
 	}
 	
-	ESP_LOGI(TAG, "RELAY STATE: %x", state);
+	//ESP_LOGI(TAG, "RELAY STATE: %x", state);
 	i2c_set_relays(state);
 }
 

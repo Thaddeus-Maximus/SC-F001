@@ -29,6 +29,8 @@
 //#include "mdns.h"
 #include "webpage.h"
 
+#include "esp_partition.h"
+
 
 #define HOSTNAME "sc.local"
 #define SOFT_AP_SSID "stockcropper"
@@ -54,9 +56,39 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
 
 static esp_err_t log_get_handler(httpd_req_t *req) {
     ESP_LOGI(TAG, "log_get_handler");
-    // Send the HTML response
-    httpd_resp_set_type(req, "text/html");
-    return httpd_resp_send(req, html_content, HTTPD_RESP_USE_STRLEN);
+
+    const esp_partition_t *storage_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "storage");
+    if (storage_partition == NULL) {
+        ESP_LOGE(TAG, "Storage partition not found");
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Storage partition not found");
+    }
+
+    size_t total_size = storage_partition->size;
+    char len_str[16];
+    sprintf(len_str, "%u", (unsigned)total_size);
+    httpd_resp_set_type(req, "application/octet-stream");
+    httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"sc_storage.bin\"");
+    httpd_resp_set_hdr(req, "Content-Length", len_str);
+
+    uint8_t buf[1024];
+    size_t offset = 0;
+    while (offset < total_size) {
+        size_t to_read = MIN(sizeof(buf), total_size - offset);
+        esp_err_t err = esp_partition_read(storage_partition, offset, buf, to_read);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to read partition: %s", esp_err_to_name(err));
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read storage");
+        }
+        if (httpd_resp_send_chunk(req, (const char *)buf, to_read) != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to send chunk");
+            return ESP_FAIL;
+        }
+        offset += to_read;
+    }
+
+    // End chunked transfer
+    httpd_resp_send_chunk(req, NULL, 0);
+    return ESP_OK;
 }
 
 // set time: timestamp (unix epoch, seconds)
@@ -202,6 +234,8 @@ static esp_err_t ota_post_handler(httpd_req_t *req) {
     
     // Send response FIRST
     httpd_resp_send(req, "OTA update successful, rebooting...", HTTPD_RESP_USE_STRLEN);
+    
+    set_param_value_t(PARAM_BOOT_TIME, (param_value_t){.i64 = system_rtc_get_raw_time()});
     
     // THEN delay and reboot
     vTaskDelay(pdMS_TO_TICKS(2000)); // Give time for TCP to close properly

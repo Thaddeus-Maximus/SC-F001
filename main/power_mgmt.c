@@ -125,7 +125,7 @@ esp_err_t process_battery_voltage(void)
     } else {
 		float alpha = get_param_value_t(PARAM_ADC_ALPHA_BATTERY).f32;
 		if (isnan(raw)) {
-			ESP_LOGI(TAG, "RAW BATTERY IS NAN");
+			//ESP_LOGI(TAG, "RAW BATTERY IS NAN");
 		} else {
 			if (isnan(ema_battery) || isnan(alpha))
 				ema_battery = raw;
@@ -184,7 +184,7 @@ esp_err_t process_bridge_current(bridge_t bridge) {
     } else {
         float alpha = get_param_value_t(PARAM_ADC_ALPHA_ISENS).f32;
 		if (isnan(raw_a)) {
-			ESP_LOGI(TAG, "RAW BATTERY IS NAN");
+			//ESP_LOGI(TAG, "RAW BATTERY IS NAN");
 			channel->ema_current = NAN;
 		} else {
 			if (isnan(ema_battery) || isnan(alpha))
@@ -206,7 +206,7 @@ esp_err_t process_bridge_current(bridge_t bridge) {
             } else {
                 float alpha = get_param_value_t(PARAM_ADC_ALPHA_IAZ).f32;
 				if (isnan(raw_a)) {
-					ESP_LOGI(TAG, "RAW BATTERY IS NAN");
+					//ESP_LOGI(TAG, "RAW BATTERY IS NAN");
 				} else {
 					if (isnan(ema_battery) || isnan(alpha))
 						channel->az_offset = channel->ema_current;
@@ -248,7 +248,7 @@ esp_err_t process_bridge_current(bridge_t bridge) {
     if (I_norm >= get_param_value_t(PARAM_EFUSE_KINST).f32) {
         channel->tripped = true;
         channel->trip_time = now;
-		ESP_LOGI(TAG, "FUSE TRIP: Inom: %+.5f HEAT:%+2.5f", I_norm, channel->heat);
+		//ESP_LOGI(TAG, "FUSE TRIP: Inom: %+.5f HEAT:%+2.5f", I_norm, channel->heat);
         return ESP_OK; // no more processing, if we're over, we're over
     }
     
@@ -280,8 +280,8 @@ esp_err_t process_bridge_current(bridge_t bridge) {
 			// channel.heat = 0.0f // I think we should wait for the e-fuse to catch up
 	}
 	
-	if (bridge == BRIDGE_DRIVE)
-		ESP_LOGI(TAG, "FUSE: Inom: %+.5f HEAT:%+2.5f", I_norm, channel->heat);
+	//if (bridge == BRIDGE_DRIVE)
+	//	ESP_LOGI(TAG, "FUSE: Inom: %+.5f HEAT:%+2.5f", I_norm, channel->heat);
 	
 	return ESP_OK;
 }

@@ -22,11 +22,26 @@
             <td><input type="datetime-local" id="in_time" step="1" onchange="markChanged(this)"/></td>
             <td></td>
         </tr>
-        <tr><td colspan="4"><button id="commit_btn" onclick="commit_params()" disabled>Save Changes</button></td></tr>
+        <tr><td colspan="4">
+        	<button id="commit_btn" onclick="commit_params()" disabled>Save Changes</button>
+        </td></tr>
+        </table>
+    <table id="table2">
+        <tr>
+            <td>Firmware</td>
+            <td><input type="file" id="firmware_file" accept=".bin"></td>
+            <td><button id="upload_btn" onclick="uploadFirmware()">Upload Firmware</button></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>Log File</td>
+            <td><button id="log_btn" onclick="downloadLogFile()">Download Log</button></td>
+            <td></td>
+        </tr>
     </table>
     
-    <input type="file" id="firmware_file" accept=".bin">
-	<button id="upload_btn" onclick="uploadFirmware()">Upload Firmware</button>
+    
+	
 
     <script>
         let param_values = [];
@@ -150,6 +165,38 @@
 		        alert('Network error during upload');
 		    };
 		    xhr.send(file);
+		}
+		
+		async function downloadLogFile() {
+		  try {
+		    const response = await fetch('/log');
+		    if (!response.ok) {
+		      throw new Error('Network response was not ok');
+		    }
+		    const blob = await response.blob();
+		
+		    // Get current date and time
+		    const now = new Date();
+		    const day = String(now.getDate()).padStart(2, '0');
+		    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+		    const month = monthNames[now.getMonth()];
+		    const year = now.getFullYear();
+		    const hours = String(now.getHours()).padStart(2, '0');
+		    const minutes = String(now.getMinutes()).padStart(2, '0');
+		
+		    const formattedDate = `${day}${month}${year}-${hours}${minutes}`;
+		
+		    const url = URL.createObjectURL(blob);
+		    const a = document.createElement('a');
+		    a.href = url;
+		    a.download = `storage-${formattedDate}.bin`;
+		    document.body.appendChild(a);
+		    a.click();
+		    document.body.removeChild(a);
+		    URL.revokeObjectURL(url);
+		  } catch (error) {
+		    console.error('Download failed:', error);
+		  }
 		}
 
         // Initial Load
