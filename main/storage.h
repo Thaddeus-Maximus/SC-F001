@@ -131,6 +131,13 @@ param_value_t get_param_default(param_idx_t id);
 
 esp_err_t commit_params();
 
+uint32_t get_log_head();
+uint32_t get_log_tail();
+uint32_t get_log_offset();
+
+esp_err_t write_dummy_log_1();
+esp_err_t write_dummy_log_2();
+esp_err_t write_dummy_log_3();
 
 
 #define LOG_ENTRY_SIZE 32

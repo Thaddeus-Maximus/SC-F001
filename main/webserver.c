@@ -33,7 +33,7 @@
 
 
 #define HOSTNAME "sc.local"
-#define SOFT_AP_SSID "stockcropper"
+#define SOFT_AP_SSID "sc_main"
 #define SOFT_AP_PASSWORD "stockcropper"
 #define SERVER_PORT  80
 
@@ -62,29 +62,64 @@ static esp_err_t log_get_handler(httpd_req_t *req) {
         ESP_LOGE(TAG, "Storage partition not found");
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Storage partition not found");
     }
+    
+    int32_t start = get_log_tail();
+    int32_t end   = get_log_head();
+    int32_t total_size = end - start;
+    int32_t offset = start;
+    if (start >= end) {
+		total_size = storage_partition->size - start + end - get_log_offset();
+	}
+	
+	ESP_LOGI(TAG, "start/end: %ld/%ld -> %ld", (long)start, (long)end, (long)total_size);
 
-    size_t total_size = storage_partition->size;
+    //size_t total_size = storage_partition->size;
     char len_str[16];
     sprintf(len_str, "%u", (unsigned)total_size);
     httpd_resp_set_type(req, "application/octet-stream");
     httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"sc_storage.bin\"");
     httpd_resp_set_hdr(req, "Content-Length", len_str);
-
-    uint8_t buf[1024];
-    size_t offset = 0;
-    while (offset < total_size) {
-        size_t to_read = MIN(sizeof(buf), total_size - offset);
-        esp_err_t err = esp_partition_read(storage_partition, offset, buf, to_read);
+    
+    if (start >= end) {
+		ESP_LOGI(TAG, "STARTING");
+	    while (offset < storage_partition->size) {
+			// if wrapped around, just go from the start all the way to the end of storage
+			// then set start = get_log_offset();
+			// and continue
+			size_t to_read = MIN(sizeof(httpBuffer), storage_partition->size - offset);
+	        esp_err_t err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
+	        if (err != ESP_OK) {
+	            ESP_LOGE(TAG, "Failed to read partition: %s", esp_err_to_name(err));
+	            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read storage");
+	        }
+			ESP_LOGI(TAG, "Sending %ld x %d", (long) offset, to_read);
+	        if (httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read) != ESP_OK) {
+	            ESP_LOGE(TAG, "Failed to send chunk");
+	            return ESP_FAIL;
+	        }
+	        offset += to_read;
+		}
+		offset = get_log_offset();
+	}
+	
+	while (offset < end) {
+		ESP_LOGI(TAG, "FINISHING");
+		// if wrapped around, just go from the start all the way to the end of storage
+		// then set start = get_log_offset();
+		// and continue
+		size_t to_read = MIN(sizeof(httpBuffer), end - offset);
+        esp_err_t err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Failed to read partition: %s", esp_err_to_name(err));
             return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read storage");
         }
-        if (httpd_resp_send_chunk(req, (const char *)buf, to_read) != ESP_OK) {
+		ESP_LOGI(TAG, "Sending %ld x %d", (long) offset, to_read);
+        if (httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read) != ESP_OK) {
             ESP_LOGE(TAG, "Failed to send chunk");
             return ESP_FAIL;
         }
         offset += to_read;
-    }
+	}
 
     // End chunked transfer
     httpd_resp_send_chunk(req, NULL, 0);
@@ -244,6 +279,7 @@ static esp_err_t ota_post_handler(httpd_req_t *req) {
     return ESP_OK;
 }
 
+
 httpd_uri_t uris[] = {{
     .uri       = "/status",
     .method    = HTTP_GET,
@@ -336,6 +372,7 @@ void launchSoftAp() {
 
     wifi_config_t wifi_config = {
         .ap = {
+			.channel = 8,
             .ssid = SOFT_AP_SSID,
             .ssid_len = strlen(SOFT_AP_SSID),
             .password = SOFT_AP_PASSWORD,

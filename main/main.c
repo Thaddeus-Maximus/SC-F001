@@ -120,6 +120,8 @@ void app_main(void) {
     
     
 	send_log();
+	
+	//write_dummy_log_1();
     
     // Check wake reasons
     // If button held, we stay #woke
@@ -147,9 +149,14 @@ void app_main(void) {
     if (webserver_init() != ESP_OK) ESP_LOGE(TAG, "WEBSERVER FAILED");
 
     /*** MAIN LOOP ***/
-    
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const TickType_t xFrequency = pdMS_TO_TICKS(100);
+    
+    while(true) {
+		ESP_LOGI(TAG, "TICK");
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1000));
+        esp_task_wdt_reset();
+	}
 
     while(true) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -183,7 +190,7 @@ void app_main(void) {
         		break;
 			case STATE_UNDO_JACK:
 			case STATE_UNDO_JACK_START:
-				// assume it's running
+				// it's running the jack, but undoing
 				send_log();
         		driveLEDs(LED_STATE_CANCELLING);
 				if (i2c_get_button_tripped(0)) {
@@ -193,7 +200,7 @@ void app_main(void) {
         		break;
         		
 			default:
-				// assume it's running in every other case
+				// it's running in every other case
 				send_log();
         		driveLEDs(LED_STATE_DRIVING);
 				if (i2c_get_button_tripped(0)) {

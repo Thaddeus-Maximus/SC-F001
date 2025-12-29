@@ -48,12 +48,18 @@ const char* parameter_names[NUM_PARAMS] = {
 // Partition pointer
 static const esp_partition_t *storage_partition = NULL;
 
-// Log head tracking
-static uint32_t log_head_index = 0;
-static bool log_initialized = false;
 
 // Calculate offset for log area (after parameters sector)
 #define LOG_START_OFFSET FLASH_SECTOR_SIZE
+
+// Log head tracking
+static uint32_t log_head_index = 0;
+static uint32_t log_tail_index = 0;
+uint32_t get_log_head() { return LOG_START_OFFSET + (log_head_index * LOG_ENTRY_SIZE); }
+uint32_t get_log_tail() { return LOG_START_OFFSET + (log_tail_index * LOG_ENTRY_SIZE); }
+uint32_t get_log_offset() { return LOG_START_OFFSET; }
+static bool log_initialized = false;
+
 
 // ============================================================================
 // PARAMETER FUNCTIONS
@@ -283,6 +289,14 @@ esp_err_t write_log(char* entry) {
             err = esp_partition_erase_range(storage_partition, 
                                              next_sector * FLASH_SECTOR_SIZE, 
                                              FLASH_SECTOR_SIZE);
+            
+            log_tail_index = (next_sector)*FLASH_SECTOR_SIZE/LOG_ENTRY_SIZE;
+            if (log_tail_index >= max_entries)
+            	log_tail_index = 0;
+            	
+            	
+            ESP_LOGI(TAG, "Tail/Head are now %ld/%ld", (long)log_tail_index, (long)log_head_index);
+            	
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to erase sector: %s", esp_err_to_name(err));
                 return ESP_FAIL;
@@ -311,6 +325,45 @@ esp_err_t write_log(char* entry) {
     }
     
     return ESP_OK;
+}
+
+esp_err_t write_dummy_log_1() {
+	log_head_index = 0;
+	log_tail_index = 0;
+    uint32_t log_area_end = storage_partition->size;
+    uint32_t max_entries = (log_area_end - LOG_START_OFFSET) / LOG_ENTRY_SIZE;
+	for (uint32_t i=0; i<max_entries*3/2; i++) {
+		ESP_LOGI(TAG, "log[%ld]", (long)i);
+		char entry[32] = {32, i>>24,i>>16,i>>8,i>>0};
+		write_log(entry);
+	}
+	return ESP_OK;
+}
+
+esp_err_t write_dummy_log_2() {
+	log_head_index = 56;
+	log_tail_index = 105;
+    uint32_t log_area_end = storage_partition->size;
+    uint32_t max_entries = (log_area_end - LOG_START_OFFSET) / LOG_ENTRY_SIZE;
+	for (uint32_t i=0; i<max_entries*3/2; i++) {
+		ESP_LOGI(TAG, "log[%ld]", (long)i);
+		char entry[32] = {32, i>>24,i>>16,i>>8,i>>0};
+		write_log(entry);
+	}
+	return ESP_OK;
+}
+
+esp_err_t write_dummy_log_3() {
+	log_head_index = 105;
+	log_tail_index = 34;
+    uint32_t log_area_end = storage_partition->size;
+    uint32_t max_entries = (log_area_end - LOG_START_OFFSET) / LOG_ENTRY_SIZE;
+	for (uint32_t i=0; i<max_entries*3/2; i++) {
+		ESP_LOGI(TAG, "log[%ld]", (long)i);
+		char entry[32] = {32, i>>24,i>>16,i>>8,i>>0};
+		write_log(entry);
+	}
+	return ESP_OK;
 }
 
 void storage_deinit(void) {
