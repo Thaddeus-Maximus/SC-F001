@@ -7,8 +7,10 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 
+#include "cJSON.h"
 #include "esp_ota_ops.h"
 #include "esp_timer.h"
+#include "power_mgmt.h"
 #include "rtc.h"
 #include "string.h"
 #include "freertos/FreeRTOS.h"
@@ -149,11 +151,94 @@ static esp_err_t st_post_handler(httpd_req_t *req) {
 
 // set parameters id & value
 static esp_err_t sp_post_handler(httpd_req_t *req) {
-    ESP_LOGI(TAG, "sp_post_handler");
-    // Send the HTML response
-    httpd_resp_set_type(req, "text/html");
-    return httpd_resp_send(req, "/sp NOT IMPLEMENTED", HTTPD_RESP_USE_STRLEN);
+    char content[128]; // Buffer for incoming JSON
+    size_t recv_size = (req->content_len < sizeof(content)) ? req->content_len : sizeof(content) - 1;
+
+    // 1. Receive the data
+    int ret = httpd_req_recv(req, content, recv_size);
+    if (ret <= 0) {
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+            httpd_resp_send_408(req);
+        }
+        return ESP_FAIL;
+    }
+    content[ret] = '\0'; // Null-terminate the string
+
+    // 2. Parse the JSON
+    cJSON *root = cJSON_Parse(content);
+    if (root == NULL) {
+        ESP_LOGE(TAG, "Failed to parse JSON: %s", content);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
+    }
+
+    // 3. Extract the ID and Value
+    cJSON *id_item = cJSON_GetObjectItem(root, "id");
+    cJSON *val_item = cJSON_GetObjectItem(root, "value");
+
+	int param_id = -1;
+	//char param_idstring[32] = "";
+
+    if (cJSON_IsNumber(id_item)) {
+        param_id = id_item->valueint;
+       }
+       if (cJSON_IsString(id_item)){
+		   //param_idstring = id_item->valuestring;
+		   for (uint8_t i=0; i<NUM_PARAMS; i++) {
+			   if (strcmp(id_item->valuestring, get_param_name(i))) {
+				   param_id = i;
+				   break;
+			   }
+		   }
+		   
+	   }
+        double param_val = cJSON_IsNumber(val_item) ? val_item->valuedouble : 0.0f;
+
+        ESP_LOGI(TAG, "Updating Param ID: %d to Value: %.2f", param_id, param_val);
+        
+		switch(get_param_type(param_id)) { 
+			case PARAM_TYPE_u8:
+		        set_param_value_t(param_id, (param_value_t){.u8 = round(param_val)});
+		        break;
+		    case PARAM_TYPE_i8:
+		        set_param_value_t(param_id, (param_value_t){.i8 = round(param_val)});
+		        break;
+		    case PARAM_TYPE_u16:
+		        set_param_value_t(param_id, (param_value_t){.u16 = round(param_val)});
+		        break;
+		    case PARAM_TYPE_i16:
+		        set_param_value_t(param_id, (param_value_t){.i16 = round(param_val)});
+		        break;
+		    case PARAM_TYPE_u32:
+		        set_param_value_t(param_id, (param_value_t){.u32 = round(param_val)});
+		        break;
+		    case PARAM_TYPE_i32:
+		        set_param_value_t(param_id, (param_value_t){.i32 = round(param_val)});
+		        break;
+		    case PARAM_TYPE_u64:
+		        set_param_value_t(param_id, (param_value_t){.u64 = round(param_val)});
+		        break;
+		    case PARAM_TYPE_i64:
+		        set_param_value_t(param_id, (param_value_t){.i64 = round(param_val)});
+		        break;
+		    case PARAM_TYPE_f32:
+		        set_param_value_t(param_id, (param_value_t){.f32 = param_val});
+		        break;
+		    case PARAM_TYPE_f64:
+		        set_param_value_t(param_id, (param_value_t){.f64 = param_val});
+		        break;
+		    default:
+		        ESP_LOGW(TAG, "Unknown parameter type for ID %d", param_id);
+		        break;
+				}
+
+    cJSON_Delete(root);
+
+    // 5. Send Success Response
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_send(req, "{\"status\":\"ok\"}", HTTPD_RESP_USE_STRLEN);
 }
+
 
 
 static esp_err_t move_post_handler(httpd_req_t *req) {
@@ -182,8 +267,8 @@ static esp_err_t status_get_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "application/json");
 
     // Start building the JSON string with time
-    head += sprintf(httpBuffer+head, "{\"time\":%lld,\"params\":[", system_rtc_get_raw_time());
-
+    head += sprintf(httpBuffer+head, "{\"time\":%lld,\" battery\":%f,\" values\":[", system_rtc_get_raw_time(), get_battery_V());
+    
     for (param_idx_t i = 0; i < NUM_PARAMS; i++) {
         if (i > 0) {
             head += sprintf(httpBuffer+head, ",");
@@ -206,6 +291,14 @@ static esp_err_t status_get_handler(httpd_req_t *req) {
             case PARAM_TYPE_f64: head+=sprintf(httpBuffer+head, "%.8f", param.f64); break;
         }
     }
+    
+    head += sprintf(httpBuffer+head, "], \"names\":[");
+    for (param_idx_t i = 0; i < NUM_PARAMS; i++) {
+        if (i > 0) {
+            head += sprintf(httpBuffer+head, ",");
+        }
+        head += sprintf(httpBuffer+head, "\"%s\"", get_param_name(i));
+       }
 
     // Close the JSON array and object
     head += sprintf(httpBuffer+head, "]}");

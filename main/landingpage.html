@@ -23,6 +23,11 @@
             <td></td>
         </tr>
         <tr><td colspan="4">
+        <tr>
+ 			<td>-</td>
+            <td>Battery Voltage</td>
+            <td> <input readonly="" id="voltage"/> </td>
+        </tr>
         	<button id="commit_btn" onclick="commit_params()" disabled>Save Changes</button>
         </td></tr>
         </table>
@@ -45,8 +50,8 @@
 
     <script>
         let param_values = [];
-        const param_names = ["Drive Distance", "TPDF", "Efuse Amt", "Gain", "Offset"];
-        const param_units = ["in", "ft", "in", "V", "ms"];
+        let param_names  = [];
+        const param_units = ["ms", "Per Day", "time", "time", "feet", "inches", "", "", "", "", "","","","","","","","","Amps","Amps","Amps","Amps","Amps","Seconds","","","","Volts","Seconds","Volts","Seconds","Seconds","uSeconds","Volts"];
 
         function ge(x) { return document.getElementById(x); }
 
@@ -71,9 +76,13 @@
                             const date = new Date(data.time * 1000).toISOString().slice(0, 19);
                             ge('in_time').value = date;
                         }
-
+                        
+                        ge('voltage').value = data.battery;
+                        
+                        
                         // Store values (default to empty array if missing)
-                        param_values = data.params || [];
+                        param_values = data.values || [];
+                        param_names  = data.names || [];
                     } catch(e) {
                         console.error("Error parsing JSON", e);
                     }
@@ -92,10 +101,14 @@
             const table = ge("table");
             // Clear existing parameter rows (rows between index 0 and the last row)
             while(table.rows.length > 2) { table.deleteRow(1); }
-
+            
             // Loop through the NAMES array to ensure every input is shown
             param_names.forEach((name, i) => {
                 let row = table.insertRow(table.rows.length - 1);
+                
+                let name =(param_names[i] !== undefined && param_names[i] !==null)
+                		  ? param_names[i]
+                		  : "null";
                 
                 // If the server didn't send a value for this index, show "null"
                 let val = (param_values[i] !== undefined && param_values[i] !== null) 
@@ -132,7 +145,7 @@
                     // If the user typed "null", we send null; otherwise parse as float
                     const val = (input.value.toLowerCase() === "null") ? null : parseFloat(input.value);
                     
-                    xhr.open("POST", "/sp", true);
+                    xhr.open("POST", "http://192.168.4.1/sp", true);
                     xhr.setRequestHeader("Content-Type", "application/json");
                     xhr.onload = function() {
                         if (xhr.status === 200) {

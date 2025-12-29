@@ -83,20 +83,20 @@ void driveLEDs(led_state_t state) {
 			break;
 		
 		case LED_STATE_BOOTING:
-			i2c_set_led1(1);
+			i2c_set_led1(0b001);
 			break;
 			
 		case LED_STATE_START1:
-			i2c_set_led1(0);
+			i2c_set_led1(0b000);
 			break;
 		case LED_STATE_START2:
-			i2c_set_led1(1);
+			i2c_set_led1(0b001);
 			break;
 		case LED_STATE_START3:
-			i2c_set_led1(3);
+			i2c_set_led1(0b011);
 			break;
 		case LED_STATE_START4:
-			i2c_set_led1(7);
+			i2c_set_led1(0b111);
 			break;
 	}
 }
