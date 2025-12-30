@@ -120,9 +120,9 @@ int8_t fsm_get_current_progress(int8_t denominator) {
 }
 
 
-#define JACK_TIME  get_param_value_t(PARAM_JACK_MSPI ).u32 * 1000 * get_param_value_t(PARAM_JACK_DIST ).u8
-#define DRIVE_TIME get_param_value_t(PARAM_DRIVE_MSPF).u32 * 1000 * get_param_value_t(PARAM_DRIVE_DIST).u8
-#define DRIVE_DIST get_param_value_t(PARAM_DRIVE_TPDF).u32 /   10 * get_param_value_t(PARAM_DRIVE_DIST).u8
+#define JACK_TIME  get_param_value_t(PARAM_JACK_KT).f32 * get_param_value_t(PARAM_JACK_DIST ).f32
+#define DRIVE_TIME get_param_value_t(PARAM_DRIVE_KT).f32 * get_param_value_t(PARAM_DRIVE_DIST).f32
+#define DRIVE_DIST get_param_value_t(PARAM_DRIVE_KE).f32 * get_param_value_t(PARAM_DRIVE_DIST).f32
 
 void control_task(void *param) {
 	esp_task_wdt_add(NULL);
@@ -239,8 +239,8 @@ void control_task(void *param) {
         
        
 		int64_t elapsed_t = (current_time-timer_start);
-		int64_t total_t = (timer_end-timer_start);
-		int32_t ticks = get_sensor_counter(SENSOR_DRIVE);
+		int64_t total_t   = (timer_end-timer_start);
+		int32_t ticks     = get_sensor_counter(SENSOR_DRIVE);
 		//ESP_LOGI("FSM", "[%d] %lld / %lld ms, %ld ticks", current_state, (long long) elapsed_t, (long long) total_t, (long) ticks);
 
         // Output control

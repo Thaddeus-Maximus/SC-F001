@@ -54,6 +54,7 @@ typedef enum {
 	LED_STATE_ERROR,
 	LED_STATE_AWAKE,
 	LED_STATE_CANCELLING,
+	LED_STATE_ERRORED,
 	LED_STATE_START1,
 	LED_STATE_START2,
 	LED_STATE_START3,
@@ -62,17 +63,19 @@ typedef enum {
 } led_state_t;
 
 void driveLEDs(led_state_t state) {
-	uint8_t patterns[4][12] = {
+	uint8_t patterns[5][12] = {
 		{1,3,7,6,4,0},
-		{7,0},
+		{0b101,0b001},
 		{1,1,1,1,1,1, 1,1,1,3},
-		{4,2}
+		{4,2},
+		{0b001, 0b101},
 	};
 	switch(state) {
 		case LED_STATE_DRIVING:
 			i2c_set_led1(patterns[state][(esp_timer_get_time()/100000) % 6]);
 			break;
 		case LED_STATE_ERROR:
+			ESP_LOGE(TAG, "SOME SORT OF ERROR");
 			i2c_set_led1(patterns[state][(esp_timer_get_time()/1000000) % 2]);
 			break;
 		case LED_STATE_AWAKE:
@@ -81,6 +84,9 @@ void driveLEDs(led_state_t state) {
 		case LED_STATE_CANCELLING:
 			i2c_set_led1(patterns[state][(esp_timer_get_time()/200000) % 2]);
 			break;
+		
+		case LED_STATE_ERRORED:
+			i2c_set_led1(patterns[state][(esp_timer_get_time()/200000) % 2]);
 		
 		case LED_STATE_BOOTING:
 			i2c_set_led1(0b001);
@@ -152,11 +158,11 @@ void app_main(void) {
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const TickType_t xFrequency = pdMS_TO_TICKS(100);
     
-    while(true) {
+    /*while(true) {
 		ESP_LOGI(TAG, "TICK");
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1000));
         esp_task_wdt_reset();
-	}
+	}*/
 
     while(true) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -178,7 +184,12 @@ void app_main(void) {
         		} else if (i2c_get_button_ms(0) > 100){
         			driveLEDs(LED_STATE_START1);
         		} else{
-        			driveLEDs(LED_STATE_AWAKE);
+					
+	
+					if (rtc_is_set())
+        				driveLEDs(LED_STATE_AWAKE);
+        			else
+        				driveLEDs(LED_STATE_ERROR);
 				}
 				
 				// when not actively moving we log at a low frequency

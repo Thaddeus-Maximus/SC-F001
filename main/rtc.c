@@ -103,6 +103,13 @@ int64_t system_rtc_get_raw_time(void)
     return (int64_t)tv.tv_sec;
 }
 
+
+void system_rtc_set_raw_time(int64_t tv_sec)
+{
+	rtc_set = true;
+    settimeofday(&(struct timeval){.tv_sec = tv_sec, .tv_usec=0}, NULL);
+}
+
 uint64_t rtc_time_ms(void)
 {
     struct timeval tv;

@@ -42,6 +42,7 @@ void adjust_rtc_min(char *key, int8_t dir);
 void rtc_get_time(struct tm * timeinfo);
 
 int64_t system_rtc_get_raw_time(void);
+void system_rtc_set_raw_time(int64_t);
 
 bool alarm_tripped();
 

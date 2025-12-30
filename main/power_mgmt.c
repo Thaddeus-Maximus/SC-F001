@@ -112,7 +112,7 @@ float get_raw_battery_voltage(void) {
         != ESP_OK) { return NAN; }
         
     // Voltage divider: 150kohm to 1Mohm -> gain = 1.15 -> scale = 1150/150
-	return voltage_mv * 0.00766666666; // same as / 1000.0 * 1150.0 / 150.0;
+	return voltage_mv * 0.00766666666 + get_param_value_t(PARAM_V_SENS_OFFSET).f32; // same as / 1000.0 * 1150.0 / 150.0;
 }
 
 esp_err_t process_battery_voltage(void)

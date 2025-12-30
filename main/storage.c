@@ -17,29 +17,36 @@
 #define PARAM_NAME_STR(name) #name
 
 // Generate parameter table with live values (initialized to defaults)
-#define PARAM_DEF(name, type, default_val) PARAM_VALUE_INIT(type, default_val),
+#define PARAM_DEF(name, type, default_val, unit) PARAM_VALUE_INIT(type, default_val),
 param_value_t parameter_table[NUM_PARAMS] = {
     PARAM_LIST
 };
 #undef PARAM_DEF
 
 // Generate default values array
-#define PARAM_DEF(name, type, default_val) PARAM_VALUE_INIT(type, default_val),
+#define PARAM_DEF(name, type, default_val, unit) PARAM_VALUE_INIT(type, default_val),
 const param_value_t parameter_defaults[NUM_PARAMS] = {
     PARAM_LIST
 };
 #undef PARAM_DEF
 
 // Generate parameter types array
-#define PARAM_DEF(name, type, default_val) PARAM_TYPE_ENUM(type),
+#define PARAM_DEF(name, type, default_val, unit) PARAM_TYPE_ENUM(type),
 const param_type_e parameter_types[NUM_PARAMS] = {
     PARAM_LIST
 };
 #undef PARAM_DEF
 
 // Generate parameter names array
-#define PARAM_DEF(name, type, default_val) PARAM_NAME_STR(name),
+#define PARAM_DEF(name, type, default_val, unit) PARAM_NAME_STR(name),
 const char* parameter_names[NUM_PARAMS] = {
+    PARAM_LIST
+};
+#undef PARAM_DEF
+
+// Generate parameter units array (8 chars max per unit)
+#define PARAM_DEF(name, type, default_val, unit) unit,
+const char parameter_units[NUM_PARAMS][8] = {
     PARAM_LIST
 };
 #undef PARAM_DEF
@@ -48,9 +55,6 @@ const char* parameter_names[NUM_PARAMS] = {
 // Partition pointer
 static const esp_partition_t *storage_partition = NULL;
 
-
-// Calculate offset for log area (after parameters sector)
-#define LOG_START_OFFSET FLASH_SECTOR_SIZE
 
 // Log head tracking
 static uint32_t log_head_index = 0;
@@ -106,6 +110,13 @@ param_value_t get_param_default(param_idx_t id) {
     return parameter_defaults[id];
 }
 
+const char* get_param_unit(param_idx_t id) {
+    if (id >= NUM_PARAMS) {
+        return "";
+    }
+    return parameter_units[id];
+}
+
 esp_err_t commit_params() {
     if (storage_partition == NULL) {
         ESP_LOGE(TAG, "Storage partition not initialized");
@@ -121,8 +132,8 @@ esp_err_t commit_params() {
         params_to_store[i].crc = esp_crc32_le(0, (uint8_t*)&parameter_table[i], sizeof(param_value_t));
     }
     
-    // Erase the first sector (4096 bytes)
-    esp_err_t err = esp_partition_erase_range(storage_partition, PARAMS_OFFSET, FLASH_SECTOR_SIZE);
+    // Erase the sectors for parameter storage
+    esp_err_t err = esp_partition_erase_range(storage_partition, PARAMS_OFFSET, LOG_START_OFFSET);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to erase parameter sector: %s", esp_err_to_name(err));
         return ESP_FAIL;

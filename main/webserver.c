@@ -8,9 +8,12 @@
 */
 
 #include "cJSON.h"
+#include "control_fsm.h"
+#include "endian.h"
 #include "esp_ota_ops.h"
 #include "esp_timer.h"
 #include "power_mgmt.h"
+#include "rf_433.h"
 #include "rtc.h"
 #include "string.h"
 #include "freertos/FreeRTOS.h"
@@ -56,75 +59,127 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
 	return httpd_resp_send(req, (const char *)html_content, html_content_len);
 }
 
-static esp_err_t log_get_handler(httpd_req_t *req) {
-    ESP_LOGI(TAG, "log_get_handler");
+static esp_err_t log_handler(httpd_req_t *req) {
+    ESP_LOGI(TAG, "log_handler");
+    
+    
+	int32_t tail = -1;
+    
+    if (req -> method == HTTP_GET) {
+		// give the whole log
+	}
+	if (req -> method == HTTP_POST) {
+		int ret = httpd_req_recv(req, httpBuffer, sizeof(httpBuffer));
+	    if (ret <= 0) {
+	        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+	            httpd_resp_send_408(req);
+	        }
+	        return ESP_FAIL;
+	    }
+	    httpBuffer[ret] = '\0'; // Null-terminate the string
+			
+		ESP_LOGI(TAG, "ST POST %.*s", ret, httpBuffer);
+		
+		if(sscanf(httpBuffer, "%ld", (long*)&tail) != 1) {
+			// if malformed, just send the whole log.
+			//httpd_resp_send_err(req, 400, "INVALID TAIL POINTER");
+		}
+	}
 
     const esp_partition_t *storage_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "storage");
     if (storage_partition == NULL) {
         ESP_LOGE(TAG, "Storage partition not found");
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Storage partition not found");
     }
-    
-    int32_t start = get_log_tail();
-    int32_t end   = get_log_head();
-    int32_t total_size = end - start;
-    int32_t offset = start;
-    if (start >= end) {
-		total_size = storage_partition->size - start + end - get_log_offset();
-	}
-	
-	ESP_LOGI(TAG, "start/end: %ld/%ld -> %ld", (long)start, (long)end, (long)total_size);
 
-    //size_t total_size = storage_partition->size;
+    // Figure out the bounds of data
+    if (tail < 0)
+	    tail = get_log_tail();
+    int32_t head = get_log_head();
+    int32_t total_size = head - tail + 8; // 8 bytes for the head/tail pointers
+    int32_t offset = tail;
+    int32_t sent = 0;
+    
+    if (tail >= head) {
+        total_size = storage_partition->size - tail + head - get_log_offset() + 8;
+    }
+
+    ESP_LOGI(TAG, "start/end: %ld/%ld -> %ld", (long)tail, (long)head, (long)total_size);
+
+    // Send header
     char len_str[16];
     sprintf(len_str, "%u", (unsigned)total_size);
     httpd_resp_set_type(req, "application/octet-stream");
     httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"sc_storage.bin\"");
     httpd_resp_set_hdr(req, "Content-Length", len_str);
+
+
+	int32_t htail = htobe32(tail);
+	int32_t hhead = htobe32(head);
+    // Send head/tail pointers
+    memcpy(&httpBuffer[0], &(htail), 4);
+    memcpy(&httpBuffer[4], &(hhead), 4);
+    if (httpd_resp_send_chunk(req, (const char *)httpBuffer, 8) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to send chunk");
+        return ESP_FAIL;
+    }
+    sent += 8;
     
-    if (start >= end) {
-		ESP_LOGI(TAG, "STARTING");
-	    while (offset < storage_partition->size) {
-			// if wrapped around, just go from the start all the way to the end of storage
-			// then set start = get_log_offset();
-			// and continue
-			size_t to_read = MIN(sizeof(httpBuffer), storage_partition->size - offset);
+    if (tail != head) {
+	    // Send data between tail and end (if wrapped)
+	    if (tail >= head) {
+	        ESP_LOGI(TAG, "STARTING wrapped section (tail=%ld, head=%ld)", (long)tail, (long)head);
+	        while (offset < storage_partition->size) {
+	            // FIXED: Don't limit by head in this section - read to end of partition
+	            size_t to_read = MIN(sizeof(httpBuffer), storage_partition->size - offset);
+	            esp_err_t err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
+	            if (err != ESP_OK) {
+	                ESP_LOGE(TAG, "Failed to read partition: %s", esp_err_to_name(err));
+	                return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read storage");
+	            }
+	            ESP_LOGI(TAG, "Sending wrapped chunk: offset=%ld size=%d", (long)offset, to_read);
+	            if (httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read) != ESP_OK) {
+	                ESP_LOGE(TAG, "Failed to send chunk");
+	                return ESP_FAIL;
+	            }
+	            sent += to_read;
+	            offset += to_read;
+	        }
+	        // Loop back to the beginning
+	        offset = get_log_offset();
+	        ESP_LOGI(TAG, "Wrapped to beginning, offset now=%ld", (long)offset);
+	    }
+	
+	    // Send data between start (or tail) and head
+	    ESP_LOGI(TAG, "FINISHING final section (offset=%ld, head=%ld)", (long)offset, (long)head);
+	    while (offset < head) {
+	        size_t to_read = MIN(sizeof(httpBuffer), head - offset);
 	        esp_err_t err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
 	        if (err != ESP_OK) {
 	            ESP_LOGE(TAG, "Failed to read partition: %s", esp_err_to_name(err));
 	            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read storage");
 	        }
-			ESP_LOGI(TAG, "Sending %ld x %d", (long) offset, to_read);
+	        ESP_LOGI(TAG, "Sending final chunk: offset=%ld size=%d", (long)offset, to_read);
 	        if (httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read) != ESP_OK) {
 	            ESP_LOGE(TAG, "Failed to send chunk");
 	            return ESP_FAIL;
 	        }
+	        sent += to_read;
 	        offset += to_read;
-		}
-		offset = get_log_offset();
-	}
+	    }
 	
-	while (offset < end) {
-		ESP_LOGI(TAG, "FINISHING");
-		// if wrapped around, just go from the start all the way to the end of storage
-		// then set start = get_log_offset();
-		// and continue
-		size_t to_read = MIN(sizeof(httpBuffer), end - offset);
-        esp_err_t err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to read partition: %s", esp_err_to_name(err));
-            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read storage");
-        }
-		ESP_LOGI(TAG, "Sending %ld x %d", (long) offset, to_read);
-        if (httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read) != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to send chunk");
-            return ESP_FAIL;
-        }
-        offset += to_read;
-	}
-
+	    ESP_LOGI(TAG, "Transfer complete: sent %ld bytes (expected %ld)", (long)sent, (long)total_size);
+	
+	    
+    }
+    
     // End chunked transfer
-    httpd_resp_send_chunk(req, NULL, 0);
+    if (httpd_resp_send_chunk(req, NULL, 0) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to send final empty chunk");
+        return ESP_FAIL;
+    }
+    
+    ESP_LOGI(TAG, "Final empty chunk sent successfully");
     return ESP_OK;
 }
 
@@ -133,25 +188,33 @@ static esp_err_t st_post_handler(httpd_req_t *req) {
     ESP_LOGI(TAG, "st_post_handler");
     // Send the HTML response
     
-	int ret=0;
-	int remaining = req -> content_len;
-		while (remaining > 0) {
-			if ((ret = httpd_req_recv(req, httpBuffer, MIN(remaining, sizeof(httpBuffer))))<= 0) {
-				if(ret == HTTPD_SOCK_ERR_TIMEOUT){
-					continue;
-				}
-				return ESP_FAIL;
-			}
-			
-		}
+	int ret = httpd_req_recv(req, httpBuffer, sizeof(httpBuffer));
+    if (ret <= 0) {
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+            httpd_resp_send_408(req);
+        }
+        return ESP_FAIL;
+    }
+    httpBuffer[ret] = '\0'; // Null-terminate the string
 		
-		ESP_LOGI(TAG, "ST POST %.*s", ret, httpBuffer);
+	ESP_LOGI(TAG, "ST POST %.*s", ret, httpBuffer);
+	int64_t tv = -1;
+	
+	/*if(sscanf(httpBuffer, "%d-%d-%dT%d:%d", &tv) == 1) {
+		system_rtc_set_raw_time(tv);
+	}*/
+	if(sscanf(httpBuffer, "%lld", &tv) == 1) {
+		system_rtc_set_raw_time(tv);
+	}
+	
+	
     return httpd_resp_send(req, "200 OK", HTTPD_RESP_USE_STRLEN);
 }
 
 // set parameters id & value
+// set parameters - accepts multiple parameters with mixed key types
 static esp_err_t sp_post_handler(httpd_req_t *req) {
-    char content[128]; // Buffer for incoming JSON
+    char content[512]; // Increased buffer for multiple parameters
     size_t recv_size = (req->content_len < sizeof(content)) ? req->content_len : sizeof(content) - 1;
 
     // 1. Receive the data
@@ -172,91 +235,155 @@ static esp_err_t sp_post_handler(httpd_req_t *req) {
         return ESP_FAIL;
     }
 
-    // 3. Extract the ID and Value
-    cJSON *id_item = cJSON_GetObjectItem(root, "id");
-    cJSON *val_item = cJSON_GetObjectItem(root, "value");
+    int params_updated = 0;
+    int params_failed = 0;
 
-	int param_id = -1;
-	//char param_idstring[32] = "";
-
-    if (cJSON_IsNumber(id_item)) {
-        param_id = id_item->valueint;
-       }
-       if (cJSON_IsString(id_item)){
-		   //param_idstring = id_item->valuestring;
-		   for (uint8_t i=0; i<NUM_PARAMS; i++) {
-			   if (strcmp(id_item->valuestring, get_param_name(i))) {
-				   param_id = i;
-				   break;
-			   }
-		   }
-		   
-	   }
-        double param_val = cJSON_IsNumber(val_item) ? val_item->valuedouble : 0.0f;
-
-        ESP_LOGI(TAG, "Updating Param ID: %d to Value: %.2f", param_id, param_val);
+    // 3. Iterate through all items in the JSON object
+    cJSON *item = NULL;
+    cJSON_ArrayForEach(item, root) {
+        int param_id = -1;
+        const char *key = item->string;
         
-		switch(get_param_type(param_id)) { 
-			case PARAM_TYPE_u8:
-		        set_param_value_t(param_id, (param_value_t){.u8 = round(param_val)});
-		        break;
-		    case PARAM_TYPE_i8:
-		        set_param_value_t(param_id, (param_value_t){.i8 = round(param_val)});
-		        break;
-		    case PARAM_TYPE_u16:
-		        set_param_value_t(param_id, (param_value_t){.u16 = round(param_val)});
-		        break;
-		    case PARAM_TYPE_i16:
-		        set_param_value_t(param_id, (param_value_t){.i16 = round(param_val)});
-		        break;
-		    case PARAM_TYPE_u32:
-		        set_param_value_t(param_id, (param_value_t){.u32 = round(param_val)});
-		        break;
-		    case PARAM_TYPE_i32:
-		        set_param_value_t(param_id, (param_value_t){.i32 = round(param_val)});
-		        break;
-		    case PARAM_TYPE_u64:
-		        set_param_value_t(param_id, (param_value_t){.u64 = round(param_val)});
-		        break;
-		    case PARAM_TYPE_i64:
-		        set_param_value_t(param_id, (param_value_t){.i64 = round(param_val)});
-		        break;
-		    case PARAM_TYPE_f32:
-		        set_param_value_t(param_id, (param_value_t){.f32 = param_val});
-		        break;
-		    case PARAM_TYPE_f64:
-		        set_param_value_t(param_id, (param_value_t){.f64 = param_val});
-		        break;
-		    default:
-		        ESP_LOGW(TAG, "Unknown parameter type for ID %d", param_id);
-		        break;
-				}
+        if (key == NULL) {
+            ESP_LOGW(TAG, "Skipping item with null key");
+            params_failed++;
+            continue;
+        }
+
+        // Try to parse key as a parameter ID (numeric string like "4")
+        char *endptr;
+        long parsed_id = strtol(key, &endptr, 10);
+        if (*endptr == '\0' && parsed_id >= 0 && parsed_id < NUM_PARAMS) {
+            // Key is a valid numeric string
+            param_id = (int)parsed_id;
+        } else {
+            // Key is a string name, search for matching parameter
+            for (uint8_t i = 0; i < NUM_PARAMS; i++) {
+                if (strcmp(key, get_param_name(i)) == 0) {
+                    param_id = i;
+                    break;
+                }
+            }
+        }
+
+        // Check if we found a valid parameter
+        if (param_id < 0 || param_id >= NUM_PARAMS) {
+            ESP_LOGW(TAG, "Unknown parameter key: %s", key);
+            params_failed++;
+            continue;
+        }
+
+        // Get the value
+        if (!cJSON_IsNumber(item)) {
+            ESP_LOGW(TAG, "Parameter %s has non-numeric value", key);
+            params_failed++;
+            continue;
+        }
+
+        double param_val = item->valuedouble;
+        
+        ESP_LOGI(TAG, "Updating Param '%s' (ID: %d) to Value: %.2f", key, param_id, param_val);
+        
+        // Set the parameter based on its type
+        switch(get_param_type(param_id)) { 
+            case PARAM_TYPE_u8:
+                set_param_value_t(param_id, (param_value_t){.u8 = round(param_val)});
+                break;
+            case PARAM_TYPE_i8:
+                set_param_value_t(param_id, (param_value_t){.i8 = round(param_val)});
+                break;
+            case PARAM_TYPE_u16:
+                set_param_value_t(param_id, (param_value_t){.u16 = round(param_val)});
+                break;
+            case PARAM_TYPE_i16:
+                set_param_value_t(param_id, (param_value_t){.i16 = round(param_val)});
+                break;
+            case PARAM_TYPE_u32:
+                set_param_value_t(param_id, (param_value_t){.u32 = round(param_val)});
+                break;
+            case PARAM_TYPE_i32:
+                set_param_value_t(param_id, (param_value_t){.i32 = round(param_val)});
+                break;
+            case PARAM_TYPE_u64:
+                set_param_value_t(param_id, (param_value_t){.u64 = round(param_val)});
+                break;
+            case PARAM_TYPE_i64:
+                set_param_value_t(param_id, (param_value_t){.i64 = round(param_val)});
+                break;
+            case PARAM_TYPE_f32:
+                set_param_value_t(param_id, (param_value_t){.f32 = param_val});
+                break;
+            case PARAM_TYPE_f64:
+                set_param_value_t(param_id, (param_value_t){.f64 = param_val});
+                break;
+            default:
+                ESP_LOGW(TAG, "Unknown parameter type for ID %d", param_id);
+                params_failed++;
+                continue;
+        }
+        
+        params_updated++;
+    }
+    
+    commit_params();
 
     cJSON_Delete(root);
 
     // 5. Send Success Response
-    httpd_resp_set_type(req, "application/json");
-    return httpd_resp_send(req, "{\"status\":\"ok\"}", HTTPD_RESP_USE_STRLEN);
+   return httpd_resp_send(req, "200 OK", HTTPD_RESP_USE_STRLEN);
 }
 
 
 
-static esp_err_t move_post_handler(httpd_req_t *req) {
-    ESP_LOGI(TAG, "move_post_handler");
+static esp_err_t cmd_post_handler(httpd_req_t *req) {
+    ESP_LOGI(TAG, "cmd_post_handler");
     // Send the HTML response
+	int ret = httpd_req_recv(req, httpBuffer, sizeof(httpBuffer));
+    if (ret <= 0) {
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+            httpd_resp_send_408(req);
+        }
+        return ESP_FAIL;
+    }
+    httpBuffer[ret] = '\0'; // Null-terminate the string
+		
+	cJSON *root = cJSON_Parse(httpBuffer);
+    if (root == NULL) {
+        ESP_LOGE(TAG, "Failed to parse JSON: %s", httpBuffer);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
+    }
+    
+    cJSON *cmd = cJSON_GetObjectItem(root, "cmd");
+
+	if (!cJSON_IsString(cmd) || cmd->valuestring == NULL)
+		return httpd_resp_send(req, "400 Bad Request", HTTPD_RESP_USE_STRLEN);
+	
+	if (strcmp(cmd->valuestring, "stop") == 0) {
+		fsm_request(FSM_CMD_STOP);
+		ESP_LOGI(TAG, "FSM_CMD_STOP");
+	} else if (strcmp(cmd->valuestring, "undo") == 0) {
+		fsm_request(FSM_CMD_UNDO);
+		ESP_LOGI(TAG, "FSM_CMD_UNDO");
+	} else if (strcmp(cmd->valuestring, "start") == 0) {
+		fsm_request(FSM_CMD_START);
+		ESP_LOGI(TAG, "FSM_CMD_START");
+	} else if (strcmp(cmd->valuestring, "rfp") == 0) {
+		cJSON *i = cJSON_GetObjectItem(root, "channel");	
+		if (cJSON_IsNumber(i) && i->valueint >= 0 && i->valueint < 8) {
+			rf_433_learn_keycode(i->valueint);
+		} else {
+			rf_433_cancel_learn_keycode();
+		}
+	} else {
+		ESP_LOGE(TAG, "Command not valid: %s", httpBuffer);
+		return httpd_resp_send(req, "400 Bad Request", HTTPD_RESP_USE_STRLEN);
+	}
+	
     httpd_resp_set_type(req, "text/html");
-    return httpd_resp_send(req, "/move NOT IMPLEMENTED", HTTPD_RESP_USE_STRLEN);
+    return httpd_resp_send(req, "200 OK", HTTPD_RESP_USE_STRLEN);
+
 }
-
-
-
-static esp_err_t stop_post_handler(httpd_req_t *req) {
-    ESP_LOGI(TAG, "stop_post_handler");
-    // Send the HTML response
-    httpd_resp_set_type(req, "text/html");
-    return httpd_resp_send(req, "/stop NOT IMPLEMENTED", HTTPD_RESP_USE_STRLEN);
-}
-
 
 /* Handler for Status GET request*/
 static esp_err_t status_get_handler(httpd_req_t *req) {
@@ -267,7 +394,11 @@ static esp_err_t status_get_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "application/json");
 
     // Start building the JSON string with time
-    head += sprintf(httpBuffer+head, "{\"time\":%lld,\" battery\":%f,\" values\":[", system_rtc_get_raw_time(), get_battery_V());
+    head += sprintf(httpBuffer+head, "{\"time\":%lld,\"battery\":%f,\"rtc_set\":%s,\"values\":[",
+    	system_rtc_get_raw_time(),
+    	get_battery_V(),
+    	rtc_is_set()?"true":"false"
+    	);
     
     for (param_idx_t i = 0; i < NUM_PARAMS; i++) {
         if (i > 0) {
@@ -298,6 +429,14 @@ static esp_err_t status_get_handler(httpd_req_t *req) {
             head += sprintf(httpBuffer+head, ",");
         }
         head += sprintf(httpBuffer+head, "\"%s\"", get_param_name(i));
+       }
+       
+    head += sprintf(httpBuffer+head, "], \"units\":[");
+    for (param_idx_t i = 0; i < NUM_PARAMS; i++) {
+        if (i > 0) {
+            head += sprintf(httpBuffer+head, ",");
+        }
+        head += sprintf(httpBuffer+head, "\"%s\"", get_param_unit(i));
        }
 
     // Close the JSON array and object
@@ -390,8 +529,8 @@ httpd_uri_t uris[] = {{
     .user_ctx  = NULL
 },{
     .uri       = "/log",
-    .method    = HTTP_GET,
-    .handler   = log_get_handler,
+    .method    = HTTP_ANY,
+    .handler   = log_handler,
     .user_ctx  = NULL
 },{
     .uri       = "/sp",
@@ -399,14 +538,9 @@ httpd_uri_t uris[] = {{
     .handler   = sp_post_handler,
     .user_ctx  = NULL
 },{
-    .uri       = "/move",
+    .uri       = "/cmd",
     .method    = HTTP_POST,
-    .handler   = move_post_handler,
-    .user_ctx  = NULL
-},{
-    .uri       = "/stop",
-    .method    = HTTP_POST,
-    .handler   = stop_post_handler,
+    .handler   = cmd_post_handler,
     .user_ctx  = NULL
 },{
     .uri       = "/ota",
