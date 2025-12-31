@@ -15,7 +15,6 @@
 
 #define TAG "MAIN"
 
-
 int64_t last_log_time = 0;
 esp_err_t send_log() {
 	
@@ -39,8 +38,8 @@ esp_err_t send_log() {
     int32_t be_counter = htobe32(get_sensor_counter(SENSOR_DRIVE));
     memcpy(&entry[25], &be_counter, 4);
     
-    entry[29] = get_sensor(SENSOR_DRIVE);
-    entry[30] = get_sensor(SENSOR_JACK);
+    entry[29] = get_sensor(SENSOR_SAFETY);
+    entry[30] = get_sensor(SENSOR_DRIVE);
     entry[31] = fsm_get_state();
     
     last_log_time = esp_timer_get_time();
@@ -75,7 +74,7 @@ void driveLEDs(led_state_t state) {
 			i2c_set_led1(patterns[state][(esp_timer_get_time()/100000) % 6]);
 			break;
 		case LED_STATE_ERROR:
-			ESP_LOGE(TAG, "SOME SORT OF ERROR");
+			//ESP_LOGE(TAG, "SOME SORT OF ERROR");
 			i2c_set_led1(patterns[state][(esp_timer_get_time()/1000000) % 2]);
 			break;
 		case LED_STATE_AWAKE:
@@ -147,7 +146,7 @@ void app_main(void) {
     }
     
     /*** FULL BOOT ***/
-    if (uart_init()    != ESP_OK) ESP_LOGE(TAG, "UART FAILED");
+    //if (uart_init()    != ESP_OK) ESP_LOGE(TAG, "UART FAILED");
     if (power_init()   != ESP_OK) ESP_LOGE(TAG, "POWER FAILED");
     if (rf_433_init()  != ESP_OK) ESP_LOGE(TAG, "RF FAILED");
     if (fsm_init()     != ESP_OK) ESP_LOGE(TAG, "FSM FAILED");
@@ -186,10 +185,16 @@ void app_main(void) {
         		} else{
 					
 	
-					if (rtc_is_set())
+					if (
+						rtc_is_set() &&
+						!efuse_is_tripped(BRIDGE_JACK) &&
+						!efuse_is_tripped(BRIDGE_AUX) &&
+						!efuse_is_tripped(BRIDGE_DRIVE)
+					) {
         				driveLEDs(LED_STATE_AWAKE);
-        			else
+        			} else {
         				driveLEDs(LED_STATE_ERROR);
+        			}
 				}
 				
 				// when not actively moving we log at a low frequency
@@ -208,6 +213,25 @@ void app_main(void) {
 					ESP_LOGI(TAG, "AAAAH STOP!!!");
         			fsm_request(FSM_CMD_STOP);
 				}
+        		break;
+        		
+        	case STATE_CALIBRATE_JACK_DELAY:
+        		if (i2c_get_button_tripped(0))
+	        		fsm_request(FSM_CMD_CALIBRATE_JACK_START);
+        		break;
+        	case STATE_CALIBRATE_JACK_MOVE:
+        		if (i2c_get_button_tripped(0))
+	        		fsm_request(FSM_CMD_CALIBRATE_JACK_END);
+        		break;
+        		
+        		
+        	case STATE_CALIBRATE_DRIVE_DELAY:
+        		if (i2c_get_button_tripped(0))
+	        		fsm_request(FSM_CMD_CALIBRATE_DRIVE_START);
+        		break;
+        	case STATE_CALIBRATE_DRIVE_MOVE:
+        		if (i2c_get_button_tripped(0))
+	        		fsm_request(FSM_CMD_CALIBRATE_DRIVE_END);
         		break;
         		
 			default:

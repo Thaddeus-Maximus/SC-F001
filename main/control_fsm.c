@@ -8,6 +8,7 @@
 #include "control_fsm.h"
 #include "esp_task_wdt.h"
 #include "esp_timer.h"
+#include "i2c.h"
 #include "power_mgmt.h"
 #include "rtc_wdt.h"
 #include "driver/gpio.h"
@@ -17,6 +18,9 @@
 #include "esp_log.h"
 
 #define TRANSITION_DELAY_US 1000000
+
+#define CALIBRATE_JACK_MAX_TIME  3000000
+#define CALIBRATE_DRIVE_MAX_TIME 6000000
 
 #define TAG "FSM"
 
@@ -37,8 +41,12 @@ bool relay_states[8] = {false};
 int64_t override_times[8] = {-1};
 bool enabled = false;
 
+RTC_DATA_ATTR float remaining_distance = 0.0f;
+float fsm_get_remaining_distance(void)    { return remaining_distance; }
+void  fsm_set_remaining_distance(float x) { remaining_distance = x;}
 
-
+// Track the starting encoder count for the current move
+static int32_t move_start_encoder = 0;
 
 volatile fsm_state_t current_state = STATE_IDLE;
 volatile int64_t current_time = 0;
@@ -89,6 +97,12 @@ void pulseOverride(relay_t relay) {
 	set_timer(TRANSITION_DELAY_US);
 }*/
 
+int64_t fsm_cal_t, fsm_cal_e;
+float fsm_cal_val;
+void fsm_set_cal_val(float v) {fsm_cal_val = v;}
+int64_t fsm_get_cal_t(){return fsm_cal_t;}
+int64_t fsm_get_cal_e(){return fsm_cal_e;}
+
 void fsm_request(fsm_cmd_t cmd)
 {
 	if (fsm_cmd_queue != NULL)
@@ -120,7 +134,7 @@ int8_t fsm_get_current_progress(int8_t denominator) {
 }
 
 
-#define JACK_TIME  get_param_value_t(PARAM_JACK_KT).f32 * get_param_value_t(PARAM_JACK_DIST ).f32
+#define JACK_TIME  get_param_value_t(PARAM_JACK_KT).f32  * get_param_value_t(PARAM_JACK_DIST ).f32
 #define DRIVE_TIME get_param_value_t(PARAM_DRIVE_KT).f32 * get_param_value_t(PARAM_DRIVE_DIST).f32
 #define DRIVE_DIST get_param_value_t(PARAM_DRIVE_KE).f32 * get_param_value_t(PARAM_DRIVE_DIST).f32
 
@@ -141,8 +155,13 @@ void control_task(void *param) {
             switch (cmd) {
                 case FSM_CMD_START:
                     if (current_state == STATE_IDLE) {
-						current_state = STATE_MOVE_START_DELAY;
-						set_timer(TRANSITION_DELAY_US);
+                    	// Check if we have remaining distance before starting
+                    	if (remaining_distance > 0.0f) {
+							current_state = STATE_MOVE_START_DELAY;
+							set_timer(TRANSITION_DELAY_US);
+						} else {
+							ESP_LOGW(TAG, "Cannot start move: no remaining distance (%.2f)", remaining_distance);
+						}
                     }
                     break;
                 case FSM_CMD_STOP:
@@ -158,6 +177,68 @@ void control_task(void *param) {
                 case FSM_CMD_SHUTDOWN:
                 	enabled = false;
                 	break;
+                	
+                case FSM_CMD_CALIBRATE_JACK_PREP:
+					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_PREP");
+					if (current_state == STATE_IDLE) {
+						current_state = STATE_CALIBRATE_JACK_DELAY;
+					}
+					break;
+                	
+				case FSM_CMD_CALIBRATE_JACK_START:
+					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_START");
+					if (current_state == STATE_CALIBRATE_JACK_DELAY) {
+						current_state = STATE_CALIBRATE_JACK_MOVE;
+						set_timer(CALIBRATE_JACK_MAX_TIME);
+					}
+					break;
+				case FSM_CMD_CALIBRATE_JACK_END:
+					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_END");
+					if (current_state == STATE_CALIBRATE_JACK_MOVE) {
+						fsm_cal_t = current_time - timer_start;
+						current_state = STATE_IDLE;
+					}
+					break;
+				case FSM_CMD_CALIBRATE_JACK_FINISH:				
+					set_param_value_t(PARAM_JACK_KT, 
+					(param_value_t){.f32 = fsm_cal_t / fsm_cal_val});
+					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_FINISH -> %f", get_param_value_t(PARAM_JACK_KT).f32);
+					break;
+					
+					
+                	
+                case FSM_CMD_CALIBRATE_DRIVE_PREP:
+					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_PREP");
+					if (current_state == STATE_IDLE) {
+						current_state = STATE_CALIBRATE_DRIVE_DELAY;
+					}
+					break;
+                	
+				case FSM_CMD_CALIBRATE_DRIVE_START:
+					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_START");
+					if (current_state == STATE_CALIBRATE_DRIVE_DELAY) {
+						current_state = STATE_CALIBRATE_DRIVE_MOVE;
+						set_timer(CALIBRATE_DRIVE_MAX_TIME);
+						set_sensor_counter(SENSOR_DRIVE, 0);
+					}
+					break;
+				case FSM_CMD_CALIBRATE_DRIVE_END:
+					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_END");
+					if (current_state == STATE_CALIBRATE_DRIVE_MOVE) {
+						fsm_cal_t = current_time - timer_start;
+						fsm_cal_e = get_sensor_counter(SENSOR_DRIVE);
+						current_state = STATE_IDLE;
+					}
+					break;
+				case FSM_CMD_CALIBRATE_DRIVE_FINISH:				
+					set_param_value_t(PARAM_DRIVE_KT, 
+					(param_value_t){.f32 = fsm_cal_t / fsm_cal_val});
+					set_param_value_t(PARAM_DRIVE_KE, 
+					(param_value_t){.f32 = fsm_cal_e / fsm_cal_val});
+					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_FINISH -> %f / %f",
+					  get_param_value_t(PARAM_DRIVE_KT).f32,
+					  get_param_value_t(PARAM_DRIVE_KE).f32);
+					break;
             }
         }
         
@@ -188,16 +269,58 @@ void control_task(void *param) {
                 if (timer_done()) {
 					current_state = STATE_DRIVE;
 					set_timer(DRIVE_TIME);
+					// Set the encoder counter to track remaining distance in this move
 					set_sensor_counter(SENSOR_DRIVE, -DRIVE_DIST);
+					// Record starting encoder position AFTER setting it
+					move_start_encoder = get_sensor_counter(SENSOR_DRIVE);
+					ESP_LOGI(TAG, "STATE_DRIVE starting: encoder=%ld, remaining_distance=%.2f, DRIVE_DIST=%.2f", 
+					         (long)move_start_encoder, remaining_distance, DRIVE_DIST);
 				}
                 break;
             case STATE_DRIVE:
-                if (timer_done() || get_sensor_counter(SENSOR_DRIVE) > 0) {
-					current_state = STATE_DRIVE_END_DELAY;
-					set_timer(TRANSITION_DELAY_US);
-				}
-				if (efuse_is_tripped(BRIDGE_DRIVE)) {
-					current_state = STATE_UNDO_JACK_START;
+            	{
+					int32_t current_encoder = get_sensor_counter(SENSOR_DRIVE);
+					int32_t ticks_traveled = current_encoder - move_start_encoder;
+					float ke = get_param_value_t(PARAM_DRIVE_KE).f32;
+					float distance_traveled = ticks_traveled / ke;
+					
+					ESP_LOGI(TAG, "STATE_DRIVE: current_encoder=%ld, move_start=%ld, ticks=%ld, ke=%.2f, dist_traveled=%.2f, remaining=%.2f",
+					         (long)current_encoder, (long)move_start_encoder, (long)ticks_traveled, 
+					         ke, distance_traveled, remaining_distance);
+					
+					// Check if we'll exceed remaining distance with a full move
+					bool will_exceed = distance_traveled >= remaining_distance;
+					
+					// Stop if timer expires OR encoder target reached OR we've used up remaining distance
+					if (timer_done() || current_encoder > 0 || will_exceed) {
+						ESP_LOGI(TAG, "Drive stopping: timer_done=%d, encoder>0=%d, will_exceed=%d",
+						         timer_done(), current_encoder > 0, will_exceed);
+						
+						// Update remaining distance based on actual travel
+						float old_remaining = remaining_distance;
+						if (will_exceed) {
+							ESP_LOGI(TAG, "Move stopped early - reached remaining distance limit (%.2f)", remaining_distance);
+							remaining_distance = 0.0f;
+						} else {
+							remaining_distance -= distance_traveled;
+							if (remaining_distance < 0.0f) remaining_distance = 0.0f;
+						}
+						ESP_LOGI(TAG, "Drive complete: traveled %.2f, old_remaining %.2f, new_remaining %.2f", 
+						         distance_traveled, old_remaining, remaining_distance);
+						
+						current_state = STATE_DRIVE_END_DELAY;
+						set_timer(TRANSITION_DELAY_US);
+					}
+					
+					if (efuse_is_tripped(BRIDGE_DRIVE)) {
+						float old_remaining = remaining_distance;
+						// Update remaining distance even on fault
+						remaining_distance -= distance_traveled;
+						if (remaining_distance < 0.0f) remaining_distance = 0.0f;
+						ESP_LOGW(TAG, "Drive fault: traveled %.2f, old_remaining %.2f, new_remaining %.2f", 
+						         distance_traveled, old_remaining, remaining_distance);
+						current_state = STATE_UNDO_JACK_START;
+					}
 				}
                 break;
             case STATE_DRIVE_END_DELAY:
@@ -205,8 +328,9 @@ void control_task(void *param) {
 					current_state = STATE_JACK_DOWN;
 					set_timer(JACK_TIME);
 				}
+				break;
             case STATE_JACK_DOWN:
-                if (timer_done() || get_sensor(SENSOR_JACK)) {
+                if (timer_done()) { // || get_sensor(SENSOR_JACK)) {
 					current_state = STATE_IDLE;
 				}
 				
@@ -225,7 +349,7 @@ void control_task(void *param) {
 				}
 				break;
 			case STATE_UNDO_JACK:
-                if (timer_done() || get_sensor(SENSOR_JACK)) {
+                if (timer_done()){ // || get_sensor(SENSOR_JACK)) {
 					current_state = STATE_IDLE;
 				}
 				
@@ -234,6 +358,32 @@ void control_task(void *param) {
 					current_state = STATE_IDLE;
 				}
 				break;
+				
+				
+			case STATE_CALIBRATE_JACK_DELAY:
+				// no way out of this except a command
+				break;
+			case STATE_CALIBRATE_JACK_MOVE:
+				if (timer_done()) {
+					ESP_LOGI(TAG, "STATE_CALIBRATE_JACK_END");
+					current_state = STATE_IDLE;
+					fsm_cal_t = current_time - timer_start;
+				}
+				break;
+				
+				
+			case STATE_CALIBRATE_DRIVE_DELAY:
+				// no way out of this except a command
+				break;
+			case STATE_CALIBRATE_DRIVE_MOVE:
+				if (timer_done()) {
+					ESP_LOGI(TAG, "STATE_CALIBRATE_DRIVE_END");
+					current_state = STATE_IDLE;
+					fsm_cal_t = current_time - timer_start;
+					fsm_cal_e = get_sensor_counter(SENSOR_DRIVE);
+				}
+				break;
+				
             default: break;
         }
         
@@ -261,6 +411,7 @@ void control_task(void *param) {
             	
                 }
                 break;
+			case STATE_CALIBRATE_JACK_MOVE:
             case STATE_JACK_UP:
             	// jack up and fluff
             	setRelay(RELAY_A1, false);
@@ -272,6 +423,7 @@ void control_task(void *param) {
             	setRelay(RELAY_A3, true);
                 reset_shutdown_timer();
                 break;
+            case STATE_CALIBRATE_DRIVE_MOVE:
             case STATE_DRIVE:
             	// drive and fluff
             	setRelay(RELAY_A1, true);
@@ -308,6 +460,7 @@ void control_task(void *param) {
             	setRelay(RELAY_A3, true);
                 reset_shutdown_timer();
                 break;
+            case STATE_CALIBRATE_JACK_DELAY:
             default:
             	// invalid state; turn all relays off
             	setRelay(RELAY_A1, false);

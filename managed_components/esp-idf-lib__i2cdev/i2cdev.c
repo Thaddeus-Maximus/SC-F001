@@ -107,7 +107,7 @@ static void deregister_device(i2c_dev_t *dev)
     }
 }
 
-esp_err_t i2c_init(void)
+esp_err_t i2cdev_init(void)
 {
     ESP_LOGV(TAG, "Initializing I2C subsystem...");
     memset(active_devices, 0, sizeof(active_devices));

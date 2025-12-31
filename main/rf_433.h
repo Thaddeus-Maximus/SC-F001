@@ -1,4 +1,3 @@
-
 #ifndef RF_H
 #define RF_H
 
@@ -26,5 +25,8 @@ int64_t rf_433_get_raw_keycode();
 
 void rf_433_learn_keycode(uint8_t index);
 void rf_433_cancel_learn_keycode();
+
+void rf_433_disable_controls();
+void rf_433_enable_controls();
 
 #endif

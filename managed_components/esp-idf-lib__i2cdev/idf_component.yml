@@ -13,7 +13,7 @@ maintainers:
 - Ruslan V. Uss (@UncleRus) <unclerus@gmail.com>
 repository: git://github.com/esp-idf-lib/i2cdev.git
 repository_info:
-  commit_sha: abf0ebc8f0f826373e9a9ee07cf96727a49ed87b
+  commit_sha: b4f09df5a02e576af61846954557bf7a61d35274
   path: .
 targets:
 - esp32
@@ -27,4 +27,4 @@ targets:
 - esp32s2
 - esp32s3
 url: https://github.com/esp-idf-lib/core
-version: 2.0.8
+version: 2.1.0

@@ -7,7 +7,22 @@
 #include "freertos/queue.h"
 
 
-typedef enum { FSM_CMD_START, FSM_CMD_STOP, FSM_CMD_UNDO, FSM_CMD_SHUTDOWN} fsm_cmd_t;
+typedef enum {
+	FSM_CMD_START,
+	FSM_CMD_STOP,
+	FSM_CMD_UNDO,
+	FSM_CMD_SHUTDOWN,
+	
+	FSM_CMD_CALIBRATE_JACK_PREP,
+	FSM_CMD_CALIBRATE_JACK_START,
+	FSM_CMD_CALIBRATE_JACK_END,
+	FSM_CMD_CALIBRATE_JACK_FINISH,
+	
+	FSM_CMD_CALIBRATE_DRIVE_PREP,
+	FSM_CMD_CALIBRATE_DRIVE_START,
+	FSM_CMD_CALIBRATE_DRIVE_END,
+	FSM_CMD_CALIBRATE_DRIVE_FINISH
+} fsm_cmd_t;
 
 typedef enum {
 	STATE_IDLE = 0,
@@ -19,6 +34,12 @@ typedef enum {
 	STATE_JACK_DOWN = 6,
 	STATE_UNDO_JACK = 7,
 	STATE_UNDO_JACK_START = 8,
+	
+	STATE_CALIBRATE_JACK_DELAY,
+	STATE_CALIBRATE_JACK_MOVE,
+	
+	STATE_CALIBRATE_DRIVE_DELAY,
+	STATE_CALIBRATE_DRIVE_MOVE
 } fsm_state_t;
 
 typedef enum {
@@ -46,7 +67,14 @@ void pulseOverride(relay_t relay/*, int64_t pulse*/);
 esp_err_t fsm_init();
 esp_err_t fsm_stop();
 
+void fsm_set_cal_val(float v);
+int64_t fsm_get_cal_t();
+int64_t fsm_get_cal_e();
 void fsm_request(fsm_cmd_t cmd);
+
+
+float fsm_get_remaining_distance(void);
+void  fsm_set_remaining_distance(float x);
 
 //void fsm_begin_auto_move();
 

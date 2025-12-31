@@ -16,9 +16,9 @@
 #define SENSOR_DEBOUNCE_US      500  // Reduced to 0.5 ms for responsiveness
 
 typedef enum {
-	SENSOR_DRIVE = 0,
-	SENSOR_JACK  = 1,
-	N_SENSORS    = 2
+	SENSOR_SAFETY = 0,
+	SENSOR_DRIVE  = 1,
+	N_SENSORS     = 2
 } sensor_t;
 
 void reset_sensor_counter(sensor_t i);

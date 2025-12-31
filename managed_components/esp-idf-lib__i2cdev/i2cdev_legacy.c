@@ -499,7 +499,7 @@ static esp_err_t i2c_setup_port(i2c_dev_t *dev)
         vTaskDelay(1);
 
 // Target-specific driver installation/configuration sequence
-#if HELPER_TARGET_IS_ESP32 || HELPER_TARGET_IS_ESP32S2 || HELPER_TARGET_IS_ESP32S3 || HELPER_TARGET_IS_ESP32C3 || HELPER_TARGET_IS_ESP32C6
+#if HELPER_TARGET_IS_ESP32
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 1, 0)
         ESP_LOGD(TAG, "Using IDF >= 5.1.0 driver install order for ESP32 family");
         err = i2c_driver_install(dev->port, legacy_cfg.mode, 0, 0, 0);
@@ -559,7 +559,7 @@ static esp_err_t i2c_setup_port(i2c_dev_t *dev)
     }
 
 // Part 2: Timeout Configuration (ESP32 family specific hardware timeout)
-#if HELPER_TARGET_IS_ESP32 || HELPER_TARGET_IS_ESP32S2 || HELPER_TARGET_IS_ESP32S3 || HELPER_TARGET_IS_ESP32C3 || HELPER_TARGET_IS_ESP32C6
+#if HELPER_TARGET_IS_ESP32
     int current_timeout_hw;
     err = i2c_get_timeout(dev->port, &current_timeout_hw);
     if (err != ESP_OK)

@@ -1,10 +1,12 @@
 name: i2cdev
 description: ESP-IDF I2C master thread-safe utilities
-version: 2.0.8
+version: 2.1.0
 groups:
   - common
 code_owners:
   - UncleRus
+  - quinkq
+  - trombik
 depends:
   - driver
   - freertos
@@ -26,3 +28,5 @@ license: MIT
 copyrights:
   - name: UncleRus
     year: 2018
+  - name: quinkq
+    year: 2025

@@ -51,16 +51,9 @@ static bool parse_uint64(const char *str, uint64_t *result) {
 static void print_param_value(param_idx_t id, param_value_t val) {
     param_type_e type = get_param_type(id);
     
+    char sbuf[9] = {0};
+    
     switch (type) {
-        case PARAM_TYPE_u8:
-            printf("%u (0x%02X)\n", val.u8, val.u8);
-            break;
-            
-        case PARAM_TYPE_i8:
-            printf("%d (0x%02X)\n",
-              val.i8, (uint8_t)val.i8);
-            break;
-            
         case PARAM_TYPE_u16:
             printf("%u (0x%04X)\n",
               val.u16, val.u16);
@@ -102,6 +95,12 @@ static void print_param_value(param_idx_t id, param_value_t val) {
               val.f64, (unsigned long long)val.u64);
             break;
             
+        case PARAM_TYPE_str:
+        	memcpy(val.str, sbuf, 8);
+        	sbuf[8] = '\0';
+            printf("\"%s\"", sbuf);
+            break;
+            
         default:
             printf("UNKNOWN TYPE\n");
             break;
@@ -114,7 +113,7 @@ static esp_err_t parse_param_value(const char *orig_str, param_type_e type, para
     while (isspace((unsigned char)*str)) str++;
 
     // Check for negative sign on unsigned integer types
-    bool is_unsigned_int = (type == PARAM_TYPE_u8 || type == PARAM_TYPE_u16 || type == PARAM_TYPE_u32 || type == PARAM_TYPE_u64);
+    bool is_unsigned_int = (type == PARAM_TYPE_u16 || type == PARAM_TYPE_u32 || type == PARAM_TYPE_u64);
     if (is_unsigned_int && *str == '-') {
         return ESP_FAIL;
     }
@@ -123,14 +122,12 @@ static esp_err_t parse_param_value(const char *orig_str, param_type_e type, para
     errno = 0;
 
     switch (type) {
-        case PARAM_TYPE_u8:
         case PARAM_TYPE_u16:
         case PARAM_TYPE_u32:
         case PARAM_TYPE_u64:
             val->u64 = strtoull(str, &endptr, 0);
             break;
 
-        case PARAM_TYPE_i8:
         case PARAM_TYPE_i16:
         case PARAM_TYPE_i32:
         case PARAM_TYPE_i64:

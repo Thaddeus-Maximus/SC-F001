@@ -1,5 +1,6 @@
 ## IDF Component Manager Manifest File
 dependencies:
+  espressif/mdns: "*"
   joltwallet/littlefs: "==1.20.3"
   esp-idf-lib/tca95x5: "*"
   ## Required IDF version

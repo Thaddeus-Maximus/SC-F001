@@ -46,12 +46,18 @@
 #ifndef __I2CDEV_H__
 #define __I2CDEV_H__
 
-#include <driver/gpio.h>
-#include <driver/i2c.h>
 #include <esp_err.h>
 #include <esp_idf_lib_helpers.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
+#include <esp_idf_version.h>
+
+#include <driver/gpio.h>
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+#include <driver/i2c_master.h>
+#else
+#include <driver/i2c.h>
+#endif
 
 // Define missing types for older ESP-IDF versions
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 2, 0)
@@ -193,7 +199,7 @@ typedef struct
  *
  * @return ESP_OK on success
  */
-esp_err_t i2c_init(void);
+esp_err_t i2cdev_init(void);
 
 /**
  * @brief Release I2C subsystem (deletes all devices, buses, and mutexes)

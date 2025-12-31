@@ -1,27 +1,81 @@
 <!DOCTYPE html>
 <html>
+<!--
+tan: #ba965b
+light tan: #efede9
+white: #ffffff
+green: #2a493d
+black: #2f2f2f
+-->
 <head>
     <title>Control Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        * { background-color: #111; color: #eee; font-family: sans-serif; }
+       
+        #wrapper { text-align: center; box-sizing: border-box; }
+        #content { max-width: 500px; margin: auto; padding: 0 10px; }
+        body { text-align: center; margin: 0; padding: 0; }
+    
+        * {
+        font-size: 1.2rem;
+        background-color: #ffffff;
+        color: #2f2f2f;
+        font-family: "Noto Sans", "Verdana", sans-serif;
+        }
         input, button { width: 100%; }
-        input, button { border: 1px solid #666; background-color: #333; font-family: monospace; text-align: right; box-sizing: border-box; }
+        input, button { border: 1px solid #ba965b; border-radius: 5px; background-color: #efede9; text-align: right; box-sizing: border-box; }
+        input[type="text"], input[type="number"] { font-family: monospace; }
         
         button { text-align: center; }
-        .changed { background-color: #3d3 !important; color: #111 !important; }
-        #commit_btn { width: 100%; background-color: #3d3; color: #111; margin-top: 10px; padding: 10px; cursor: pointer; border: none; font-weight: bold; }
-        #commit_btn[disabled] { background-color: #444; color: #888; cursor: not-allowed; }
-        table { width: 100%; border-collapse: collapse; }
-        td { padding: 8px; border-bottom: 1px solid #222; }
-        tr:hover { background-color: #1a1a1a; }
-        summary { font-weight: bold; text-align: left; color: #ccc; background-color: #723; padding: 0.3rem;}
+        .changed, #commit_btn { background-color: #2a493d !important; color: #ffffff !important;  }
+        #commit_btn { width: 100%; margin-top: 10px; padding: 10px; cursor: pointer; border: none; font-weight: bold; }
+        #commit_btn[disabled] { background-color: #444 !important; color: #888; cursor: not-allowed; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        td { padding: 8px; border-bottom: 1px solid #efede9; }
+        summary { border-radius: 5px; font-weight: bold; text-align: left; color: #fff; background-color: #723; padding: 0.3rem;}
+        
+        .cmd { font-size: 1.5rem; border: none;}
+        
+        #msg {text-align: center;}
+        
+        h1 {
+        font-size: 2.5rem;
+        }
+        
+        @media screen and (max-width: 350px) {
+            #content { max-width: 100%; padding: 0 5px; }
+            table tr td { display: block; width: 100%; box-sizing: border-box; } /* Stack table cells vertically on mobile for better usability */
+            table tr { display: block; margin-bottom: 10px; }
+        }
+
     </style>
 </head>
 <body>
-	<button id="commit_btn" onclick="commit_params()" disabled>Save Changes</button>
+
+    <div id="wrapper">
+    <div id="content">
     
+    <h1>ClusterCommand</h1>
 
     <table>
+        <tr>
+            <td><button class="cmd" onclick="sendCommand('start')">START</button></td>
+            <td><button class="cmd" onclick="sendCommand('stop')" style="background-color:#723; color: #fff">STOP</button></td>
+            <td><button class="cmd" onclick="sendCommand('undo')">UNDO</button></td>
+        </tr>
+    </table>
+    
+    
+
+
+    <table>
+        <tr>
+            <td colspan="3"><input readonly="" id="msg"/></td>
+        </tr>
+        <tr>
+            <td colspan="3"><input type="datetime-local" id="in_time" step="1" onchange="markChanged(this)"/>
+            <button id="now_btn" onclick="setTimeToNow()">Sync Time</button></td>
+        </tr>
         <tr>
             <td>Schedule Start</td>
             <td><input type="time" id="move_start" onchange="changeSchedule(this)"/></td>
@@ -35,39 +89,26 @@
             <td><input type="number" min="0" id="num_moves" onchange="changeSchedule(this)"/></td>
         </tr>
         <tr>
-            <td>Move Distance</td>
+            <td>Remain. Distance (ft)</td>
+            <td><input type="number" id="remaining_dist" onchange="markChanged(this)"/></td>
+        </tr>
+        <tr>
+            <td>Move Distance (ft)</td>
             <td><input type="number" min="0" id="drive_dist" onchange="changeSchedule(this)"/></td>
-            <td>ft</td>
         </tr>
         <tr>
-            <td>Jack Height</td>
+            <td>Jack Height (in)</td>
             <td><input type="number" min="0" id="jack_dist" onchange="changeSchedule(this)"/></td>
-            <td>in</td>
         </tr>
         <tr>
-            <td>Time</td>
-            <td><input type="datetime-local" id="in_time" step="1" onchange="markChanged(this)"/></td>
-            <td><button id="now_btn" onclick="setTimeToNow()">< NOW</button></td>
-        </tr>
-    	<tr>
-            <td>Battery</td>
+            <td>Battery (V)</td>
             <td><input readonly="" id="voltage"/></td>
-            <td>V</td>
-        </tr>
-    	<tr>
-            <td></td>
-            <td><button onclick="cmd('start')">START MOVE</button></td>
-        </tr>
-    	<tr>
-            <td></td>
-            <td><button onclick="cmd('undo')">UNDO MOVE</button></td>
-        </tr>
-    	<tr>
-            <td></td>
-            <td><button onclick="cmd('stop')" style="background-color:#800">STOP MOVE</button></td>
         </tr>
     </table>
     
+    <button id="commit_btn" onclick="commitParams()" disabled>Save Changes</button>
+    
+    <br/>
     
     <br/>
     <details>
@@ -77,17 +118,13 @@
         <tr>
             <td>Program RF Remote</td>
             <td>
-            <button onclick="programRF(0)" style="width:40%">Fwd</button>
-            <button onclick="programRF(1)" style="width:40%">Rev</button>
-			<button onclick="programRF(2)" style="width:40%">Up</button>
-			<button onclick="programRF(3)" style="width:40%">Down</button>
-            <button onclick="programRF(-1)">Cancel Learning</button>
+            <button onclick="programRFSequence()">Program All Buttons</button>
             </td>
         </tr>
         <tr>
             <td>Calibration</td>
-            <td><button id="cal_jack_btn">Jack Calibration</button>
-            <button id="cal_drive_btn">Drive Calibration</button></td>
+            <td><button onclick="calibrate('jack')">Jack Calibration</button>
+            <button onclick="calibrate('drive')">Drive Calibration</button></td>
         </tr>
         <tr>
             <td>Firmware</td>
@@ -101,301 +138,482 @@
     </table>
     
     <table id="table"></table>
+    
+    
+            <td><button class="cmd" onclick="sendCommand('reboot')" style="background-color:#723; color: #fff">REBOOT</button></td>
+    
     </details>
+    </div>
+    </div>
     
     
     
-	
+    
 
     <script>
-        let param_values = [];
-        let param_names  = [];
-        let param_units  = [];
+        let paramValues = [];
+        let paramNames  = [];
+        let paramUnits  = [];
         
-        function cmd(x) {
-        	if (x === 'start') {
-        		if(!confirm("Will begin moving - please confirm."))
-        			return;
-        	}
-        	
-            const xhr = new XMLHttpRequest();
-        	xhr.open("POST", "./cmd", true);
-            xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.send(JSON.stringify({"cmd":x}));
-            xhr.onload = function() {
-            	console.log(xhr);
+        const ge = (id) => document.getElementById(id);
+        
+        async function sendCommand(cmdName) {
+            if (cmdName === 'start') {
+                if (!confirm("Will begin moving - please confirm."))
+                    return;
             }
+            if (cmdName === 'reboot') {
+                if (!confirm("Device will reboot - clearing clock and distance. Are you sure?"))
+                    return;
+            }
+            
+            await fetch('./cmd', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({cmd: cmdName})
+            });
         }
         
-        function ge(x) { return document.getElementById(x); }
+        async function calibrate(axis) {
+            await fetch('./cmd', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({cmd: `cal_${axis}_start`})
+            });
+            
+            const amt = prompt(`Press button on mover. Press button again to stop it. Then, type in actual travelled distance here in inches:`);
+            
+            if (!isNaN(parseFloat(amt))) {
+                const response = await fetch('./cmd', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({cmd: 'cal_get'})
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (axis === 'drive') {
+                        markChanged(ge('in_6')).value = data.e / amt;
+                        markChanged(ge('in_7')).value = data.t / amt * 1.2; // ok to have more
+                    } else {
+                        markChanged(ge('in_8')).value = data.t / amt;
+                    }
+                }
+            }
+        }
 
         // Highlight changed inputs and enable the save button
         function markChanged(el) {
             el.classList.add("changed");
             ge('commit_btn').disabled = false;
+            return el;
         }
         
         function toFixed(input, n) {
-		    const num = parseFloat(input);
-		    if (isNaN(num)) {
-		        return null; // or throw error, or return 0
-		    }
-		    return Number(num.toFixed(n));
-		}
+            const num = parseFloat(input);
+            if (isNaN(num)) {
+                return null;
+            }
+            return Number(num.toFixed(n));
+        }
 
         // --- 1. GET DATA ---
-        function fetchStatus() {
-            const xhr = new XMLHttpRequest();
-            xhr.open("GET", "./status", true);
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    try {
-                    	console.log(xhr.responseText);
-                        const data = JSON.parse(xhr.responseText);
-                        
-                        // Update time field if available
-                        if(data.time) {
-                            const date = new Date(data.time * 1000).toISOString().slice(0, 19);
-                            ge('in_time').value = date;
-                        }
-                        
-                        ge('voltage').value = toFixed(data.battery, 2);
-                        
-                        
-                        // Store values (default to empty array if missing)
-                        param_values = data.values || [];
-                        param_names  = data.names  || [];
-                        param_units  = data.units  || [];
-                        
-                        if (!data.rtc_set) {
-                        	ge('in_time').classList.add('error');
-                        	if (confirm("Clock not set. Sync with this device's clock?")){
-                        		setTimeToNow();
-                        		commit_time();
-                        	}
-                        }
-                    } catch(e) {
-                        console.error("Error parsing JSON", e);
+        async function fetchStatus() {
+            try {
+                const response = await fetch('./status');
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                console.log(data);
+                
+                // Update time field if available
+                if (data.time) {
+                    const date = new Date(data.time * 1000).toISOString().slice(0, 19);
+                    ge('in_time').value = date;
+                }
+                
+                ge('voltage').value = toFixed(data.battery, 2);
+                ge('remaining_dist').value = toFixed(data.remaining_dist, 2);
+                
+                ge('msg').value = data.msg;
+                
+                // Store values (default to empty array if missing)
+                paramValues = data.values || [];
+                paramNames  = data.names  || [];
+                paramUnits  = data.units  || [];
+                
+                ge('commit_btn').disabled = true;
+                
+                if (!data.rtc_set) {
+                    ge('in_time').classList.add('error');
+                    if (confirm("Clock not set. Sync with this device's clock?")) {
+                        setTimeToNow();
+                        commitTime();
                     }
                 }
-                // Always render table even if request fails or data is empty
-                renderTable();
-            };
-            xhr.onerror = function(e) {
-                console.error("Network error", e);
-                renderTable(); 
-            };
-            xhr.send();
+            } catch(e) {
+                console.error("Error parsing JSON", e);
+            }
+            // Always render table even if request fails or data is empty
+            renderTable();
         }
         
-        function s_to_hhmm(s) {
-			  const hh = String(Math.floor(s / 3600)).padStart(2, '0');
-			  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
-			  return `${hh}:${mm}`;
+        function secondsToHHMM(seconds) {
+            const hh = String(Math.floor(seconds / 3600)).padStart(2, '0');
+            const mm = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+            return `${hh}:${mm}`;
         }
 
         function renderTable() {
             const table = ge("table");
-            // Clear existing parameter rows (rows between index 0 and the last row)
+            // Clear existing parameter rows
             while(table.rows.length > 0) { table.deleteRow(0); }
             
             // Loop through the NAMES array to ensure every input is shown
-            param_names.forEach((name, i) => {
+            paramNames.forEach((name, i) => {
                 let row = table.insertRow(table.rows.length);
                 
-                let pname =(param_names[i] !== undefined && param_names[i] !==null)
-                		  ? param_names[i]
-                		  : "null";
+                let pname = (paramNames[i] !== undefined && paramNames[i] !== null)
+                          ? paramNames[i]
+                          : "null";
                 
                 // If the server didn't send a value for this index, show "null"
-                let pval = (param_values[i] !== undefined && param_values[i] !== null) 
-                          ? param_values[i]
+                let pval = (paramValues[i] !== undefined && paramValues[i] !== null) 
+                          ? paramValues[i]
                           : "null";
 
                 row.innerHTML = `
                     <td>${i}</td>
                     <td>${pname}</td>
-                    <td><input type="number" id="in_${i}" value="${pval}" oninput="markChanged(this)"></td>
-                    <td>${param_units[i] || ""}</td>
+                    <td><input type="${typeof pval === 'number' ? 'number':'text'}" id="in_${i}" value="${pval}" oninput="markChanged(this)"></td>
+                    <td>${paramUnits[i] || ""}</td>
                 `;
             });
             
-            ge('num_moves').value  = param_values[1];
-            ge('move_start').value = s_to_hhmm(param_values[2]);
-            ge('move_end').value   = s_to_hhmm(param_values[3]);
+            for (const input of document.getElementsByTagName("input")) {
+                input.addEventListener("click", (e) => {
+                    e.target.select();
+                });
+            }
             
-            ge('drive_dist').value = param_values[4];
-            ge('jack_dist').value = param_values[5];
+            ge('num_moves').value  = paramValues[1];
+            ge('move_start').value = secondsToHHMM(paramValues[2]);
+            ge('move_end').value   = secondsToHHMM(paramValues[3]);
+            
+            ge('drive_dist').value = paramValues[4];
+            ge('jack_dist').value = paramValues[5];
         }
         
         function changeSchedule(e) {
-        	markChanged(e);
-        	if (e.id == "num_moves") {
-        		ge('in_1').value = e.value;
-        		markChanged(ge('in_1'));
-        	}
-        	if (e.id == "move_start") {
-        		const [hours, minutes] = e.value.split(':').map(Number);
-        		ge('in_2').value = hours*3600 + minutes*60;
-        		markChanged(ge('in_2'));
-        	}
-        	if (e.id == "move_end") {
-        		const [hours, minutes] = e.value.split(':').map(Number);
-        		ge('in_3').value = hours*3600 + minutes*60;
-        		markChanged(ge('in_3'));
-        	}
-        	if (e.id == "drive_dist") {
-        		ge('in_4').value = e.value;
-        		markChanged(ge('in_4'));
-        	}
-        	if (e.id == "jack_dist") {
-        		ge('in_5').value = e.value;
-        		markChanged(ge('in_5'));
-        	}
+            markChanged(e);
+            if (e.id === "num_moves") {
+                ge('in_1').value = e.value;
+                markChanged(ge('in_1'));
+            }
+            if (e.id === "move_start") {
+                const [hours, minutes] = e.value.split(':').map(Number);
+                ge('in_2').value = hours*3600 + minutes*60;
+                markChanged(ge('in_2'));
+            }
+            if (e.id === "move_end") {
+                const [hours, minutes] = e.value.split(':').map(Number);
+                ge('in_3').value = hours*3600 + minutes*60;
+                markChanged(ge('in_3'));
+            }
+            if (e.id === "drive_dist") {
+                ge('in_4').value = e.value;
+                markChanged(ge('in_4'));
+            }
+            if (e.id === "jack_dist") {
+                ge('in_5').value = e.value;
+                markChanged(ge('in_5'));
+            }
         }
         
         function setTimeToNow() {
-        	e = ge('in_time');
-        	markChanged(e);
+            const e = ge('in_time');
+            markChanged(e);
             e.value = new Date().toLocaleString('sv-SE');
         }
         
-        function commit_time() {
-        	const xhr = new XMLHttpRequest();
+        async function commitTime() {
             // Time handling
-			const datetimeStr = ge("in_time").value; // e.g., "2024-03-15T14:30:00"
-			
-			// Parse the components
-			const [datePart, timePart] = datetimeStr.split('T');
-			const [year, month, day] = datePart.split('-').map(Number);
-			const [hour, minute, second = 0] = timePart.split(':').map(Number);
-			
-			// Create UTC timestamp (month is 0-indexed in Date.UTC)
-			const epoch = Math.floor(Date.UTC(year, month - 1, day, hour, minute, second) / 1000);
+            const datetimeStr = ge("in_time").value; // e.g., "2024-03-15T14:30:00"
+            
+            // Parse the components
+            const [datePart, timePart] = datetimeStr.split('T');
+            const [year, month, day] = datePart.split('-').map(Number);
+            const [hour, minute, second = 0] = timePart.split(':').map(Number);
+            
+            // Create UTC timestamp (month is 0-indexed in Date.UTC)
+            const epoch = Math.floor(Date.UTC(year, month - 1, day, hour, minute, second) / 1000);
 
-            xhr.open("POST", "./st", true);
-            xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                	ge("in_time").classList.remove("changed");
-            	}
-            	
-	        	if (document.querySelectorAll('input.changed').length === 0)
-	        		ge('commit_btn').disabled = true;
-	        	else 
-	        		ge('commit_btn').disabled = false;
-        	}
-        	xhr.send(epoch.toString());
+            const response = await fetch('./st', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: epoch.toString()
+            });
+            
+            if (response.ok) {
+                ge("in_time").classList.remove("changed");
+            }
+            
+            if (document.querySelectorAll('input.changed').length === 0) {
+                ge('commit_btn').disabled = true;
+            } else {
+                ge('commit_btn').disabled = false;
+            }
         }
 
         // --- 2. POST DATA ---
-        function commit_params() {
-        	
+        async function commitParams() {
             ge('commit_btn').disabled = true;
             const changedInputs = document.querySelectorAll('input.changed');
             
-            sp = {}
+            const sp = {};
             
-            changedInputs.forEach(input => {
-                
+            for (const input of changedInputs) {
                 if (input.id === "in_time") {
-                	commit_time();
-                // we only really use the parameter table for inputs
-                // the pretty inputs should just modify the param table
-                } else if (input.id.startsWith('in_')) {
-                    // Parameter handling
-		            const id = input.id.split('_')[1];
-		            // If the user typed "null", we send null; otherwise parse as float
-		            const val = (input.value.toLowerCase() === "null") ? null : parseFloat(input.value);
-		            
-		            sp[id] = val;
+                    await commitTime();
+                } 
+                
+                else if (input.id === "remaining_dist") {
+                    const x = parseFloat(ge('remaining_dist').value);
+                    
+                    const response = await fetch('./cmd', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({cmd: "remaining_dist", amt: x})
+                    });
+                    
+                    if (response.ok) {
+                        ge('remaining_dist').classList.remove("changed");
+                    }
                 }
-            });
-            
-            if (Object.keys(sp).length !== 0) {
-	            const xhr2 = new XMLHttpRequest();
-	            xhr2.open("POST", "./sp", true);
-	            xhr2.setRequestHeader("Content-Type", "application/json");
-	            xhr2.onload = function() {
-	                if (xhr2.status === 200) {
-	                	changedInputs.forEach(input => {
-	                	if (input.id !== "in_time")
-	                    	input.classList.remove("changed");
-	                    });
-	                } else {
-			            ge('commit_btn').disabled = false;
-	                }
-	            };
-	            xhr2.send(JSON.stringify(sp));
+                
+                else if (input.id.startsWith('in_')) {
+                    // Parameter handling
+                    const id = input.id.split('_')[1];
+                    // If the user typed "null", we send null; otherwise parse as float
+                    sp[id] = input.value;
+                    if (input.type === "number") {
+                        sp[id] = (input.value.toLowerCase() === "null") ? null : parseFloat(input.value);
+                    }
+                }
             }
             
-            fetchStatus();
+            if (Object.keys(sp).length !== 0) {
+                const response = await fetch('./sp', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(sp)
+                });
+                
+                if (response.ok) {
+                    changedInputs.forEach(input => {
+                        if (input.id !== "in_time") {
+                            input.classList.remove("changed");
+                        }
+                    });
+                } else {
+                    ge('commit_btn').disabled = false;
+                }
+            }
+            
+            await fetchStatus();
         }
         
-        function uploadFirmware() {
-		    const fileInput = ge('firmware_file');
-		    if (!fileInput.files.length) {
-		        alert('No file selected');
-		        return;
-		    }
-		    const file = fileInput.files[0];
-		    const xhr = new XMLHttpRequest();
-		    xhr.open("POST", "./ota", true);
-		    xhr.setRequestHeader("Content-Type", "application/octet-stream");
-		    xhr.onload = function() {
-		        if (xhr.status === 200) {
-		            alert('Upload successful. Device may reboot.');
-		        } else {
-		            alert('Upload failed: ' + xhr.status);
-		        }
-		    };
-		    xhr.onerror = function() {
-		        alert('Network error during upload');
-		    };
-		    xhr.send(file);
-		}
-		
-		function programRF(i) {
-		    const xhr = new XMLHttpRequest();
-		    xhr.open("POST", "./prf", true);
-            xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.send(i.toString());
-            if (xhr.status === 200) {
-            	// nothing
-        	}
-		}
-		
-		async function downloadLogFile() {
-		  try {
-		    const response = await fetch('./log');
-		    if (!response.ok) {
-		      throw new Error('Network response was not ok');
-		    }
-		    const blob = await response.blob();
-		
-		    // Get current date and time
-		    const now = new Date();
-		    const day = String(now.getDate()).padStart(2, '0');
-		    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-		    const month = monthNames[now.getMonth()];
-		    const year = now.getFullYear();
-		    const hours = String(now.getHours()).padStart(2, '0');
-		    const minutes = String(now.getMinutes()).padStart(2, '0');
-		
-		    const formattedDate = `${day}${month}${year}-${hours}${minutes}`;
-		
-		    const url = URL.createObjectURL(blob);
-		    const a = document.createElement('a');
-		    a.href = url;
-		    a.download = `storage-${formattedDate}.bin`;
-		    document.body.appendChild(a);
-		    a.click();
-		    document.body.removeChild(a);
-		    URL.revokeObjectURL(url);
-		  } catch (error) {
-		    console.error('Download failed:', error);
-		  }
-		}
+        async function uploadFirmware() {
+            const fileInput = ge('firmware_file');
+            if (!fileInput.files.length) {
+                alert('No file selected');
+                return;
+            }
+            const file = fileInput.files[0];
+            
+            try {
+                const response = await fetch('./ota', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/octet-stream'},
+                    body: file
+                });
+                
+                if (response.ok) {
+                    alert('Upload successful. Device may reboot.');
+                } else {
+                    alert('Upload failed: ' + response.status);
+                }
+            } catch (e) {
+                alert('Network error during upload');
+            }
+        }
+        
+        function programRF(i) {
+            fetch('./cmd', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({cmd: 'rfp', channel: i})
+            });
+        }
+        
+        async function programRFSequence() {
+            const buttonNames = ["Forward", "Reverse", "Up", "Down"];
+            const learnedCodes = [null, null, null, null];
+            
+            if (!confirm("This will program all 4 RF remote buttons in sequence.\n\nPress OK to begin, then follow the prompts.")) {
+                return;
+            }
+            
+            // Disable RF controls during programming
+            await fetch('./cmd', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({cmd: 'rf_disable'})
+            });
+            
+            for (let i = 0; i < 4; i++) {
+                // Start learning for this button FIRST
+                programRF(i);
+                
+                // Give a moment for the learn flag to be set
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Ask user to press button or skip
+                const shouldSkip = !confirm(`Button ${i+1}/4: ${buttonNames[i]}\n\nPress the ${buttonNames[i]} button on your remote now, then press OK.\n\nPress Cancel to skip this button.`);
+                
+                if (shouldSkip) {
+                    // Cancel learning and set this button to -1 (disabled)
+                    programRF(-1);
+                    learnedCodes[i] = -1;
+                    continue;
+                }
+                
+                // Wait for code to be learned (poll for a bit)
+                let learned = false;
+                const startCode = learnedCodes[i]; // Should be null at this point
+                
+                for (let attempt = 0; attempt < 50; attempt++) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    // Check if code was learned by polling RF status via /cmd
+                    try {
+                        const response = await fetch('./cmd', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({cmd: 'rf_status'})
+                        });
+                        const data = await response.json();
+                        
+                        // Check if this specific index changed from what we started with
+                        if (data.codes[i] !== -1 && data.codes[i] !== null && data.codes[i] !== startCode) {
+                            learnedCodes[i] = data.codes[i];
+                            learned = true;
+                            break;
+                        }
+                    } catch (e) {
+                        console.error("Error checking RF status:", e);
+                    }
+                }
+                
+                if (!learned) {
+                    if (confirm(`Timeout waiting for ${buttonNames[i]} button.\n\nRetry this button?`)) {
+                        i--; // Retry this iteration
+                        continue;
+                    } else {
+                        // Skip this button
+                        learnedCodes[i] = -1;
+                    }
+                }
+            }
+            
+            // Update input fields for parameters 9-12 (PARAM_KEYCODE_0 through PARAM_KEYCODE_3)
+            for (let i = 0; i < 4; i++) {
+                const input = ge(`in_${9 + i}`);
+                if (input) {
+                    input.value = learnedCodes[i];
+                    markChanged(input);
+                }
+            }
+            
+            // Commit just the RF keycodes (params 9-12)
+            const sp = {};
+            for (let i = 0; i < 4; i++) {
+                sp[9 + i] = learnedCodes[i];
+            }
+            
+            const response = await fetch('./sp', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(sp)
+            });
+            
+            if (response.ok) {
+                // Unhighlight the keycode inputs
+                for (let i = 0; i < 4; i++) {
+                    const input = ge(`in_${9 + i}`);
+                    if (input) {
+                        input.classList.remove("changed");
+                    }
+                }
+                
+                // Check if commit button should stay enabled
+                if (document.querySelectorAll('input.changed').length === 0) {
+                    ge('commit_btn').disabled = true;
+                }
+            }
+            
+            // Re-enable RF controls after programming
+            await fetch('./cmd', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({cmd: 'rf_enable'})
+            });
+            
+            // Show summary
+            let summary = "RF Remote Programming Complete!\n\n";
+            for (let i = 0; i < 4; i++) {
+                if (learnedCodes[i] === -1) {
+                    summary += `${buttonNames[i]}: Not programmed\n`;
+                } else {
+                    summary += `${buttonNames[i]}: ${learnedCodes[i]}\n`;
+                }
+            }
+            
+            alert(summary);
+            await fetchStatus();
+        }
+        
+        async function downloadLogFile() {
+          try {
+            const response = await fetch('./log');
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            const blob = await response.blob();
+        
+            // Get current date and time
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            const month = monthNames[now.getMonth()];
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+            const formattedDate = `${day}${month}${year}-${hours}${minutes}`;
+        
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `storage-${formattedDate}.bin`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          } catch (error) {
+            console.error('Download failed:', error);
+          }
+        }
 
         // Initial Load
         window.onload = fetchStatus;

@@ -15,6 +15,7 @@
 #include "power_mgmt.h"
 #include "rf_433.h"
 #include "rtc.h"
+#include "simple_dns_server.h"
 #include "string.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -24,6 +25,7 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_http_server.h"
+//#include "esp_https_server.h"
 #include "esp_netif.h"
 #include <math.h>
 #include <stdint.h>
@@ -31,7 +33,8 @@
 #include <time.h>
 #include "stdio.h"
 #include "storage.h"
-//#include "mdns.h"
+#include "mdns.h"
+
 #include "webpage.h"
 
 #include "esp_partition.h"
@@ -44,10 +47,17 @@
 
 static const char *TAG = "WEBSERVER";
 
+// HTTPS
+/*
+extern const uint8_t servercert_pem_start[] asm("_binary_servercert_pem_start");
+extern const uint8_t servercert_pem_end[] asm("_binary_servercert_pem_end");
+extern const uint8_t prvtkey_pem_start[] asm("_binary_prvtkey_pem_start");
+extern const uint8_t prvtkey_pem_end[] asm("_binary_prvtkey_pem_end");
+*/
 
 static httpd_handle_t httpServerInstance = NULL;
 
-char httpBuffer[1024];
+char httpBuffer[4096];
 
 /* Handler to serve the HTML page */
 static esp_err_t root_get_handler(httpd_req_t *req) {
@@ -55,123 +65,166 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     // Send the HTML response
     
     httpd_resp_set_type(req, "text/html"); // Original MIME type
-	httpd_resp_set_hdr(req, "Content-Encoding", "gzip"); // Tell browser it's gzipped
-	return httpd_resp_send(req, (const char *)html_content, html_content_len);
+    httpd_resp_set_hdr(req, "Content-Encoding", "gzip"); // Tell browser it's gzipped
+    return httpd_resp_send(req, (const char *)html_content, html_content_len);
 }
+
+// Cache the storage partition pointer to avoid repeated lookups
+static const esp_partition_t *cached_storage_partition = NULL;
 
 static esp_err_t log_handler(httpd_req_t *req) {
     ESP_LOGI(TAG, "log_handler");
     
-    
-	int32_t tail = -1;
+    int32_t tail = -1;
     
     if (req -> method == HTTP_GET) {
-		// give the whole log
-	}
-	if (req -> method == HTTP_POST) {
-		int ret = httpd_req_recv(req, httpBuffer, sizeof(httpBuffer));
-	    if (ret <= 0) {
-	        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
-	            httpd_resp_send_408(req);
-	        }
-	        return ESP_FAIL;
-	    }
-	    httpBuffer[ret] = '\0'; // Null-terminate the string
-			
-		ESP_LOGI(TAG, "ST POST %.*s", ret, httpBuffer);
-		
-		if(sscanf(httpBuffer, "%ld", (long*)&tail) != 1) {
-			// if malformed, just send the whole log.
-			//httpd_resp_send_err(req, 400, "INVALID TAIL POINTER");
-		}
-	}
+        // give the whole log
+    }
+    if (req -> method == HTTP_POST) {
+        int ret = httpd_req_recv(req, httpBuffer, sizeof(httpBuffer));
+        if (ret <= 0) {
+            if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+                httpd_resp_send_408(req);
+            }
+            return ESP_FAIL;
+        }
+        httpBuffer[ret] = '\0'; // Null-terminate the string
+            
+        //ESP_LOGI(TAG, "LOG POST %.*s", ret, httpBuffer);
+        
+        if(sscanf(httpBuffer, "%ld", (long*)&tail) != 1) {
+            // if malformed, just send the whole log.
+            tail = -1;
+        }
+    }
 
-    const esp_partition_t *storage_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "storage");
+    // Use cached partition pointer instead of looking it up each time
+    const esp_partition_t *storage_partition = cached_storage_partition;
     if (storage_partition == NULL) {
-        ESP_LOGE(TAG, "Storage partition not found");
-        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Storage partition not found");
+        // Fall back to lookup if cache is empty (shouldn't happen in normal operation)
+        storage_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, 
+                                                     ESP_PARTITION_SUBTYPE_ANY, 
+                                                     "storage");
+        if (storage_partition == NULL) {
+            ESP_LOGE(TAG, "Storage partition not found");
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
+                                        "Storage partition not found");
+        }
+        cached_storage_partition = storage_partition;
     }
 
-    // Figure out the bounds of data
-    if (tail < 0)
-	    tail = get_log_tail();
+    // Get head and tail atomically and store in local variables
+    // This releases the mutex before we do any partition operations
     int32_t head = get_log_head();
-    int32_t total_size = head - tail + 8; // 8 bytes for the head/tail pointers
-    int32_t offset = tail;
-    int32_t sent = 0;
+    int32_t log_start = get_log_offset();
     
-    if (tail >= head) {
-        total_size = storage_partition->size - tail + head - get_log_offset() + 8;
+    if (tail < 0) {
+        tail = get_log_tail();
+    } else {
+        // Validate tail is within log area bounds
+        if (tail < log_start || tail >= (int32_t)storage_partition->size) {
+            ESP_LOGW(TAG, "Invalid tail pointer %ld, using current tail", (long)tail);
+            tail = get_log_tail();
+        }
+        // Also validate tail is aligned to LOG_ENTRY_SIZE
+        if ((tail - log_start) % LOG_ENTRY_SIZE != 0) {
+            ESP_LOGW(TAG, "Tail pointer %ld not aligned to entry size, using current tail", 
+                     (long)tail);
+            tail = get_log_tail();
+        }
+    }
+    
+    // Calculate total size to send
+    int32_t total_size;
+    if (tail == head) {
+        // Empty log - just send pointers
+        total_size = 8;
+    } else if (tail < head) {
+        // Normal case: tail before head
+        total_size = head - tail + 8;  // +8 for head/tail pointers
+    } else {
+        // Wrapped case: tail after head
+        total_size = (storage_partition->size - tail) + (head - log_start) + 8;
     }
 
-    ESP_LOGI(TAG, "start/end: %ld/%ld -> %ld", (long)tail, (long)head, (long)total_size);
+    //ESP_LOGI(TAG, "Log bounds: tail=%ld, head=%ld, total_size=%ld", 
+    //         (long)tail, (long)head, (long)total_size);
 
-    // Send header
+    // Send HTTP headers
     char len_str[16];
     sprintf(len_str, "%u", (unsigned)total_size);
     httpd_resp_set_type(req, "application/octet-stream");
     httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"sc_storage.bin\"");
     httpd_resp_set_hdr(req, "Content-Length", len_str);
 
-
-	int32_t htail = htobe32(tail);
-	int32_t hhead = htobe32(head);
-    // Send head/tail pointers
+    // Send head/tail pointers in big-endian format
+    int32_t htail = htobe32(tail);
+    int32_t hhead = htobe32(head);
     memcpy(&httpBuffer[0], &(htail), 4);
     memcpy(&httpBuffer[4], &(hhead), 4);
     if (httpd_resp_send_chunk(req, (const char *)httpBuffer, 8) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to send chunk");
+        ESP_LOGE(TAG, "Failed to send head/tail chunk");
         return ESP_FAIL;
     }
-    sent += 8;
     
+    int32_t sent = 8;
+    int32_t offset = tail;
+    
+    // Only send data if there's something to send
     if (tail != head) {
-	    // Send data between tail and end (if wrapped)
-	    if (tail >= head) {
-	        ESP_LOGI(TAG, "STARTING wrapped section (tail=%ld, head=%ld)", (long)tail, (long)head);
-	        while (offset < storage_partition->size) {
-	            // FIXED: Don't limit by head in this section - read to end of partition
-	            size_t to_read = MIN(sizeof(httpBuffer), storage_partition->size - offset);
-	            esp_err_t err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
-	            if (err != ESP_OK) {
-	                ESP_LOGE(TAG, "Failed to read partition: %s", esp_err_to_name(err));
-	                return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read storage");
-	            }
-	            ESP_LOGI(TAG, "Sending wrapped chunk: offset=%ld size=%d", (long)offset, to_read);
-	            if (httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read) != ESP_OK) {
-	                ESP_LOGE(TAG, "Failed to send chunk");
-	                return ESP_FAIL;
-	            }
-	            sent += to_read;
-	            offset += to_read;
-	        }
-	        // Loop back to the beginning
-	        offset = get_log_offset();
-	        ESP_LOGI(TAG, "Wrapped to beginning, offset now=%ld", (long)offset);
-	    }
-	
-	    // Send data between start (or tail) and head
-	    ESP_LOGI(TAG, "FINISHING final section (offset=%ld, head=%ld)", (long)offset, (long)head);
-	    while (offset < head) {
-	        size_t to_read = MIN(sizeof(httpBuffer), head - offset);
-	        esp_err_t err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
-	        if (err != ESP_OK) {
-	            ESP_LOGE(TAG, "Failed to read partition: %s", esp_err_to_name(err));
-	            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read storage");
-	        }
-	        ESP_LOGI(TAG, "Sending final chunk: offset=%ld size=%d", (long)offset, to_read);
-	        if (httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read) != ESP_OK) {
-	            ESP_LOGE(TAG, "Failed to send chunk");
-	            return ESP_FAIL;
-	        }
-	        sent += to_read;
-	        offset += to_read;
-	    }
-	
-	    ESP_LOGI(TAG, "Transfer complete: sent %ld bytes (expected %ld)", (long)sent, (long)total_size);
-	
-	    
+        // Handle wrapped case: send from tail to end of partition first
+        if (tail > head) {
+            //ESP_LOGI(TAG, "Wrapped log: sending tail=%ld to partition_end=%lu", 
+            //         (long)tail, (unsigned long)storage_partition->size);
+            
+            while (offset < (int32_t)storage_partition->size) {
+                size_t to_read = MIN(sizeof(httpBuffer), storage_partition->size - offset);
+                esp_err_t err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
+                             (long)offset, esp_err_to_name(err));
+                    return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
+                                                "Failed to read storage");
+                }
+                
+                if (httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read) != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to send chunk at offset %ld", (long)offset);
+                    return ESP_FAIL;
+                }
+                
+                sent += to_read;
+                offset += to_read;
+            }
+            
+            // Wrap to beginning of log area
+            offset = log_start;
+            //ESP_LOGI(TAG, "Wrapped to log start, offset=%ld", (long)offset);
+        }
+        
+        // Send from current offset to head
+        //ESP_LOGI(TAG, "Sending final section: offset=%ld to head=%ld", (long)offset, (long)head);
+        
+        while (offset < head) {
+            size_t to_read = MIN(sizeof(httpBuffer), head - offset);
+            esp_err_t err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
+                         (long)offset, esp_err_to_name(err));
+                return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
+                                            "Failed to read storage");
+            }
+            
+            if (httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read) != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to send chunk at offset %ld", (long)offset);
+                return ESP_FAIL;
+            }
+            
+            sent += to_read;
+            offset += to_read;
+        }
     }
+    
+    //ESP_LOGI(TAG, "Transfer complete: sent %ld bytes (expected %ld)", (long)sent, (long)total_size);
     
     // End chunked transfer
     if (httpd_resp_send_chunk(req, NULL, 0) != ESP_OK) {
@@ -179,7 +232,7 @@ static esp_err_t log_handler(httpd_req_t *req) {
         return ESP_FAIL;
     }
     
-    ESP_LOGI(TAG, "Final empty chunk sent successfully");
+    //ESP_LOGI(TAG, "Final empty chunk sent successfully");
     return ESP_OK;
 }
 
@@ -188,7 +241,7 @@ static esp_err_t st_post_handler(httpd_req_t *req) {
     ESP_LOGI(TAG, "st_post_handler");
     // Send the HTML response
     
-	int ret = httpd_req_recv(req, httpBuffer, sizeof(httpBuffer));
+    int ret = httpd_req_recv(req, httpBuffer, sizeof(httpBuffer));
     if (ret <= 0) {
         if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
             httpd_resp_send_408(req);
@@ -196,18 +249,17 @@ static esp_err_t st_post_handler(httpd_req_t *req) {
         return ESP_FAIL;
     }
     httpBuffer[ret] = '\0'; // Null-terminate the string
-		
-	ESP_LOGI(TAG, "ST POST %.*s", ret, httpBuffer);
-	int64_t tv = -1;
-	
-	/*if(sscanf(httpBuffer, "%d-%d-%dT%d:%d", &tv) == 1) {
-		system_rtc_set_raw_time(tv);
-	}*/
-	if(sscanf(httpBuffer, "%lld", &tv) == 1) {
-		system_rtc_set_raw_time(tv);
-	}
-	
-	
+        
+    ESP_LOGI(TAG, "ST POST %.*s", ret, httpBuffer);
+    int64_t tv = -1;
+    
+    /*if(sscanf(httpBuffer, "%d-%d-%dT%d:%d", &tv) == 1) {
+        system_rtc_set_raw_time(tv);
+    }*/
+    if(sscanf(httpBuffer, "%lld", &tv) == 1) {
+        system_rtc_set_raw_time(tv);
+    }
+    
     return httpd_resp_send(req, "200 OK", HTTPD_RESP_USE_STRLEN);
 }
 
@@ -274,53 +326,50 @@ static esp_err_t sp_post_handler(httpd_req_t *req) {
         }
 
         // Get the value
-        if (!cJSON_IsNumber(item)) {
-            ESP_LOGW(TAG, "Parameter %s has non-numeric value", key);
-            params_failed++;
-            continue;
-        }
+        if (cJSON_IsNumber(item)) {
 
-        double param_val = item->valuedouble;
-        
-        ESP_LOGI(TAG, "Updating Param '%s' (ID: %d) to Value: %.2f", key, param_id, param_val);
-        
-        // Set the parameter based on its type
-        switch(get_param_type(param_id)) { 
-            case PARAM_TYPE_u8:
-                set_param_value_t(param_id, (param_value_t){.u8 = round(param_val)});
-                break;
-            case PARAM_TYPE_i8:
-                set_param_value_t(param_id, (param_value_t){.i8 = round(param_val)});
-                break;
-            case PARAM_TYPE_u16:
-                set_param_value_t(param_id, (param_value_t){.u16 = round(param_val)});
-                break;
-            case PARAM_TYPE_i16:
-                set_param_value_t(param_id, (param_value_t){.i16 = round(param_val)});
-                break;
-            case PARAM_TYPE_u32:
-                set_param_value_t(param_id, (param_value_t){.u32 = round(param_val)});
-                break;
-            case PARAM_TYPE_i32:
-                set_param_value_t(param_id, (param_value_t){.i32 = round(param_val)});
-                break;
-            case PARAM_TYPE_u64:
-                set_param_value_t(param_id, (param_value_t){.u64 = round(param_val)});
-                break;
-            case PARAM_TYPE_i64:
-                set_param_value_t(param_id, (param_value_t){.i64 = round(param_val)});
-                break;
-            case PARAM_TYPE_f32:
-                set_param_value_t(param_id, (param_value_t){.f32 = param_val});
-                break;
-            case PARAM_TYPE_f64:
-                set_param_value_t(param_id, (param_value_t){.f64 = param_val});
-                break;
-            default:
-                ESP_LOGW(TAG, "Unknown parameter type for ID %d", param_id);
-                params_failed++;
-                continue;
-        }
+	        double param_val = item->valuedouble;
+	        
+	        ESP_LOGI(TAG, "Updating Param '%s' (ID: %d) to Value: %.2f", key, param_id, param_val);
+	        
+	        // Set the parameter based on its type
+	        switch(get_param_type(param_id)) { 
+	            case PARAM_TYPE_u16:
+	                set_param_value_t(param_id, (param_value_t){.u16 = round(param_val)});
+	                break;
+	            case PARAM_TYPE_i16:
+	                set_param_value_t(param_id, (param_value_t){.i16 = round(param_val)});
+	                break;
+	            case PARAM_TYPE_u32:
+	                set_param_value_t(param_id, (param_value_t){.u32 = round(param_val)});
+	                break;
+	            case PARAM_TYPE_i32:
+	                set_param_value_t(param_id, (param_value_t){.i32 = round(param_val)});
+	                break;
+	            case PARAM_TYPE_u64:
+	                set_param_value_t(param_id, (param_value_t){.u64 = round(param_val)});
+	                break;
+	            case PARAM_TYPE_i64:
+	                set_param_value_t(param_id, (param_value_t){.i64 = round(param_val)});
+	                break;
+	            case PARAM_TYPE_f32:
+	                set_param_value_t(param_id, (param_value_t){.f32 = param_val});
+	                break;
+	            case PARAM_TYPE_f64:
+	                set_param_value_t(param_id, (param_value_t){.f64 = param_val});
+	                break;
+	            default:
+	                ESP_LOGW(TAG, "Unknown parameter type for ID %d", param_id);
+	                params_failed++;
+	                continue;
+	        }
+        } else if (cJSON_IsString(item)) {
+			set_param_string(param_id, item->valuestring);
+		} else {
+            ESP_LOGW(TAG, "Parameter bad type: %s", key);
+			params_failed++;
+			continue;
+		}
         
         params_updated++;
     }
@@ -334,11 +383,10 @@ static esp_err_t sp_post_handler(httpd_req_t *req) {
 }
 
 
-
 static esp_err_t cmd_post_handler(httpd_req_t *req) {
     ESP_LOGI(TAG, "cmd_post_handler");
     // Send the HTML response
-	int ret = httpd_req_recv(req, httpBuffer, sizeof(httpBuffer));
+    int ret = httpd_req_recv(req, httpBuffer, sizeof(httpBuffer));
     if (ret <= 0) {
         if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
             httpd_resp_send_408(req);
@@ -346,8 +394,8 @@ static esp_err_t cmd_post_handler(httpd_req_t *req) {
         return ESP_FAIL;
     }
     httpBuffer[ret] = '\0'; // Null-terminate the string
-		
-	cJSON *root = cJSON_Parse(httpBuffer);
+        
+    cJSON *root = cJSON_Parse(httpBuffer);
     if (root == NULL) {
         ESP_LOGE(TAG, "Failed to parse JSON: %s", httpBuffer);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
@@ -356,30 +404,98 @@ static esp_err_t cmd_post_handler(httpd_req_t *req) {
     
     cJSON *cmd = cJSON_GetObjectItem(root, "cmd");
 
-	if (!cJSON_IsString(cmd) || cmd->valuestring == NULL)
-		return httpd_resp_send(req, "400 Bad Request", HTTPD_RESP_USE_STRLEN);
-	
-	if (strcmp(cmd->valuestring, "stop") == 0) {
-		fsm_request(FSM_CMD_STOP);
-		ESP_LOGI(TAG, "FSM_CMD_STOP");
-	} else if (strcmp(cmd->valuestring, "undo") == 0) {
-		fsm_request(FSM_CMD_UNDO);
-		ESP_LOGI(TAG, "FSM_CMD_UNDO");
-	} else if (strcmp(cmd->valuestring, "start") == 0) {
-		fsm_request(FSM_CMD_START);
-		ESP_LOGI(TAG, "FSM_CMD_START");
-	} else if (strcmp(cmd->valuestring, "rfp") == 0) {
-		cJSON *i = cJSON_GetObjectItem(root, "channel");	
-		if (cJSON_IsNumber(i) && i->valueint >= 0 && i->valueint < 8) {
-			rf_433_learn_keycode(i->valueint);
-		} else {
-			rf_433_cancel_learn_keycode();
-		}
-	} else {
-		ESP_LOGE(TAG, "Command not valid: %s", httpBuffer);
-		return httpd_resp_send(req, "400 Bad Request", HTTPD_RESP_USE_STRLEN);
-	}
-	
+    if (!cJSON_IsString(cmd) || cmd->valuestring == NULL)
+        return httpd_resp_send(req, "400 Bad Request", HTTPD_RESP_USE_STRLEN);
+    
+    if (strcmp(cmd->valuestring, "stop") == 0) {
+        fsm_request(FSM_CMD_STOP);
+        ESP_LOGI(TAG, "FSM_CMD_STOP");
+    } else if (strcmp(cmd->valuestring, "undo") == 0) {
+        fsm_request(FSM_CMD_UNDO);
+        ESP_LOGI(TAG, "FSM_CMD_UNDO");
+    } else if (strcmp(cmd->valuestring, "reboot") == 0) {
+        // Send response FIRST
+	    httpd_resp_send(req, "Rebooting...", HTTPD_RESP_USE_STRLEN);
+	    
+	    set_param_value_t(PARAM_BOOT_TIME, (param_value_t){.i64 = system_rtc_get_raw_time()});
+	    
+	    // THEN delay and reboot
+	    vTaskDelay(pdMS_TO_TICKS(2000)); // Give time for TCP to close properly
+	    esp_restart();
+    } else if (strcmp(cmd->valuestring, "start") == 0) {
+        fsm_request(FSM_CMD_START);
+        ESP_LOGI(TAG, "FSM_CMD_START");
+    } else if (strcmp(cmd->valuestring, "cal_jack_start") == 0) {
+        fsm_request(FSM_CMD_CALIBRATE_JACK_PREP);
+        ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_PREP");
+    } else if (strcmp(cmd->valuestring, "cal_jack_finish") == 0) {
+		cJSON *i = cJSON_GetObjectItem(root, "amt");
+        if (cJSON_IsNumber(i) && i->valuedouble >= 0 && i->valuedouble < 8) {
+        	ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_FINISH");
+			fsm_set_cal_val(i->valuedouble);
+        	fsm_request(FSM_CMD_CALIBRATE_JACK_FINISH);
+        }
+    } else if (strcmp(cmd->valuestring, "cal_drive_start") == 0) {
+        fsm_request(FSM_CMD_CALIBRATE_DRIVE_PREP);
+        ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_PREP");
+    } else if (strcmp(cmd->valuestring, "cal_drive_finish") == 0) {
+		cJSON *i = cJSON_GetObjectItem(root, "amt");
+        if (cJSON_IsNumber(i) && i->valuedouble >= 0 && i->valuedouble < 8) {
+        	ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_FINISH");
+			fsm_set_cal_val(i->valuedouble);
+        	fsm_request(FSM_CMD_CALIBRATE_DRIVE_FINISH);
+        }
+    } else if (strcmp(cmd->valuestring, "cal_get") == 0) {
+    	ESP_LOGI(TAG, "CAL_GET");
+		sprintf(httpBuffer, "{\"e\":%lld,\"t\":%lld}", fsm_get_cal_e(), fsm_get_cal_t());
+		
+    	httpd_resp_set_type(req, "application/json");
+        return httpd_resp_send(req, httpBuffer, HTTPD_RESP_USE_STRLEN);
+    } 
+    
+    else if (strcmp(cmd->valuestring, "remaining_dist") == 0) {
+    	cJSON *i = cJSON_GetObjectItem(root, "amt");
+        if (cJSON_IsNumber(i)) {
+        	ESP_LOGI(TAG, "remaining_dist");
+			fsm_set_remaining_distance(i->valuedouble);
+        }
+    } 
+    
+    else if (strcmp(cmd->valuestring, "rfp") == 0) {
+        cJSON *i = cJSON_GetObjectItem(root, "channel");    
+        if (cJSON_IsNumber(i) && i->valueint >= 0 && i->valueint < 8) {
+            rf_433_learn_keycode(i->valueint);
+        } else {
+            rf_433_cancel_learn_keycode();
+        }
+    } else if (strcmp(cmd->valuestring, "rf_status") == 0) {
+        // Return current RF button codes (just the 32-bit values)
+        int head = 0;
+        head += sprintf(httpBuffer, "{\"codes\":[");
+        
+        for (uint8_t i = 0; i < NUM_RF_BUTTONS; i++) {
+            if (i > 0) head += sprintf(httpBuffer+head, ",");
+            
+            int64_t code = get_param_value_t(PARAM_KEYCODE_0 + i).i64;
+            // Return just the code as uint32
+            head += sprintf(httpBuffer+head, "%lu", (unsigned long)(uint32_t)code);
+        }
+        
+        head += sprintf(httpBuffer+head, "]}");
+        
+        httpd_resp_set_type(req, "application/json");
+        return httpd_resp_send(req, httpBuffer, head);
+    } else if (strcmp(cmd->valuestring, "rf_disable") == 0) {
+        rf_433_disable_controls();
+        ESP_LOGI(TAG, "RF controls disabled");
+    } else if (strcmp(cmd->valuestring, "rf_enable") == 0) {
+        rf_433_enable_controls();
+        ESP_LOGI(TAG, "RF controls enabled");
+    } else {
+        ESP_LOGE(TAG, "Command not valid: %s", httpBuffer);
+        return httpd_resp_send(req, "400 Bad Request", HTTPD_RESP_USE_STRLEN);
+    }
+    
     httpd_resp_set_type(req, "text/html");
     return httpd_resp_send(req, "200 OK", HTTPD_RESP_USE_STRLEN);
 
@@ -394,11 +510,50 @@ static esp_err_t status_get_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "application/json");
 
     // Start building the JSON string with time
-    head += sprintf(httpBuffer+head, "{\"time\":%lld,\"battery\":%f,\"rtc_set\":%s,\"values\":[",
-    	system_rtc_get_raw_time(),
-    	get_battery_V(),
-    	rtc_is_set()?"true":"false"
-    	);
+    head += sprintf(httpBuffer+head, "{\"time\":%lld,\"rtc_set\":%s,",
+        system_rtc_get_raw_time(),
+        rtc_is_set()?"true":"false"); 
+    
+    float vbat = get_battery_V();
+    if (fpclassify(vbat) == FP_NORMAL) {
+	    head += sprintf(httpBuffer+head, "\"battery\":%f,",
+	        vbat);
+	} else {
+		head += sprintf(httpBuffer+head, "\"battery\":null,");
+    }
+    
+    float d = fsm_get_remaining_distance();
+    if (fpclassify(d) == FP_NORMAL) {
+	    head += sprintf(httpBuffer+head, "\"remaining_dist\":%f,\"msg\":\"",d);
+	} else {
+		head += sprintf(httpBuffer+head, "\"remaining_dist\":null,\"msg\":\"");
+    }
+    
+        
+    
+    switch(fsm_get_state()) {
+		case STATE_IDLE:
+			head += sprintf(httpBuffer+head, "IDLE");
+			break;
+		case STATE_UNDO_JACK:
+		case STATE_UNDO_JACK_START:
+			head += sprintf(httpBuffer+head, "CANCELLING MOVE");
+			break;
+		default:
+			head += sprintf(httpBuffer+head, "MOVING...");
+			break;
+	}
+	
+	if (efuse_is_tripped(BRIDGE_AUX))   head += sprintf(httpBuffer+head, " | AUX EFUSE TRIP");
+	if (efuse_is_tripped(BRIDGE_JACK))  head += sprintf(httpBuffer+head, " | JACK EFUSE TRIP");
+	if (efuse_is_tripped(BRIDGE_DRIVE)) head += sprintf(httpBuffer+head, " | DRIVE EFUSE TRIP");
+	
+    if (!rtc_is_set()) {
+		head += sprintf(httpBuffer+head, " | RTC NOT SET");
+	}
+	
+    
+    head += sprintf(httpBuffer+head, "\",\"values\":[");
     
     for (param_idx_t i = 0; i < NUM_PARAMS; i++) {
         if (i > 0) {
@@ -410,16 +565,27 @@ static esp_err_t status_get_handler(httpd_req_t *req) {
 
         // Append the parameter value based on its type
         switch (get_param_type(i)) {
-			case PARAM_TYPE_u8:  head+=sprintf(httpBuffer+head, "%u", param.u8); break;
-            case PARAM_TYPE_i8:  head+=sprintf(httpBuffer+head, "%d", param.i8); break;
             case PARAM_TYPE_u16: head+=sprintf(httpBuffer+head, "%u", param.u16); break;
             case PARAM_TYPE_i16: head+=sprintf(httpBuffer+head, "%d", param.i16); break;
             case PARAM_TYPE_u32: head+=sprintf(httpBuffer+head, "%lu", (unsigned long)param.u32); break;
             case PARAM_TYPE_i32: head+=sprintf(httpBuffer+head, "%ld", (long)param.i32); break;
             case PARAM_TYPE_u64: head+=sprintf(httpBuffer+head, "%llu", param.u64); break;
             case PARAM_TYPE_i64: head+=sprintf(httpBuffer+head, "%lld", param.i64); break;
-            case PARAM_TYPE_f32: head+=sprintf(httpBuffer+head, "%.8f", param.f32); break;
-            case PARAM_TYPE_f64: head+=sprintf(httpBuffer+head, "%.8f", param.f64); break;
+            case PARAM_TYPE_f32:
+              if (fpclassify(param.f32) == FP_NORMAL)
+                head+=sprintf(httpBuffer+head, "%.8f", param.f32);
+              else
+                head+=sprintf(httpBuffer+head, "null");
+              break;
+            case PARAM_TYPE_f64:
+              if (fpclassify(param.f32) == FP_NORMAL)
+              	head+=sprintf(httpBuffer+head, "%.8f", param.f64);
+              else
+                head+=sprintf(httpBuffer+head, "null");
+              break;
+        	case PARAM_TYPE_str:
+        	    head+=sprintf(httpBuffer+head, "\"%s\"", param.str);
+        	    break;
         }
     }
     
@@ -553,14 +719,11 @@ httpd_uri_t uris[] = {{
 static void startHttpServer(void) {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = SERVER_PORT;
-
-    ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
+    
     if (httpd_start(&httpServerInstance, &config) == ESP_OK) {
-		for (uint8_t i=0; i<(sizeof(uris)/sizeof(httpd_uri_t)); i++) {
-        	httpd_register_uri_handler(httpServerInstance, &uris[i]);
-			
-		}
-    }
+		for (uint8_t i=0; i<(sizeof(uris)/sizeof(httpd_uri_t)); i++)
+			httpd_register_uri_handler(httpServerInstance, &uris[i]);
+	}
 }
 
 /* Event handler for WiFi events */
@@ -579,18 +742,15 @@ void launchSoftAp() {
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    
-    // Create default WiFi AP and get the netif handle
-    esp_netif_t *ap_netif = esp_netif_create_default_wifi_ap();
-    assert(ap_netif);  // Optional: check for NULL
 
-    // Set your custom hostname here (max 32 chars, no spaces/special chars recommended)
+    esp_netif_t *ap_netif = esp_netif_create_default_wifi_ap();
+    assert(ap_netif);
+
     ESP_ERROR_CHECK(esp_netif_set_hostname(ap_netif, HOSTNAME));
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    // Register the event handler
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
                                                         &wifi_event_handler,
@@ -599,29 +759,51 @@ void launchSoftAp() {
 
     wifi_config_t wifi_config = {
         .ap = {
-			.channel = 8,
+            .channel = 6,
             .ssid = SOFT_AP_SSID,
-            .ssid_len = strlen(SOFT_AP_SSID),
             .password = SOFT_AP_PASSWORD,
             .max_connection = 4,
             .authmode = WIFI_AUTH_WPA2_PSK
         },
     };
+    
+    // Get the strings from your parameter system
+	char* ssid_str = get_param_string(PARAM_WIFI_SSID);
+	char* password_str = get_param_string(PARAM_WIFI_PASS);
+	
+	// Allocate and set the SSID and password
+	memcpy(wifi_config.ap.ssid,     ssid_str,      16);
+	memcpy(wifi_config.ap.password, password_str,  16);
+	
+	// password minimum length of 8
+	if (strlen(password_str) < 8) {
+		wifi_config.ap.password[0] = '\0';
+		wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+	}
+	
+	// Set the length of SSID
+	wifi_config.ap.ssid_len = strlen(ssid_str);
+
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
-    
-    //dns_server_config_t dns_config = DNS_SERVER_CONFIG_SINGLE(HOSTNAME, "192.168.4.1");
-	//ESP_ERROR_CHECK(dns_server_start(&dns_config));
-    
-    //ESP_ERROR_CHECK(mdns_init());
-	//ESP_ERROR_CHECK(mdns_hostname_set(HOSTNAME));  // Matches the netif hostname
-	//ESP_ERROR_CHECK(mdns_instance_name_set("My ESP32 Device"));  // Optional friendly name
-	// After mdns_init() and hostname set
-	//ESP_ERROR_CHECK(mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0));
 
-    ESP_LOGI(TAG, "SoftAP set up. SSID:%s password:%s", SOFT_AP_SSID, SOFT_AP_PASSWORD);
+    // Start DNS server with your specific hostname
+    // Option 1: Only respond to your hostname
+    ESP_ERROR_CHECK(simple_dns_server_start("192.168.4.1"));
+    
+    // Option 2: Respond to ALL domains (captive portal style)
+    // ESP_ERROR_CHECK(simple_dns_server_start(HOSTNAME, "192.168.4.1", true));
+
+    // Start mDNS for .local domain
+    ESP_ERROR_CHECK(mdns_init());
+    ESP_ERROR_CHECK(mdns_hostname_set(HOSTNAME));
+    ESP_ERROR_CHECK(mdns_instance_name_set("ClusterCommand"));
+    ESP_ERROR_CHECK(mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0));
+
+    ESP_LOGI(TAG, "SoftAP ready. Access at: http://%s or http://%s.local or http://192.168.4.1", 
+             HOSTNAME, HOSTNAME);
 }
 
 esp_err_t webserver_init(void) {
