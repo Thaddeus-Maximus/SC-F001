@@ -104,23 +104,21 @@ black: #2f2f2f
             <td>Battery (V)</td>
             <td><input readonly="" id="voltage"/></td>
         </tr>
-    </table>
-    
-    <button id="commit_btn" onclick="commitParams()" disabled>Save Changes</button>
-    
-    <br/>
-    
-    <br/>
-    <details>
-    <summary>DANGER ZONE</summary>
-    
-    <table>
         <tr>
             <td>Program RF Remote</td>
             <td>
             <button onclick="programRFSequence()">Program All Buttons</button>
             </td>
         </tr>
+    </table>
+    
+    <button id="commit_btn" onclick="commitParams()" disabled>Save Changes</button>
+    
+    <br/>
+    <br/>
+    <details>
+    <summary>DANGER ZONE</summary>
+    <table>
         <tr>
             <td>Calibration</td>
             <td><button onclick="calibrate('jack')">Jack Calibration</button>
@@ -138,10 +136,7 @@ black: #2f2f2f
     </table>
     
     <table id="table"></table>
-    
-    
-            <td><button class="cmd" onclick="sendCommand('reboot')" style="background-color:#723; color: #fff">REBOOT</button></td>
-    
+    <button class="cmd" onclick="sendCommand('reboot')" style="background-color:#723; color: #fff">REBOOT</button>
     </details>
     </div>
     </div>
@@ -464,7 +459,13 @@ black: #2f2f2f
                 return;
             }
             
-            // Disable RF controls during programming
+            // Clear temp storage and disable RF controls during programming
+            await fetch('./cmd', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({cmd: 'rf_clear_temp'})
+            });
+            
             await fetch('./cmd', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -478,51 +479,35 @@ black: #2f2f2f
                 // Give a moment for the learn flag to be set
                 await new Promise(resolve => setTimeout(resolve, 100));
                 
-                // Ask user to press button or skip
-                const shouldSkip = !confirm(`Button ${i+1}/4: ${buttonNames[i]}\n\nPress the ${buttonNames[i]} button on your remote now, then press OK.\n\nPress Cancel to skip this button.`);
+                // Show dialog and wait for user to press OK
+                alert(`Button ${i+1}/4: ${buttonNames[i]}\n\nPress the ${buttonNames[i]} button on your remote now.\n\nPress OK when done (or just press OK to leave unprogrammed).`);
                 
-                if (shouldSkip) {
-                    // Cancel learning and set this button to -1 (disabled)
-                    programRF(-1);
-                    learnedCodes[i] = -1;
-                    continue;
-                }
+                // Cancel learning mode
+                programRF(-1);
                 
-                // Wait for code to be learned (poll for a bit)
-                let learned = false;
-                const startCode = learnedCodes[i]; // Should be null at this point
-                
-                for (let attempt = 0; attempt < 50; attempt++) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                // Check what was learned (if anything)
+                try {
+                    const response = await fetch('./cmd', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({cmd: 'rf_status'})
+                    });
+                    const data = await response.json();
                     
-                    // Check if code was learned by polling RF status via /cmd
-                    try {
-                        const response = await fetch('./cmd', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({cmd: 'rf_status'})
-                        });
-                        const data = await response.json();
-                        
-                        // Check if this specific index changed from what we started with
-                        if (data.codes[i] !== -1 && data.codes[i] !== null && data.codes[i] !== startCode) {
-                            learnedCodes[i] = data.codes[i];
-                            learned = true;
-                            break;
-                        }
-                    } catch (e) {
-                        console.error("Error checking RF status:", e);
-                    }
+                    // Get whatever is in temp storage (could be -1 if nothing was pressed)
+                    learnedCodes[i] = data.codes[i];
+                } catch (e) {
+                    console.error("Error checking RF status:", e);
+                    learnedCodes[i] = -1;
                 }
                 
-                if (!learned) {
-                    if (confirm(`Timeout waiting for ${buttonNames[i]} button.\n\nRetry this button?`)) {
-                        i--; // Retry this iteration
-                        continue;
-                    } else {
-                        // Skip this button
-                        learnedCodes[i] = -1;
-                    }
+                // If nothing was learned, make sure it's set to -1
+                if (learnedCodes[i] === -1) {
+                    await fetch('./cmd', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({cmd: 'rf_set_temp', index: i, code: -1})
+                    });
                 }
             }
             

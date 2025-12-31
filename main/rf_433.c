@@ -40,6 +40,9 @@ typedef struct {
 int learn_flag = -1;
 bool controls_enabled = true;
 
+// Temporary storage for learned keycodes (not committed to params yet)
+static int64_t temp_keycodes[NUM_RF_BUTTONS] = {-1, -1, -1, -1, -1, -1, -1, -1};
+
 // For rmt_rx_register_event_callbacks
 static bool rfrx_done(rmt_channel_handle_t channel, const rmt_rx_done_event_data_t *edata, void *udata) {
     BaseType_t high_task_wakeup = pdFALSE;
@@ -133,10 +136,9 @@ static void rf_433_receiver_task(void* param) {
                     ESP_LOGI(TAG, "GOT KEYCODE 0x%lx [%d]", (long) code, len);
                     
                     if (learn_flag >= 0) {
-                        // Store just the 32-bit code
-                        set_param_value_t(PARAM_KEYCODE_0 + learn_flag,
-                          (param_value_t){.i32 = (int32_t)code});
-                        ESP_LOGI(TAG, "LEARNED KEYCODE");
+                        // Store to temporary storage, not to params yet
+                        temp_keycodes[learn_flag] = (int64_t)code;
+                        ESP_LOGI(TAG, "LEARNED KEYCODE (temp storage)");
                         learn_flag = -1;
                     } else if (controls_enabled) {
                         // Only process RF commands if controls are enabled
@@ -149,9 +151,9 @@ static void rf_433_receiver_task(void* param) {
                         };
                         
                         for (uint8_t i = 0; i < NUM_RF_BUTTONS; i++) {
-                            int32_t match = get_param_value_t(PARAM_KEYCODE_0+i).i32;
+                            int64_t match = get_param_value_t(PARAM_KEYCODE_0+i).i64;
                             // Compare just the code (lower 32 bits)
-                            if ((uint32_t)match == code) {
+                            if ((uint32_t)match == code && code!=-1) {
                                 switch (i) {
                                     case 0: pulseOverride(RELAY_A1); pulseOverride(RELAY_A3); break;
                                     case 1: pulseOverride(RELAY_B1); pulseOverride(RELAY_A3); break;
@@ -233,4 +235,20 @@ void rf_433_disable_controls() {
 
 void rf_433_enable_controls() {
     controls_enabled = true;
+}
+
+int64_t rf_433_get_temp_keycode(uint8_t index) {
+    if (index >= NUM_RF_BUTTONS) return -1;
+    return temp_keycodes[index];
+}
+
+void rf_433_set_temp_keycode(uint8_t index, int64_t code) {
+    if (index >= NUM_RF_BUTTONS) return;
+    temp_keycodes[index] = code;
+}
+
+void rf_433_clear_temp_keycodes() {
+    for (uint8_t i = 0; i < NUM_RF_BUTTONS; i++) {
+        temp_keycodes[i] = -1;
+    }
 }

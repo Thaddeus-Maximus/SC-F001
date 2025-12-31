@@ -19,6 +19,7 @@ bool i2c_get_button_released(uint8_t button);
 bool i2c_get_button_state(uint8_t button);
 bool i2c_get_button_repeat(uint8_t btn);
 int8_t i2c_get_button_repeats(uint8_t btn);
+int64_t i2c_get_button_us(uint8_t btn);
 int64_t i2c_get_button_ms(uint8_t btn);
 
 #endif // I2C_H_

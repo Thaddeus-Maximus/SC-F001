@@ -469,22 +469,32 @@ static esp_err_t cmd_post_handler(httpd_req_t *req) {
             rf_433_cancel_learn_keycode();
         }
     } else if (strcmp(cmd->valuestring, "rf_status") == 0) {
-        // Return current RF button codes (just the 32-bit values)
+        // Return current temp RF button codes (from temp storage, not params)
         int head = 0;
         head += sprintf(httpBuffer, "{\"codes\":[");
         
         for (uint8_t i = 0; i < NUM_RF_BUTTONS; i++) {
             if (i > 0) head += sprintf(httpBuffer+head, ",");
             
-            int64_t code = get_param_value_t(PARAM_KEYCODE_0 + i).i64;
-            // Return just the code as uint32
-            head += sprintf(httpBuffer+head, "%lu", (unsigned long)(uint32_t)code);
+            int64_t code = rf_433_get_temp_keycode(i);
+            head += sprintf(httpBuffer+head, "%ld", (long)code);
         }
         
         head += sprintf(httpBuffer+head, "]}");
         
         httpd_resp_set_type(req, "application/json");
         return httpd_resp_send(req, httpBuffer, head);
+    } else if (strcmp(cmd->valuestring, "rf_clear_temp") == 0) {
+        rf_433_clear_temp_keycodes();
+        ESP_LOGI(TAG, "RF temp keycodes cleared");
+    } else if (strcmp(cmd->valuestring, "rf_set_temp") == 0) {
+        // Set a temp keycode (for skipping)
+        cJSON *index = cJSON_GetObjectItem(root, "index");
+        cJSON *code = cJSON_GetObjectItem(root, "code");
+        if (cJSON_IsNumber(index) && cJSON_IsNumber(code)) {
+            rf_433_set_temp_keycode(index->valueint, (int64_t)code->valuedouble);
+            ESP_LOGI(TAG, "RF temp keycode %d set to %ld", index->valueint, (long)(int64_t)code->valuedouble);
+        }
     } else if (strcmp(cmd->valuestring, "rf_disable") == 0) {
         rf_433_disable_controls();
         ESP_LOGI(TAG, "RF controls disabled");

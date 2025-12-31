@@ -355,6 +355,42 @@ esp_err_t commit_params(void) {
 }
 
 // ============================================================================
+// FACTORY RESET
+// ============================================================================
+esp_err_t factory_reset(void) {
+    if (storage_partition == NULL) {
+        ESP_LOGE(TAG, "Storage partition not initialized");
+        return ESP_ERR_INVALID_STATE;
+    }
+    
+    ESP_LOGW(TAG, "FACTORY RESET: Erasing entire storage partition...");
+    
+    // Erase the entire storage partition
+    esp_err_t err = esp_partition_erase_range(storage_partition, 0, storage_partition->size);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to erase storage partition: %s", esp_err_to_name(err));
+        return err;
+    }
+    
+    ESP_LOGI(TAG, "Storage partition erased successfully");
+    
+    // Reset all parameters to defaults in RAM
+    for (int i = 0; i < NUM_PARAMS; i++) {
+        memcpy(&parameter_table[i], &parameter_defaults[i], sizeof(param_value_t));
+    }
+    
+    // Reset log indices
+    if (log_mutex) xSemaphoreTake(log_mutex, portMAX_DELAY);
+    log_head_index = 0;
+    log_tail_index = 0;
+    if (log_mutex) xSemaphoreGive(log_mutex);
+    
+    ESP_LOGI(TAG, "Factory reset complete - all data erased");
+    
+    return ESP_OK;
+}
+
+// ============================================================================
 // INITIALIZATION FUNCTIONS
 // ============================================================================
 

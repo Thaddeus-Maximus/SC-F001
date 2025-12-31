@@ -82,7 +82,7 @@ esp_err_t adc_init() {
 
     // Configure all channels
     adc_oneshot_chan_cfg_t chan_cfg = {
-        .atten = ADC_ATTEN_DB_11,
+        .atten = ADC_ATTEN_DB_12,
         .bitwidth = ADC_BITWIDTH_12,
     };
 
@@ -94,7 +94,7 @@ esp_err_t adc_init() {
     // Line fitting calibration (modern scheme)
     adc_cali_line_fitting_config_t cali_cfg = {
         .unit_id = ADC_UNIT_1,
-        .atten = ADC_ATTEN_DB_11,
+        .atten = ADC_ATTEN_DB_12,
         .bitwidth = ADC_BITWIDTH_12,
     };
     ESP_ERROR_CHECK(adc_cali_create_scheme_line_fitting(&cali_cfg, &adc_cali_handle));

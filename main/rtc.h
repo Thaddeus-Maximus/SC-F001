@@ -16,6 +16,7 @@
 #include "esp_sleep.h"
 #include "esp_timer.h"
 #include "esp_err.h"
+#include <time.h>
 
 
 #define POWER_INACTIVITY_TIMEOUT_MS 180000

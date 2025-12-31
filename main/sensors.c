@@ -58,7 +58,7 @@ static void sensor_debounce_task(void* param) {
     
     
 	uint8_t i = 0;
-	int64_t now = -1;
+	//int64_t now = -1;
 
     while (1) {
         if (xQueueReceive(sensor_event_queue, &evt, pdMS_TO_TICKS(100)) == pdTRUE) {
@@ -84,7 +84,7 @@ static void sensor_debounce_task(void* param) {
         }
         
         
-            now = esp_timer_get_time();
+            //now = esp_timer_get_time();
         
         /*// Wait for debounce period since last ISR
             if (now - sensor_last_isr_time[i] >= (DEBOUNCE_TIME_US)) {

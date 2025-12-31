@@ -24,11 +24,9 @@
 #define TCA_REG_CONFIG1   0x07
 
 // Debounce & Repeat Settings
-#define DEBOUNCE_US        50000
-#define REPEAT_US         200000
-#define REPEAT_START_US   700000
-
-#define MAX_REPEATS 100
+#define DEBOUNCE_MS        50
+#define REPEAT_MS         200
+#define REPEAT_START_MS   700
 
 // Static Variables
 static bool i2c_initted = false;
@@ -87,8 +85,8 @@ esp_err_t i2c_stop() {
 #define N_BTNS 2
 static bool debounced_state[N_BTNS] = {false};
 static bool last_known_state[N_BTNS] = {false};
-static int64_t last_stable_time[N_BTNS] = {0};
-static int64_t last_change_time[N_BTNS] = {0};
+static uint64_t last_stable_time[N_BTNS] = {0};
+static uint64_t last_change_time[N_BTNS] = {0};
 static uint8_t claimed_repeats[N_BTNS] = {0};
 esp_err_t i2c_poll_buttons() {
 	for (uint8_t btn = 0; btn < N_BTNS; ++btn) {
@@ -100,13 +98,13 @@ esp_err_t i2c_poll_buttons() {
     uint8_t raw_buttons = (uint8_t)(port_val & 0x0F);
     uint8_t raw_states = ~raw_buttons & 0x0F;
 
-    int64_t now = esp_timer_get_time() / 1000;
+    uint64_t now = esp_timer_get_time() / 1000;
 
     for (uint8_t btn = 0; btn < N_BTNS; ++btn) {
         bool raw_pressed = (raw_states & (1 << btn)) != 0;
 
         if (raw_pressed != debounced_state[btn]) {
-            if (now - last_stable_time[btn] >= DEBOUNCE_US) {
+            if (now - last_stable_time[btn] >= DEBOUNCE_MS) {
                 debounced_state[btn] = raw_pressed;
                 last_stable_time[btn] = now;
                 last_change_time[btn] = now;
@@ -133,9 +131,9 @@ bool i2c_get_button_state(uint8_t button) {
 
 bool i2c_get_button_repeat(uint8_t btn) {
     if (btn >= N_BTNS || !debounced_state[btn]) return false;
-    int64_t now = esp_timer_get_time();
-    if (now + DEBOUNCE_US < last_change_time[btn]) return false;
-    if ((now - last_change_time[btn]) > (REPEAT_START_US + REPEAT_US * claimed_repeats[btn])) {
+    uint64_t now = esp_timer_get_time() / 1000;
+    if (now + DEBOUNCE_MS < last_change_time[btn]) return false;
+    if ((now - last_change_time[btn]) > (REPEAT_START_MS + REPEAT_MS * claimed_repeats[btn])) {
         claimed_repeats[btn]++;
         return true;
     }
@@ -147,15 +145,18 @@ int8_t i2c_get_button_repeats(uint8_t btn) {
 		return 0;
 		
     if (btn >= N_BTNS || !debounced_state[btn]) return false;
-    int64_t now = esp_timer_get_time();
-    if (now + DEBOUNCE_US < last_change_time[btn]) return false;
-    if ((now - last_change_time[btn]) > (REPEAT_START_US + REPEAT_US * claimed_repeats[btn])) {
+    uint64_t now = esp_timer_get_time() / 1000;
+    if (now + DEBOUNCE_MS < last_change_time[btn]) return false;
+    if ((now - last_change_time[btn]) > (REPEAT_START_MS + REPEAT_MS * claimed_repeats[btn])) {
         claimed_repeats[btn]++;
-        if (claimed_repeats[btn] > MAX_REPEATS)
-        	claimed_repeats[btn] = MAX_REPEATS;
+        if (claimed_repeats[btn] > 100)
+        	claimed_repeats[btn] = 100;
+        ESP_LOGI("BTN", "RPT %d", (uint8_t)claimed_repeats[btn]+2);
         return claimed_repeats[btn]+1;
     }
     if (debounced_state[btn] && !last_known_state[btn]) {
+		
+        ESP_LOGI("BTN", "FST %d", 1);
     	return 1;
     }
     
@@ -166,6 +167,9 @@ int64_t i2c_get_button_ms(uint8_t btn) {
 	if (!i2c_get_button_state(btn))
 		return 0;
 	
-    int64_t now = esp_timer_get_time();
+    uint64_t now = esp_timer_get_time() / 1000;
     return now - last_change_time[btn];
+}
+int64_t i2c_get_button_us(uint8_t btn) {
+	return i2c_get_button_ms(btn)*1000;
 }

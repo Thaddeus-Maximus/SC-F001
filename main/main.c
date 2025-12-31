@@ -86,7 +86,8 @@ void driveLEDs(led_state_t state) {
 		
 		case LED_STATE_ERRORED:
 			i2c_set_led1(patterns[state][(esp_timer_get_time()/200000) % 2]);
-		
+			break;
+			
 		case LED_STATE_BOOTING:
 			i2c_set_led1(0b001);
 			break;
@@ -106,18 +107,71 @@ void driveLEDs(led_state_t state) {
 	}
 }
 
+RTC_DATA_ATTR bool first_boot = true;
+
 void app_main(void) {
     esp_task_wdt_add(NULL);
     
-	// Say hello; turn on the lights
-	esp_sleep_wakeup_cause_t cause = rtc_wakeup_cause();
+    if (rtc_xtal_init() != ESP_OK) ESP_LOGE(TAG, "RTC FAILED");
+    
+    // Say hello; turn on the lights
+    esp_sleep_wakeup_cause_t cause = rtc_wakeup_cause();
     if (i2c_init()      != ESP_OK) ESP_LOGE(TAG, "I2C FAILED");
     i2c_set_relays(0);
     driveLEDs(LED_STATE_BOOTING);
     
-	// Every boot we load parameters and monitor solar, no matter what
+    
+    
+    
+    // Check for factory reset condition: Cold boot + button held
+    // This is a cold boot (power-on or hard reset)
+    // Check if button is being held (pin is LOW)
+    if (first_boot && gpio_get_level(GPIO_NUM_13) == 0) {
+        ESP_LOGW(TAG, "FACTORY RESET TRIGGERED - Button held on cold boot");
+        
+        // Flash LED pattern to indicate factory reset
+        for (int i = 0; i < 10; i++) {
+            i2c_set_led1(0b111);
+            vTaskDelay(pdMS_TO_TICKS(100));
+            i2c_set_led1(0b000);
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
+        
+        // Initialize minimal components needed for factory reset
+        if (storage_init()  != ESP_OK) ESP_LOGE(TAG, "STORAGE FAILED");
+        
+        // Perform factory reset
+        esp_err_t reset_err = factory_reset();
+        if (reset_err == ESP_OK) {
+            ESP_LOGI(TAG, "Factory reset completed successfully");
+            // Flash success pattern
+            for (int i = 0; i < 5; i++) {
+                i2c_set_led1(0b010);
+                vTaskDelay(pdMS_TO_TICKS(200));
+                i2c_set_led1(0b000);
+                vTaskDelay(pdMS_TO_TICKS(200));
+            }
+        } else {
+            ESP_LOGE(TAG, "Factory reset failed!");
+            // Flash error pattern
+            for (int i = 0; i < 5; i++) {
+                i2c_set_led1(0b100);
+                vTaskDelay(pdMS_TO_TICKS(200));
+                i2c_set_led1(0b000);
+                vTaskDelay(pdMS_TO_TICKS(200));
+            }
+        }
+        
+        // Reboot the system
+        ESP_LOGI(TAG, "Rebooting system...");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        esp_restart();
+    }
+    
+    first_boot = false;
+    
+    // Every boot we load parameters and monitor solar, no matter what
 	if (adc_init()      != ESP_OK) ESP_LOGE(TAG, "ADC FAILED");
-	if (rtc_xtal_init() != ESP_OK) ESP_LOGE(TAG, "RTC FAILED");
     if (storage_init()  != ESP_OK) ESP_LOGE(TAG, "STORAGE FAILED");
     if (log_init()      != ESP_OK) ESP_LOGE(TAG, "LOG FAILED");
     if (run_solar_fsm() != ESP_OK) ESP_LOGE(TAG, "SOLAR FAILED");
@@ -174,7 +228,7 @@ void app_main(void) {
         switch (fsm_get_state()) {
 			case STATE_IDLE:
         		// LED cue for user
-				if (i2c_get_button_ms(0) > 1600){
+        		if (i2c_get_button_ms(0) > 1600){
         			driveLEDs(LED_STATE_START4);
 				} else if (i2c_get_button_ms(0) > 1100){
         			driveLEDs(LED_STATE_START3);
@@ -183,8 +237,6 @@ void app_main(void) {
         		} else if (i2c_get_button_ms(0) > 100){
         			driveLEDs(LED_STATE_START1);
         		} else{
-					
-	
 					if (
 						rtc_is_set() &&
 						!efuse_is_tripped(BRIDGE_JACK) &&
@@ -239,7 +291,6 @@ void app_main(void) {
 				send_log();
         		driveLEDs(LED_STATE_DRIVING);
 				if (i2c_get_button_tripped(0)) {
-					ESP_LOGI(TAG, "CTRL + Z PLZ!");
         			fsm_request(FSM_CMD_UNDO);
 				}
         		break;
@@ -252,20 +303,10 @@ void app_main(void) {
         	fsm_request(FSM_CMD_START);
         	set_next_alarm();
         }
-        
-        
-	
-		/*ESP_LOGI(TAG, "VOLTAGE: %2.3f | CURRENTS: %+2.8f %+2.8f %+2.8f",
-		  get_battery_V(),
-		  get_bridge_A(BRIDGE_DRIVE),
-		  get_bridge_A(BRIDGE_JACK),
-		  get_bridge_A(BRIDGE_AUX));*/
-		  
-		
         	
         run_solar_fsm();
         
-        //check_shutdown_timer();
+        check_shutdown_timer();
         esp_task_wdt_reset();
 	}
 }

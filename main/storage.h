@@ -163,6 +163,7 @@ char* get_param_string(param_idx_t id);
 
 // Storage operations
 esp_err_t commit_params(void);
+esp_err_t factory_reset(void);
 
 // Log functions
 #define LOG_ENTRY_SIZE 32

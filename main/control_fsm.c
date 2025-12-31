@@ -388,9 +388,9 @@ void control_task(void *param) {
         }
         
        
-		int64_t elapsed_t = (current_time-timer_start);
-		int64_t total_t   = (timer_end-timer_start);
-		int32_t ticks     = get_sensor_counter(SENSOR_DRIVE);
+		//int64_t elapsed_t = (current_time-timer_start);
+		//int64_t total_t   = (timer_end-timer_start);
+		//int32_t ticks     = get_sensor_counter(SENSOR_DRIVE);
 		//ESP_LOGI("FSM", "[%d] %lld / %lld ms, %ld ticks", current_state, (long long) elapsed_t, (long long) total_t, (long) ticks);
 
         // Output control

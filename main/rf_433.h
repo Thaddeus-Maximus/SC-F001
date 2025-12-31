@@ -29,4 +29,8 @@ void rf_433_cancel_learn_keycode();
 void rf_433_disable_controls();
 void rf_433_enable_controls();
 
+int64_t rf_433_get_temp_keycode(uint8_t index);
+void rf_433_set_temp_keycode(uint8_t index, int64_t code);
+void rf_433_clear_temp_keycodes();
+
 #endif
