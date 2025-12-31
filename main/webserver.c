@@ -769,7 +769,7 @@ void launchSoftAp() {
 
     wifi_config_t wifi_config = {
         .ap = {
-            .channel = 6,
+            .channel = get_param_value_t(PARAM_WIFI_CHANNEL).i16,
             .ssid = SOFT_AP_SSID,
             .password = SOFT_AP_PASSWORD,
             .max_connection = 4,
@@ -790,6 +790,9 @@ void launchSoftAp() {
 		wifi_config.ap.password[0] = '\0';
 		wifi_config.ap.authmode = WIFI_AUTH_OPEN;
 	}
+	
+	if (wifi_config.ap.channel > 11 || wifi_config.ap.channel < 1)
+		wifi_config.ap.channel = 6;
 	
 	// Set the length of SSID
 	wifi_config.ap.ssid_len = strlen(ssid_str);

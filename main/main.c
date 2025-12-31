@@ -17,25 +17,25 @@
 
 int64_t last_log_time = 0;
 esp_err_t send_log() {
-	
+	// >Hqfffflccc
 	char entry[LOG_ENTRY_SIZE] = {0};
     entry[0] = LOG_ENTRY_SIZE;
     
     // Pack 64-bit timestamp into bytes 1-8
-    uint64_t be_timestamp = htobe64(rtc_time_ms());
+    uint64_t be_timestamp = rtc_time_ms();
     memcpy(&entry[1], &be_timestamp, 8);
     
     // Pack 32-bit voltages/currents into bytes 9-24
-    float be_voltage = htobe32(get_battery_V());
+    float be_voltage = get_battery_V();
     memcpy(&entry[9],  &be_voltage,  4);
-    float be_current1 = htobe32(get_bridge_A(BRIDGE_DRIVE));
+    float be_current1 = get_bridge_A(BRIDGE_DRIVE);
     memcpy(&entry[13], &be_current1, 4);
-    float be_current2 = htobe32(get_bridge_A(BRIDGE_JACK));
+    float be_current2 = get_bridge_A(BRIDGE_JACK);
     memcpy(&entry[17], &be_current2, 4);
-    float be_current3 = htobe32(get_bridge_A(BRIDGE_AUX));
+    float be_current3 = get_bridge_A(BRIDGE_AUX);
     memcpy(&entry[21], &be_current3, 4);
     
-    int32_t be_counter = htobe32(get_sensor_counter(SENSOR_DRIVE));
+    int32_t be_counter = get_sensor_counter(SENSOR_DRIVE);
     memcpy(&entry[25], &be_counter, 4);
     
     entry[29] = get_sensor(SENSOR_SAFETY);
