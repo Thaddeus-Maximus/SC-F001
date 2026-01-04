@@ -39,7 +39,9 @@ bridge_t bridge_map[] = {
 
 bool relay_states[8] = {false};
 int64_t override_times[8] = {-1};
+int64_t override_cooldown[8] = {-1};
 bool enabled = false;
+
 
 RTC_DATA_ATTR float remaining_distance = 0.0f;
 float fsm_get_remaining_distance(void)    { return remaining_distance; }
@@ -48,12 +50,22 @@ void  fsm_set_remaining_distance(float x) { remaining_distance = x;}
 // Track the starting encoder count for the current move
 static int32_t move_start_encoder = 0;
 
+// Track total jack up time to use for jack down duration
+static int64_t jack_up_total_time = 0;
+
 volatile fsm_state_t current_state = STATE_IDLE;
 volatile int64_t current_time = 0;
 volatile bool start_running_request = false;
 
 void setRelay(int8_t relay, bool state) {
 	relay_states[relay] = state;
+}
+
+bool isRunning() {
+	for (int i=0;i<8;i++) {
+		if (relay_states[i]) return true;
+	}
+	return false;
 }
 
 void driveRelays() {
@@ -78,8 +90,8 @@ fsm_state_t fsm_get_state() {
 	return current_state;
 }
 
-static uint64_t timer_end = 0;
-static uint64_t timer_start = 0;
+static int64_t timer_end = 0;
+static int64_t timer_start = 0;
 static inline void set_timer(uint64_t us) {
 	timer_end = current_time + us;
 	timer_start = current_time;
@@ -87,8 +99,14 @@ static inline void set_timer(uint64_t us) {
 static inline bool timer_done() { return current_time >= timer_end; }
 
 void pulseOverride(relay_t relay) {
-	if (current_state == STATE_IDLE)
-		override_times[relay] = current_time + get_param_value_t(PARAM_RF_PULSE_LENGTH).u64;
+    if (current_state == STATE_IDLE) {
+        // Check if this relay is in cooldown
+        if (override_cooldown[relay] > current_time) {
+            // Still cooling down, ignore the command
+            return;
+        }
+        override_times[relay] = current_time + get_param_value_t(PARAM_RF_PULSE_LENGTH).u32;
+    }
 }
 
 /*void fsm_begin_auto_move() {
@@ -113,6 +131,7 @@ int8_t fsm_get_current_progress(int8_t denominator) {
 	int8_t x = 0;
 	switch (current_state) {
 		case STATE_DRIVE:
+		case STATE_JACK_UP_START:
 		case STATE_JACK_UP:
 		case STATE_JACK_DOWN:
 		case STATE_MOVE_START_DELAY:
@@ -142,7 +161,7 @@ void control_task(void *param) {
 	esp_task_wdt_add(NULL);
 	
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    const TickType_t xFrequency = pdMS_TO_TICKS(50);
+    const TickType_t xFrequency = pdMS_TO_TICKS(20);
     enabled = true;
     
 
@@ -156,7 +175,10 @@ void control_task(void *param) {
                 case FSM_CMD_START:
                     if (current_state == STATE_IDLE) {
                     	// Check if we have remaining distance before starting
-                    	if (remaining_distance > 0.0f) {
+                    	if (remaining_distance > 0.0f
+                    		 && !efuse_is_tripped(BRIDGE_DRIVE)
+                    		  && !efuse_is_tripped(BRIDGE_JACK)
+                    		   && !efuse_is_tripped(BRIDGE_AUX)) {
 							current_state = STATE_MOVE_START_DELAY;
 							set_timer(TRANSITION_DELAY_US);
 						} else {
@@ -249,20 +271,86 @@ void control_task(void *param) {
         // State transitions
         switch (current_state) {
             case STATE_IDLE:
-                break;
+			    //ESP_LOGI("FSM", "IDLE @ %lld", current_time);
+			    for (uint8_t i = 0; i < N_RELAYS; ++i) {
+			        //ESP_LOGI("FSM", "t[%d] %lld", i, override_times[i]);
+			        bool active = override_times[i] > current_time;
+			        if (active) rtc_reset_shutdown_timer();
+			
+			        // Current limiting for manual jack down override (RELAY_B2)
+			        if (i == RELAY_B2 && active) {
+			            int64_t elapsed = current_time - (override_times[i] - get_param_value_t(PARAM_RF_PULSE_LENGTH).u32);
+			            int64_t delay = get_param_value_t(PARAM_EFUSE_INRUSH_US).u32;
+			
+			            // After inrush delay, check for current spike
+			            if (elapsed > delay) {
+			                float current = get_bridge_A(BRIDGE_JACK);
+			                float threshold = get_param_value_t(PARAM_JACK_I_DOWN).f32;
+			
+			                if (current > threshold) {
+			                    // Current spike detected - stop jacking down and start cooldown
+			                    override_times[i] = -1;
+			                    override_cooldown[i] = current_time + get_param_value_t(PARAM_EFUSE_TCOOL).u32;
+			                    active = false;
+			                }
+			            }
+			        }
+			
+			        // prohibit movement past jack limit switch
+			        //if (i == BRIDGE_JACK*2+(bridge_polarities[BRIDGE_JACK]>0?0:1) && get_sensor(SENSOR_JACK))
+			        //	setRelay(i, false);
+			        //else
+			        	setRelay(i, active);
+			        //if (active) ESP_LOGI("FSM", "RUN CHANNEL %d (%lld %c %lld)", i, (long long) override_times[i], active ? '>':'<', (long long) current_time);
+			
+			    }
+			    break;
             case STATE_MOVE_START_DELAY:
                 if (timer_done()) {
-					current_state = STATE_JACK_UP;
-					set_timer(JACK_TIME);
+					current_state = STATE_JACK_UP_START;
+					set_timer(JACK_TIME / 2);  // First phase is half of total jack time
+					jack_up_total_time = 0;     // Reset jack up time tracker
+				}
+                break;
+            case STATE_JACK_UP_START:
+                {
+                	// Track elapsed time
+                	int64_t elapsed = current_time - timer_start;
+                	jack_up_total_time = elapsed;
+                	
+                	// Get current sensing parameters
+                	int64_t delay   = get_param_value_t(PARAM_EFUSE_INRUSH_US).u32;
+                	float current   = get_bridge_A(BRIDGE_JACK);
+                	float threshold = get_param_value_t(PARAM_JACK_I_UP).f32;
+                	
+                	// After inrush delay, check for current spike OR half-time timeout
+                	if (elapsed > delay) {
+                		if (current > threshold || timer_done()) {
+							ESP_LOGI(TAG, "START->UP BY CURRENT");
+							current_state = STATE_JACK_UP;
+							set_timer(JACK_TIME);  // Second phase is also half of total jack time
+						}
+					}
+					
+					// E-fuse trip should still cause undo
+					if (efuse_is_tripped(BRIDGE_JACK)) {
+						ESP_LOGI(TAG, "START->UP BY TIME");
+						current_state = STATE_UNDO_JACK_START;
+					}
 				}
                 break;
             case STATE_JACK_UP:
-                if (timer_done()) {
-					current_state = STATE_DRIVE_START_DELAY;
-					set_timer(TRANSITION_DELAY_US);
-				}
-				if (efuse_is_tripped(BRIDGE_JACK)) {
-					current_state = STATE_UNDO_JACK_START;
+                {                	
+                	if (timer_done() || efuse_is_tripped(BRIDGE_JACK)) {
+                		// Track total time including first phase
+                		jack_up_total_time += current_time - timer_start;
+						current_state = STATE_DRIVE_START_DELAY;
+						set_timer(TRANSITION_DELAY_US);
+					}
+					if (efuse_is_tripped(BRIDGE_JACK)) {
+						ESP_LOGE(TAG, "JACK TRIPPED EFUSE");
+						current_state = STATE_UNDO_JACK_START;
+					}
 				}
                 break;
             case STATE_DRIVE_START_DELAY:
@@ -326,17 +414,38 @@ void control_task(void *param) {
             case STATE_DRIVE_END_DELAY:
                 if (timer_done()) {
 					current_state = STATE_JACK_DOWN;
-					set_timer(JACK_TIME);
+					set_timer(jack_up_total_time);  // Use the tracked jack up time
 				}
 				break;
             case STATE_JACK_DOWN:
-                if (timer_done()) { // || get_sensor(SENSOR_JACK)) {
-					current_state = STATE_IDLE;
-				}
-				
-				// assume we hit something hard and should stop
-				if (efuse_is_tripped(BRIDGE_JACK)) {
-					current_state = STATE_IDLE;
+                {
+                	// Get current sensing parameters
+                	int64_t delay = get_param_value_t(PARAM_EFUSE_INRUSH_US).u32;
+                	int64_t elapsed = current_time - timer_start;
+                	
+                	// After inrush delay, check for current spike
+                	if (elapsed > delay) {
+                		float current   = get_bridge_A(BRIDGE_JACK);
+                		float threshold = get_param_value_t(PARAM_JACK_I_DOWN).f32;
+                		
+                		if (current > threshold) {
+							ESP_LOGI(TAG, "DOWN->IDLE BY CURRENT");
+							// Current spike detected - we've hit the ground
+							current_state = STATE_IDLE;
+							break;
+						}
+					}
+					
+					// Timeout - finished jacking down
+					if (timer_done()) {
+						ESP_LOGI(TAG, "DOWN->IDLE BY TIME");
+						current_state = STATE_IDLE;
+					}
+					
+					// E-fuse trip - assume we hit something hard
+					if (efuse_is_tripped(BRIDGE_JACK)) {
+						current_state = STATE_IDLE;
+					}
 				}
                 break;
                 
@@ -396,22 +505,41 @@ void control_task(void *param) {
         // Output control
         switch (current_state) {
             case STATE_IDLE:
-            	//ESP_LOGI("FSM", "IDLE @ %lld", current_time);
-                for (uint8_t i = 0; i < N_RELAYS; ++i) {
-					//ESP_LOGI("FSM", "t[%d] %lld", i, override_times[i]);
-                    bool active = override_times[i] > current_time;
-                    if (active) reset_shutdown_timer();
-                    
-                    // prohibit movement past jack limit switch
-                    //if (i == BRIDGE_JACK*2+(bridge_polarities[BRIDGE_JACK]>0?0:1) && get_sensor(SENSOR_JACK))
-                    //	setRelay(i, false);
-                    //else
-                    	setRelay(i, active);
-                    //if (active) ESP_LOGI("FSM", "RUN CHANNEL %d (%lld %c %lld)", i, (long long) override_times[i], active ? '>':'<', (long long) current_time);
-            	
-                }
-                break;
+			    //ESP_LOGI("FSM", "IDLE @ %lld", current_time);
+			    for (uint8_t i = 0; i < N_RELAYS; ++i) {
+			        //ESP_LOGI("FSM", "t[%d] %lld", i, override_times[i]);
+			        bool active = override_times[i] > current_time;
+			        if (active) rtc_reset_shutdown_timer();
+			        
+			        // Current limiting for manual jack down override (RELAY_B2)
+			        if (i == RELAY_B2 && active) {
+			            int64_t elapsed = current_time - (override_times[i] - get_param_value_t(PARAM_RF_PULSE_LENGTH).u32);
+			            int64_t delay = get_param_value_t(PARAM_EFUSE_INRUSH_US).u32;
+			            
+			            // After inrush delay, check for current spike
+			            if (elapsed > delay) {
+			                float current = get_bridge_A(BRIDGE_JACK);
+			                float threshold = get_param_value_t(PARAM_JACK_I_DOWN).f32;
+			                
+			                if (current > threshold) {
+			                    // Current spike detected - stop jacking down
+			                    override_times[i] = -1;
+			                    active = false;
+			                }
+			            }
+			        }
+			        
+			        // prohibit movement past jack limit switch
+			        //if (i == BRIDGE_JACK*2+(bridge_polarities[BRIDGE_JACK]>0?0:1) && get_sensor(SENSOR_JACK))
+			        //	setRelay(i, false);
+			        //else
+			        	setRelay(i, active);
+			        //if (active) ESP_LOGI("FSM", "RUN CHANNEL %d (%lld %c %lld)", i, (long long) override_times[i], active ? '>':'<', (long long) current_time);
+			    
+			    }
+			    break;
 			case STATE_CALIBRATE_JACK_MOVE:
+            case STATE_JACK_UP_START:
             case STATE_JACK_UP:
             	// jack up and fluff
             	setRelay(RELAY_A1, false);
@@ -421,7 +549,7 @@ void control_task(void *param) {
             	setRelay(RELAY_B2, false);
             	
             	setRelay(RELAY_A3, true);
-                reset_shutdown_timer();
+                rtc_reset_shutdown_timer();
                 break;
             case STATE_CALIBRATE_DRIVE_MOVE:
             case STATE_DRIVE:
@@ -433,7 +561,7 @@ void control_task(void *param) {
             	setRelay(RELAY_B2, false);
             	
             	setRelay(RELAY_A3, true);
-                reset_shutdown_timer();
+                rtc_reset_shutdown_timer();
                 break;
 			case STATE_UNDO_JACK:
             case STATE_JACK_DOWN:
@@ -445,7 +573,7 @@ void control_task(void *param) {
             	setRelay(RELAY_B2, true);
             	
             	setRelay(RELAY_A3, true);
-                reset_shutdown_timer();
+                rtc_reset_shutdown_timer();
                 break;
 			case STATE_UNDO_JACK_START:
             case STATE_DRIVE_START_DELAY:
@@ -458,7 +586,7 @@ void control_task(void *param) {
             	setRelay(RELAY_B2, false);
             	
             	setRelay(RELAY_A3, true);
-                reset_shutdown_timer();
+                rtc_reset_shutdown_timer();
                 break;
             case STATE_CALIBRATE_JACK_DELAY:
             default:

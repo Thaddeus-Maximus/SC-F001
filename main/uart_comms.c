@@ -74,25 +74,15 @@ static void print_param_value(param_idx_t id, param_value_t val) {
               (long)val.i32, (unsigned long)val.i32);
             break;
             
-        case PARAM_TYPE_u64:
-            printf("%llu (0x%016llX)\n",
-              (unsigned long long)val.u64,
-              (unsigned long long)val.u64);
-            break;
-            
-        case PARAM_TYPE_i64:
-            printf("%lld (0x%016llX)\n",
-              (long long)val.i64, (unsigned long long)val.i64);
-            break;
-            
         case PARAM_TYPE_f32:
             printf("%.6f (0x%08lX as bits)\n",
               val.f32, (unsigned long)val.u32);
             break;
             
+            
         case PARAM_TYPE_f64:
             printf("%.6f (0x%016llX as bits)\n",
-              val.f64, (unsigned long long)val.u64);
+              val.f64, (unsigned long long)val.f64);
             break;
             
         case PARAM_TYPE_str:
@@ -113,7 +103,7 @@ static esp_err_t parse_param_value(const char *orig_str, param_type_e type, para
     while (isspace((unsigned char)*str)) str++;
 
     // Check for negative sign on unsigned integer types
-    bool is_unsigned_int = (type == PARAM_TYPE_u16 || type == PARAM_TYPE_u32 || type == PARAM_TYPE_u64);
+    bool is_unsigned_int = (type == PARAM_TYPE_u16 || type == PARAM_TYPE_u32);
     if (is_unsigned_int && *str == '-') {
         return ESP_FAIL;
     }
@@ -123,15 +113,17 @@ static esp_err_t parse_param_value(const char *orig_str, param_type_e type, para
 
     switch (type) {
         case PARAM_TYPE_u16:
+            val->u16 = strtoull(str, &endptr, 0);
+            break;
         case PARAM_TYPE_u32:
-        case PARAM_TYPE_u64:
-            val->u64 = strtoull(str, &endptr, 0);
+            val->u32 = strtoull(str, &endptr, 0);
             break;
 
         case PARAM_TYPE_i16:
+            val->i16 = strtoll(str, &endptr, 0);
+            break;
         case PARAM_TYPE_i32:
-        case PARAM_TYPE_i64:
-            val->i64 = strtoll(str, &endptr, 0);
+            val->i32 = strtoll(str, &endptr, 0);
             break;
 
         case PARAM_TYPE_f32:

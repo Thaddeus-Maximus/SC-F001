@@ -145,7 +145,7 @@ char* get_param_string(param_idx_t id) {
 
 param_type_e get_param_type(param_idx_t id) {
     if (id >= NUM_PARAMS) {
-        return PARAM_TYPE_u64; // Default fallback
+        return PARAM_TYPE_f64; // Default fallback
     }
     return parameter_types[id];
 }
@@ -174,12 +174,6 @@ const char* get_param_json_string(param_idx_t id, char* buffer, size_t buf_size)
             break;
         case PARAM_TYPE_i32:
             snprintf(buffer, buf_size, "%ld", (long)val.i32);
-            break;
-        case PARAM_TYPE_u64:
-            snprintf(buffer, buf_size, "%llu", (unsigned long long)val.u64);
-            break;
-        case PARAM_TYPE_i64:
-            snprintf(buffer, buf_size, "%lld", (long long)val.i64);
             break;
         case PARAM_TYPE_f32:
             if (isnan(val.f32) || isinf(val.f32)) {
@@ -251,12 +245,6 @@ static void pack_param(uint8_t *dest, param_idx_t id) {
         case PARAM_TYPE_f32:
             memcpy(dest, &parameter_table[id].f32, 4);
             break;
-        case PARAM_TYPE_u64:
-            memcpy(dest, &parameter_table[id].u64, 8);
-            break;
-        case PARAM_TYPE_i64:
-            memcpy(dest, &parameter_table[id].i64, 8);
-            break;
         case PARAM_TYPE_f64:
             memcpy(dest, &parameter_table[id].f64, 8);
             break;
@@ -287,12 +275,6 @@ static void unpack_param(const uint8_t *src, param_idx_t id) {
             break;
         case PARAM_TYPE_f32:
             memcpy(&parameter_table[id].f32, src, 4);
-            break;
-        case PARAM_TYPE_u64:
-            memcpy(&parameter_table[id].u64, src, 8);
-            break;
-        case PARAM_TYPE_i64:
-            memcpy(&parameter_table[id].i64, src, 8);
             break;
         case PARAM_TYPE_f64:
             memcpy(&parameter_table[id].f64, src, 8);

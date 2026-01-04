@@ -22,7 +22,7 @@ esp_err_t send_log() {
     entry[0] = LOG_ENTRY_SIZE;
     
     // Pack 64-bit timestamp into bytes 1-8
-    uint64_t be_timestamp = rtc_time_ms();
+    uint64_t be_timestamp = rtc_get_ms();
     memcpy(&entry[1], &be_timestamp, 8);
     
     // Pack 32-bit voltages/currents into bytes 9-24
@@ -174,7 +174,7 @@ void app_main(void) {
 	if (adc_init()      != ESP_OK) ESP_LOGE(TAG, "ADC FAILED");
     if (storage_init()  != ESP_OK) ESP_LOGE(TAG, "STORAGE FAILED");
     if (log_init()      != ESP_OK) ESP_LOGE(TAG, "LOG FAILED");
-    if (run_solar_fsm() != ESP_OK) ESP_LOGE(TAG, "SOLAR FAILED");
+    if (solar_run_fsm() != ESP_OK) ESP_LOGE(TAG, "SOLAR FAILED");
     // TODO: Do a 12V check and enter deep sleep if there's a problem
     
     
@@ -194,7 +194,7 @@ void app_main(void) {
     } else */if (cause == ESP_SLEEP_WAKEUP_EXT0) {
         ESP_LOGI("MAIN", "Woke from button press");
     } else {    	
-    	if (!alarm_tripped()) {
+    	if (!rtc_alarm_tripped()) {
 	    	//enter_deep_sleep();
     	}
     }
@@ -209,7 +209,7 @@ void app_main(void) {
 
     /*** MAIN LOOP ***/
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    const TickType_t xFrequency = pdMS_TO_TICKS(100);
+    const TickType_t xFrequency = pdMS_TO_TICKS(50);
     
     /*while(true) {
 		ESP_LOGI(TAG, "TICK");
@@ -223,7 +223,7 @@ void app_main(void) {
         i2c_poll_buttons();
         
         if (i2c_get_button_state(0))
-        	reset_shutdown_timer();
+        	rtc_reset_shutdown_timer();
         	
         switch (fsm_get_state()) {
 			case STATE_IDLE:
@@ -250,7 +250,7 @@ void app_main(void) {
 				}
 				
 				// when not actively moving we log at a low frequency
-				if (esp_timer_get_time() > last_log_time + DEEP_SLEEP_US)
+				if (isRunning() || (esp_timer_get_time() > last_log_time + DEEP_SLEEP_US))
 				  send_log();
 				
 				if(i2c_get_button_ms(0) > 2100)
@@ -268,20 +268,24 @@ void app_main(void) {
         		break;
         		
         	case STATE_CALIBRATE_JACK_DELAY:
+        		send_log();
         		if (i2c_get_button_tripped(0))
 	        		fsm_request(FSM_CMD_CALIBRATE_JACK_START);
         		break;
         	case STATE_CALIBRATE_JACK_MOVE:
+        		send_log();
         		if (i2c_get_button_tripped(0))
 	        		fsm_request(FSM_CMD_CALIBRATE_JACK_END);
         		break;
         		
         		
         	case STATE_CALIBRATE_DRIVE_DELAY:
+        		send_log();
         		if (i2c_get_button_tripped(0))
 	        		fsm_request(FSM_CMD_CALIBRATE_DRIVE_START);
         		break;
         	case STATE_CALIBRATE_DRIVE_MOVE:
+        		send_log();
         		if (i2c_get_button_tripped(0))
 	        		fsm_request(FSM_CMD_CALIBRATE_DRIVE_END);
         		break;
@@ -299,14 +303,14 @@ void app_main(void) {
         
         
         
-        if (alarm_tripped()) {
+        if (rtc_alarm_tripped()) {
         	fsm_request(FSM_CMD_START);
-        	set_next_alarm();
+        	rtc_schedule_next_alarm();
         }
         	
-        run_solar_fsm();
+        solar_run_fsm();
         
-        check_shutdown_timer();
+        rtc_check_shutdown_timer();
         esp_task_wdt_reset();
 	}
 }

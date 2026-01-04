@@ -67,13 +67,13 @@ esp_err_t rtc_xtal_init(void) {
     return ESP_OK;
 }
 
-void reset_shutdown_timer(void)
+void rtc_reset_shutdown_timer(void)
 {
     last_activity_tick = xTaskGetTickCount();
     rtc_wdt_feed();
 }
 
-void enter_deep_sleep(void)
+void rtc_enter_deep_sleep(void)
 {
 	//close_current_log();
 	fsm_request(FSM_CMD_STOP);
@@ -82,21 +82,7 @@ void enter_deep_sleep(void)
     esp_deep_sleep_start();
 }
 
-void rtc_set_time(struct tm *tm) {
-	rtc_set = true;
-	struct timeval tv = { .tv_sec = mktime(tm), .tv_usec = 0 };
-    settimeofday(&tv, NULL);
-    reset_solar_fsm();
-}
-
-void rtc_get_time(struct tm *tm)
-{
-    time_t raw;
-    time(&raw);
-    localtime_r(&raw, tm);
-}
-
-int64_t system_rtc_get_raw_time(void)
+int64_t rtc_get_s(void)
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -104,22 +90,24 @@ int64_t system_rtc_get_raw_time(void)
 }
 
 
-void system_rtc_set_raw_time(int64_t tv_sec)
+void rtc_set_s(int64_t tv_sec)
 {
 	rtc_set = true;
     settimeofday(&(struct timeval){.tv_sec = tv_sec, .tv_usec=0}, NULL);
+    solar_reset_fsm();
+    rtc_schedule_next_alarm();
 }
 
-uint64_t rtc_time_ms(void)
+int64_t rtc_get_ms(void)
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return (uint64_t)tv.tv_sec * 1000ULL + tv.tv_usec / 1000ULL;
+    return (int64_t)tv.tv_sec * 1000ULL + tv.tv_usec / 1000ULL;
 }
 
-int64_t system_rtc_seconds_into_day(void)
+int64_t rtc_get_s_in_day(void)
 {
-    return system_rtc_get_raw_time() % 86400UL;
+    return rtc_get_s() % 86400UL;
 }
 
 esp_sleep_wakeup_cause_t rtc_wakeup_cause(void)
@@ -136,18 +124,18 @@ esp_sleep_wakeup_cause_t rtc_wakeup_cause(void)
 /* -------------------------------------------------------------------------- */
 /*  Unified periodic update                                                   */
 /* -------------------------------------------------------------------------- */
-void check_shutdown_timer(void)
+void rtc_check_shutdown_timer(void)
 {
 	
     TickType_t elapsed = xTaskGetTickCount() - last_activity_tick;
     if (elapsed * portTICK_PERIOD_MS >= POWER_INACTIVITY_TIMEOUT_MS)
-        enter_deep_sleep();
+        rtc_enter_deep_sleep();
 }
 
 /* -------------------------------------------------------------------------- */
 /*  Time adjustment helpers                                                   */
 /* -------------------------------------------------------------------------- */
-void adjust_rtc_hour(char *key, int8_t dir)
+/*void adjust_rtc_hour(char *key, int8_t dir)
 {
     struct tm t;
     rtc_get_time(&t);
@@ -169,13 +157,13 @@ void adjust_rtc_min(char *key, int8_t dir)
     if (t.tm_min < 0)  t.tm_min = 59;
     rtc_set_time(&t);
     set_next_alarm();
-}
+}*/
 
 
-void set_next_alarm(void) {
-    int8_t start_h = 0; //get_param_i8("sched_start");
-    int8_t end_h   = 23; //get_param_i8("sched_end");
-    int8_t num     = 0; //get_param_i8("sched_num");
+void rtc_schedule_next_alarm(void) {
+    int64_t start_sec = get_param_value_t(PARAM_MOVE_START).u32;
+    int64_t end_sec   = get_param_value_t(PARAM_MOVE_END).u32;
+    int16_t  num      = get_param_value_t(PARAM_NUM_MOVES).i16;
 
     if (num <= 0) {
         next_alarm_time_s = -1;
@@ -183,15 +171,12 @@ void set_next_alarm(void) {
     }
 
     // Current time info
-    uint32_t s_into_day = system_rtc_seconds_into_day();
-    time_t current_time = system_rtc_get_raw_time();
+    int64_t s_into_day = rtc_get_s_in_day();
+    time_t current_time = rtc_get_s();
     time_t today_midnight = current_time - s_into_day;
 
-    int start_sec = start_h * 3600;
-    int end_sec   = end_h   * 3600;
-
-    bool overnight = (start_h > end_h);
-    int total_duration = overnight ? (86400 - start_sec) + end_sec : end_sec - start_sec;
+    bool overnight = (start_sec > end_sec);
+    int64_t total_duration = overnight ? (86400 - start_sec) + end_sec : end_sec - start_sec;
 
     // Determine period start
     time_t period_start;
@@ -216,7 +201,7 @@ void set_next_alarm(void) {
     int64_t spacing = total_duration / (num - 1);
     time_t next_alarm = -1;
 
-    for (int8_t i = 0; i < num; i++) {
+    for (int16_t i = 0; i < num; i++) {
         time_t alarm_time = period_start + spacing * i;
         if (alarm_time > current_time) {
             next_alarm = alarm_time;
@@ -234,12 +219,16 @@ void set_next_alarm(void) {
     ESP_LOGI("ALARM", "SET FOR %lld (in %lld s)", next_alarm_time_s, next_alarm_time_s - current_time);
 }
 
-bool alarm_tripped() {
+int64_t rtc_get_next_alarm_s() {
+	return next_alarm_time_s;
+}
+
+bool rtc_alarm_tripped() {
     if (!rtc_is_set())
         return false;
     if (next_alarm_time_s < 0) {
-        set_next_alarm();
+        rtc_schedule_next_alarm();
         return false;
     }
-    return system_rtc_get_raw_time() > next_alarm_time_s;
+    return rtc_get_s() > next_alarm_time_s;
 }

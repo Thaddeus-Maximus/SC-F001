@@ -41,7 +41,7 @@ int learn_flag = -1;
 bool controls_enabled = true;
 
 // Temporary storage for learned keycodes (not committed to params yet)
-static int64_t temp_keycodes[NUM_RF_BUTTONS] = {-1, -1, -1, -1, -1, -1, -1, -1};
+static int64_t temp_keycodes[NUM_RF_BUTTONS] = {0};
 
 // For rmt_rx_register_event_callbacks
 static bool rfrx_done(rmt_channel_handle_t channel, const rmt_rx_done_event_data_t *edata, void *udata) {
@@ -137,7 +137,7 @@ static void rf_433_receiver_task(void* param) {
                     
                     if (learn_flag >= 0) {
                         // Store to temporary storage, not to params yet
-                        temp_keycodes[learn_flag] = (int64_t)code;
+                        temp_keycodes[learn_flag] = (uint32_t)code;
                         ESP_LOGI(TAG, "LEARNED KEYCODE (temp storage)");
                         learn_flag = -1;
                     } else if (controls_enabled) {
@@ -151,9 +151,9 @@ static void rf_433_receiver_task(void* param) {
                         };
                         
                         for (uint8_t i = 0; i < NUM_RF_BUTTONS; i++) {
-                            int64_t match = get_param_value_t(PARAM_KEYCODE_0+i).i64;
+                            uint32_t match = get_param_value_t(PARAM_KEYCODE_0+i).u32;
                             // Compare just the code (lower 32 bits)
-                            if ((uint32_t)match == code && code!=-1) {
+                            if ((uint32_t)match == code && code!=0) {
                                 switch (i) {
                                     case 0: pulseOverride(RELAY_A1); pulseOverride(RELAY_A3); break;
                                     case 1: pulseOverride(RELAY_B1); pulseOverride(RELAY_A3); break;
@@ -216,8 +216,8 @@ esp_err_t rf_433_init() {
 
 esp_err_t rf_433_stop() { return ESP_OK; }
 
-void rf_433_set_keycode(uint8_t index, int64_t code) {
-    set_param_value_t(PARAM_KEYCODE_0+index, (param_value_t){.i64=code});
+void rf_433_set_keycode(uint8_t index, uint32_t code) {
+    set_param_value_t(PARAM_KEYCODE_0+index, (param_value_t){.u32=code});
 }
 
 void rf_433_learn_keycode(uint8_t index) {
@@ -237,18 +237,18 @@ void rf_433_enable_controls() {
     controls_enabled = true;
 }
 
-int64_t rf_433_get_temp_keycode(uint8_t index) {
-    if (index >= NUM_RF_BUTTONS) return -1;
+int32_t rf_433_get_temp_keycode(uint8_t index) {
+    if (index >= NUM_RF_BUTTONS) return 0;
     return temp_keycodes[index];
 }
 
-void rf_433_set_temp_keycode(uint8_t index, int64_t code) {
+void rf_433_set_temp_keycode(uint8_t index, uint32_t code) {
     if (index >= NUM_RF_BUTTONS) return;
     temp_keycodes[index] = code;
 }
 
 void rf_433_clear_temp_keycodes() {
     for (uint8_t i = 0; i < NUM_RF_BUTTONS; i++) {
-        temp_keycodes[i] = -1;
+        temp_keycodes[i] = 0;
     }
 }

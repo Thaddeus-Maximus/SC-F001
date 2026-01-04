@@ -25,8 +25,6 @@ typedef union {
     int16_t  i16;
     uint32_t u32;
     int32_t  i32;
-    uint64_t u64;
-    int64_t  i64;
     float    f32;
     double   f64;
     char     str[16];  // 15 chars + null terminator
@@ -38,8 +36,6 @@ typedef enum {
     PARAM_TYPE_i16 = 1,
     PARAM_TYPE_u32 = 2,
     PARAM_TYPE_i32 = 3,
-    PARAM_TYPE_u64 = 4,
-    PARAM_TYPE_i64 = 5,
     PARAM_TYPE_f32 = 6,
     PARAM_TYPE_f64 = 7,
     PARAM_TYPE_str = 8
@@ -59,8 +55,6 @@ static inline uint8_t param_type_size(param_type_e type) {
         case PARAM_TYPE_u32:
         case PARAM_TYPE_i32:
         case PARAM_TYPE_f32: return 4;
-        case PARAM_TYPE_u64:
-        case PARAM_TYPE_i64:
         case PARAM_TYPE_f64: return 8;
         case PARAM_TYPE_str: return 16;
         default: return 8;  // Fallback
@@ -83,44 +77,48 @@ static inline uint8_t param_type_size(param_type_e type) {
 // ============================================================================
 
 #define PARAM_LIST \
-    PARAM_DEF(BOOT_TIME,    i64, 0, "us") \
+    PARAM_DEF(BOOT_TIME,    i32, 0, "us") \
     PARAM_DEF(NUM_MOVES,    u32, 0, "") \
     PARAM_DEF(MOVE_START,   u32, 0, "s") \
     PARAM_DEF(MOVE_END,     u32, 0, "s") \
     PARAM_DEF(DRIVE_DIST,   f32, 10, "ft") \
     PARAM_DEF(JACK_DIST,    f32,  5, "in") \
-    PARAM_DEF(DRIVE_KE,     f32, 4000, "n/ft") \
-    PARAM_DEF(DRIVE_KT,     f32, 600, "ms/ft") \
-    PARAM_DEF(JACK_KT,      f32, 600, "ms/in") \
-    PARAM_DEF(KEYCODE_0,    i32, -1, "") \
-    PARAM_DEF(KEYCODE_1,    i32, -1, "") \
-    PARAM_DEF(KEYCODE_2,    i32, -1, "") \
-    PARAM_DEF(KEYCODE_3,    i32, -1, "") \
-    PARAM_DEF(KEYCODE_4,    i32, -1, "") \
-    PARAM_DEF(KEYCODE_5,    i32, -1, "") \
-    PARAM_DEF(KEYCODE_6,    i32, -1, "") \
-    PARAM_DEF(KEYCODE_7,    i32, -1, "") \
-    PARAM_DEF(ADC_ALPHA_BATTERY, f32, 0.02, "-") \
-    PARAM_DEF(ADC_ALPHA_ISENS, f32, 0.02, "-") \
+    PARAM_DEF(DRIVE_KE,     f32, 29.2, "n/ft") \
+    PARAM_DEF(DRIVE_KT,     f32, 2880000, "us/ft") \
+    PARAM_DEF(JACK_KT,      f32, 1428571, "ms/in") \
+    PARAM_DEF(KEYCODE_0,    u32, 0, "") \
+    PARAM_DEF(KEYCODE_1,    u32, 0, "") \
+    PARAM_DEF(KEYCODE_2,    u32, 0, "") \
+    PARAM_DEF(KEYCODE_3,    u32, 0, "") \
+    PARAM_DEF(KEYCODE_4,    u32, 0, "") \
+    PARAM_DEF(KEYCODE_5,    u32, 0, "") \
+    PARAM_DEF(KEYCODE_6,    u32, 0, "") \
+    PARAM_DEF(KEYCODE_7,    u32, 0, "") \
+    PARAM_DEF(ADC_ALPHA_BATTERY, f32, 0.5, "-") \
+    PARAM_DEF(ADC_ALPHA_ISENS, f32, 0.6, "-") \
     PARAM_DEF(ADC_ALPHA_IAZ, f32, 0.005, "-") \
     PARAM_DEF(ADC_DB_IAZ, f32, 5.0, "A") \
     PARAM_DEF(EFUSE_INOM_1, f32, 40.0, "A") \
     PARAM_DEF(EFUSE_INOM_2, f32, 6.0, "A") \
-    PARAM_DEF(EFUSE_INOM_3, f32, 2.0, "A") \
+    PARAM_DEF(EFUSE_INOM_3, f32, 4.0, "A") \
     PARAM_DEF(EFUSE_HEAT_THRESH, f32, 60.0, "i/i^2-s") \
-    PARAM_DEF(EFUSE_KINST, f32, 4.0, "i/i") \
+    PARAM_DEF(EFUSE_KINST, f32, 5.0, "i/i") \
     PARAM_DEF(EFUSE_TAUCOOL, f32, 0.2, "i") \
-    PARAM_DEF(EFUSE_TCOOL, i64, 5000000, "us") \
+    PARAM_DEF(EFUSE_TCOOL, u32, 5000000, "us") \
     PARAM_DEF(LOW_PROTECTION_V, f32, 10.0, "V") \
-    PARAM_DEF(LOW_PROTECTION_S, i64, 10, "s") \
+    PARAM_DEF(LOW_PROTECTION_S, u32, 10, "s") \
     PARAM_DEF(CHG_LOW_V,  f32, 5.0, "V") \
-    PARAM_DEF(CHG_LOW_S,  i64, 5, "s") \
-    PARAM_DEF(CHG_BULK_S, i64, 20, "s") \
-    PARAM_DEF(RF_PULSE_LENGTH, u64, 350000, "us") \
+    PARAM_DEF(CHG_LOW_S,  u32, 5, "s") \
+    PARAM_DEF(CHG_BULK_S, u32, 20, "s") \
+    PARAM_DEF(RF_PULSE_LENGTH, u32, 350000, "us") \
     PARAM_DEF(V_SENS_OFFSET, f32, 0.4, "V") \
-    PARAM_DEF(WIFI_CHANNEL, i16, 6, "") \
+    PARAM_DEF(WIFI_CHANNEL, u16, 6, "") \
     PARAM_DEF(WIFI_SSID, str, "sc.local", "") \
     PARAM_DEF(WIFI_PASS, str, "password", "") \
+    PARAM_DEF(EFUSE_INRUSH_US, u32, 300000, "us") \
+    PARAM_DEF(JACK_I_UP,   f32, 5.0, "A") \
+    PARAM_DEF(JACK_I_DOWN, f32, 8.0, "A") \
+    PARAM_DEF(V_SENS_K, f32, 0.00766666666, "V/mV") \
     
 
 // Generate enum for parameter indices

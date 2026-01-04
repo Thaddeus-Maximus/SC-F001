@@ -30,24 +30,23 @@ esp_err_t rtc_xtal_init();
 
 bool rtc_is_set();
 
-void set_next_alarm(void);
 
-void reset_shutdown_timer(); // reset shutoff timer
-void enter_deep_sleep();
-void check_shutdown_timer();
+void rtc_check_shutdown_timer();
+void rtc_reset_shutdown_timer(); // reset shutoff timer
+void rtc_enter_deep_sleep();
 esp_sleep_wakeup_cause_t rtc_wakeup_cause();
 
-void adjust_rtc_hour(char *key, int8_t dir);
-void adjust_rtc_min(char *key, int8_t dir);
+/*void adjust_rtc_hour(char *key, int8_t dir);
+void adjust_rtc_min(char *key, int8_t dir);*/
 
-void rtc_get_time(struct tm * timeinfo);
+int64_t rtc_get_s (void);
+int64_t rtc_get_ms(void);
+void rtc_set_s(int64_t);
 
-int64_t system_rtc_get_raw_time(void);
-void system_rtc_set_raw_time(int64_t);
+void    rtc_schedule_next_alarm(void);
+int64_t rtc_get_next_alarm_s();
 
-bool alarm_tripped();
-
-uint64_t rtc_time_ms();
+bool rtc_alarm_tripped();
 
 /* -------------------------------------------------------------------------- */
 #endif /* MAIN_RTC_H_ */

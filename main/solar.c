@@ -16,7 +16,7 @@ typedef enum {
 RTC_DATA_ATTR charge_state_t current_charge_state = CHG_STATE_FLOAT;
 RTC_DATA_ATTR int64_t timer;
 
-esp_err_t reset_solar_fsm() {
+esp_err_t solar_reset_fsm() {
 	timer = -1;
 	current_charge_state = CHG_STATE_FLOAT;
 	return ESP_OK;
@@ -32,10 +32,10 @@ esp_err_t init_solar_gpio() {
     return ESP_OK;
 }
 
-esp_err_t run_solar_fsm() {
+esp_err_t solar_run_fsm() {
 	init_solar_gpio();
 	
-	int64_t now = system_rtc_get_raw_time();
+	int64_t now = rtc_get_ms();
 	
 	//ESP_LOGI("BAT", "FSM STATE %d", current_charge_state);
 	
@@ -50,7 +50,7 @@ esp_err_t run_solar_fsm() {
 	//if (rtc_is_set()) {
 		switch(current_charge_state) {
 			case CHG_STATE_BULK:
-				if (now > timer+get_param_value_t(PARAM_CHG_BULK_S).i64) {
+				if (now > timer+get_param_value_t(PARAM_CHG_BULK_S).u32) {
 					current_charge_state = CHG_STATE_FLOAT;
 				}
 				
@@ -61,7 +61,7 @@ esp_err_t run_solar_fsm() {
 					timer = now;
 				}
 			
-				if (now > timer+get_param_value_t(PARAM_CHG_LOW_S).i64) {
+				if (now > timer+get_param_value_t(PARAM_CHG_LOW_S).u32) {
 					timer = now;
 					current_charge_state = CHG_STATE_BULK;	
 				}

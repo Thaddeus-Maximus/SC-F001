@@ -26,14 +26,15 @@ typedef enum {
 
 typedef enum {
 	STATE_IDLE = 0,
-	STATE_MOVE_START_DELAY = 1,
-	STATE_JACK_UP = 2,
-	STATE_DRIVE_START_DELAY = 3,
-	STATE_DRIVE = 4,
-	STATE_DRIVE_END_DELAY = 5,
-	STATE_JACK_DOWN = 6,
-	STATE_UNDO_JACK = 7,
-	STATE_UNDO_JACK_START = 8,
+	STATE_MOVE_START_DELAY,
+	STATE_JACK_UP_START,
+	STATE_JACK_UP,
+	STATE_DRIVE_START_DELAY,
+	STATE_DRIVE,
+	STATE_DRIVE_END_DELAY,
+	STATE_JACK_DOWN,
+	STATE_UNDO_JACK,
+	STATE_UNDO_JACK_START,
 	
 	STATE_CALIBRATE_JACK_DELAY,
 	STATE_CALIBRATE_JACK_MOVE,
@@ -66,6 +67,8 @@ void pulseOverride(relay_t relay/*, int64_t pulse*/);
 
 esp_err_t fsm_init();
 esp_err_t fsm_stop();
+
+bool isRunning();
 
 void fsm_set_cal_val(float v);
 int64_t fsm_get_cal_t();

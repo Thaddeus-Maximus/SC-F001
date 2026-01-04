@@ -63,6 +63,9 @@ typedef struct {
 	float heat;
 	bool tripped;
 	int64_t trip_time;
+	
+	// Inrush tolerance tracking
+	int64_t inrush_start_time; // When instantaneous overcurrent first detected (0 = not in overcurrent)
 } isens_channel_t;
 static isens_channel_t isens[N_BRIDGES] = {0};
 
@@ -112,7 +115,7 @@ float get_raw_battery_voltage(void) {
         != ESP_OK) { return NAN; }
         
     // Voltage divider: 150kohm to 1Mohm -> gain = 1.15 -> scale = 1150/150
-	return voltage_mv * 0.00766666666 + get_param_value_t(PARAM_V_SENS_OFFSET).f32; // same as / 1000.0 * 1150.0 / 150.0;
+	return voltage_mv * get_param_value_t(PARAM_V_SENS_K).f32 + get_param_value_t(PARAM_V_SENS_OFFSET).f32; // same as / 1000.0 * 1150.0 / 150.0;
 }
 
 esp_err_t process_battery_voltage(void)
@@ -127,10 +130,11 @@ esp_err_t process_battery_voltage(void)
 		if (isnan(raw)) {
 			//ESP_LOGI(TAG, "RAW BATTERY IS NAN");
 		} else {
-			if (isnan(ema_battery) || isnan(alpha))
+			if (isnan(ema_battery) || isnan(alpha)) {
 				ema_battery = raw;
-	        else
+	        } else {
 		        ema_battery = alpha * (float)raw + (1.0f - alpha) * ema_battery;
+		    }
         }
     }
     
@@ -174,7 +178,7 @@ esp_err_t process_bridge_current(bridge_t bridge) {
             break;
         case BRIDGE_DRIVE:
         	// ACS37220LEZATR-100B3 is 100A capable and 13.2 mV/A
-            raw_a = (voltage_mv - 1650.0f) / 13.2f;
+            raw_a = -(voltage_mv - 1650.0f) / 13.2f;
             break;
     }
     
@@ -187,10 +191,11 @@ esp_err_t process_bridge_current(bridge_t bridge) {
 			//ESP_LOGI(TAG, "RAW BATTERY IS NAN");
 			channel->ema_current = NAN;
 		} else {
-			if (isnan(ema_battery) || isnan(alpha))
+			if (isnan(ema_battery) || isnan(alpha)) {
 				channel->ema_current = raw_a;
-	        else
+	        } else {
 		        channel->ema_current = alpha * raw_a + (1.0f - alpha) * channel->ema_current;
+		    }
         }
     }
 
@@ -208,11 +213,12 @@ esp_err_t process_bridge_current(bridge_t bridge) {
 				if (isnan(raw_a)) {
 					//ESP_LOGI(TAG, "RAW BATTERY IS NAN");
 				} else {
-					if (isnan(ema_battery) || isnan(alpha))
+					if (isnan(ema_battery) || isnan(alpha)) {
 						channel->az_offset = channel->ema_current;
-			        else
+			        } else {
 				        channel->az_offset = alpha * channel->ema_current +
 				            (1.0f - alpha) * channel->az_offset;
+				    }
 		        }
             }
         }
@@ -244,12 +250,26 @@ esp_err_t process_bridge_current(bridge_t bridge) {
 	// Normalize the current as a fraction of rated current
     float I_norm = fabsf(channel->current / I_nominal);
 
-    // Instant trip on extreme overcurrent
+    // Instant trip on extreme overcurrent - but with inrush tolerance
     if (I_norm >= get_param_value_t(PARAM_EFUSE_KINST).f32) {
-        channel->tripped = true;
-        channel->trip_time = now;
-		//ESP_LOGI(TAG, "FUSE TRIP: Inom: %+.5f HEAT:%+2.5f", I_norm, channel->heat);
-        return ESP_OK; // no more processing, if we're over, we're over
+        // Start tracking if this is the first time we've seen overcurrent
+        if (channel->inrush_start_time == 0) {
+            channel->inrush_start_time = now;
+        }
+        
+        // Check if overcurrent has persisted long enough
+        int64_t inrush_duration = now - channel->inrush_start_time;
+        if (inrush_duration >= get_param_value_t(PARAM_EFUSE_INRUSH_US).u32) {
+            channel->tripped = true;
+            channel->trip_time = now;
+            channel->inrush_start_time = 0; // Reset for next time
+			//ESP_LOGI(TAG, "FUSE TRIP: Inom: %+.5f HEAT:%+2.5f", I_norm, channel->heat);
+            return ESP_OK; // no more processing, if we're over, we're over
+        }
+        // Still in overcurrent but within inrush tolerance window - don't trip yet
+    } else {
+        // Current dropped below threshold - reset inrush timer
+        channel->inrush_start_time = 0;
     }
     
     // Accumulate heat
@@ -275,13 +295,13 @@ esp_err_t process_bridge_current(bridge_t bridge) {
 	// And enough time has passed
 	// Go ahead and reset the e-fuse
 	} else if (channel->tripped &&
-		(now - channel->trip_time) > get_param_value_t(PARAM_EFUSE_TCOOL).i64) {
+		(now - channel->trip_time) > get_param_value_t(PARAM_EFUSE_TCOOL).u32) {
 			channel->tripped = false;
 			// channel.heat = 0.0f // I think we should wait for the e-fuse to catch up
 	}
 	
-	//if (bridge == BRIDGE_DRIVE)
-	//	ESP_LOGI(TAG, "FUSE: Inom: %+.5f HEAT:%+2.5f", I_norm, channel->heat);
+	//if (bridge == BRIDGE_JACK)
+		//ESP_LOGI(TAG, "FUSE: raw_a: %+.4f cur: %+.4f Inorm: %+.5f HEAT:%+2.5f", raw_a, channel->current, I_norm, channel->heat);
 	
 	return ESP_OK;
 }

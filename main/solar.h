@@ -10,7 +10,7 @@
 
 #include "esp_err.h"
 
-esp_err_t run_solar_fsm();
-esp_err_t reset_solar_fsm();
+esp_err_t solar_run_fsm();
+esp_err_t solar_reset_fsm();
 
 #endif /* MAIN_SOLAR_H_ */
