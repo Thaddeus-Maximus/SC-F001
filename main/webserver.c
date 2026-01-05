@@ -33,6 +33,7 @@
 #include "stdio.h"
 #include "storage.h"
 #include "mdns.h"
+#include "version.h"
 
 #include "webpage.h"
 
@@ -345,6 +346,7 @@ static esp_err_t get_handler(httpd_req_t *req) {
 
     // Start JSON object
     head += sprintf(httpBuffer+head, "{");
+    head += sprintf(httpBuffer+head, "\"version\":\"%s\",", FIRMWARE_STRING);
     head += sprintf(httpBuffer+head, "\"time\":%lld,", (long long)rtc_get_s());
     head += sprintf(httpBuffer+head, "\"rtc_set\":%s,", rtc_is_set() ? "true" : "false");
     head += sprintf(httpBuffer+head, "\"state\":%d,", fsm_get_state());
@@ -691,6 +693,60 @@ static esp_err_t post_handler(httpd_req_t *req) {
             free(json_str);
             return err;
         }
+        
+        else if (strcmp(cmd_str, "cal_jack_start") == 0) {
+            fsm_request(FSM_CMD_CALIBRATE_JACK_PREP);
+            ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_PREP");
+            cmd_executed = true;
+        }
+        else if (strcmp(cmd_str, "cal_jack_finish") == 0) {
+            cJSON *i = cJSON_GetObjectItem(root, "amt");
+            if (cJSON_IsNumber(i) && i->valuedouble >= 0 && i->valuedouble < 8) {
+                ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_FINISH");
+                fsm_set_cal_val(i->valuedouble);
+                fsm_request(FSM_CMD_CALIBRATE_JACK_FINISH);
+                cmd_executed = true;
+            } else {
+                error_msg = "cal_jack_finish requires amt parameter (0-8)";
+            }
+        }
+        else if (strcmp(cmd_str, "cal_drive_start") == 0) {
+            fsm_request(FSM_CMD_CALIBRATE_DRIVE_PREP);
+            ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_PREP");
+            cmd_executed = true;
+        }
+        else if (strcmp(cmd_str, "cal_drive_finish") == 0) {
+            cJSON *i = cJSON_GetObjectItem(root, "amt");
+            if (cJSON_IsNumber(i) && i->valuedouble >= 0 && i->valuedouble < 8) {
+                ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_FINISH");
+                fsm_set_cal_val(i->valuedouble);
+                fsm_request(FSM_CMD_CALIBRATE_DRIVE_FINISH);
+                cmd_executed = true;
+            } else {
+                error_msg = "cal_drive_finish requires amt parameter (0-8)";
+            }
+        }
+        
+        else if (strcmp(cmd_str, "cal_get") == 0) {
+            ESP_LOGI(TAG, "CAL_GET");
+            
+            // Build JSON response with calibration values
+            cJSON *response = cJSON_CreateObject();
+            cJSON_AddItemToObject(response, "e", cJSON_CreateNumber(fsm_get_cal_e()));
+            cJSON_AddItemToObject(response, "t", cJSON_CreateNumber(fsm_get_cal_t()));
+            
+            char *json_str = cJSON_Print(response);
+            cJSON_Delete(response);
+            cJSON_Delete(root);
+            
+            esp_err_t err = httpd_resp_set_type(req, "application/json");
+            if (err == ESP_OK) {
+                err = httpd_resp_send(req, json_str, strlen(json_str));
+            }
+            free(json_str);
+            return err;
+        }
+        
         else {
             ESP_LOGW(TAG, "Unknown command: %s", cmd_str);
             error_msg = "Unknown command";

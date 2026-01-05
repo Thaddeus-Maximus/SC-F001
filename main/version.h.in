@@ -1,0 +1,10 @@
+// version.h.in
+#ifndef VERSION_H
+#define VERSION_H
+
+#define FIRMWARE_VERSION "@GIT_VERSION@"
+#define FIRMWARE_BRANCH "@GIT_BRANCH@"
+#define BUILD_DATE "@BUILD_DATE@"
+#define FIRMWARE_STRING "v" FIRMWARE_VERSION " " BUILD_DATE
+
+#endif

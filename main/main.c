@@ -12,6 +12,7 @@
 #include "solar.h"
 #include "rf_433.h"
 #include "webserver.h"
+#include "version.h"
 
 #define TAG "MAIN"
 
@@ -120,7 +121,10 @@ void app_main(void) {
     i2c_set_relays(0);
     driveLEDs(LED_STATE_BOOTING);
     
-    
+    ESP_LOGI(TAG, "Firmware: %s", FIRMWARE_STRING);
+    ESP_LOGI(TAG, "Version: %s", FIRMWARE_VERSION);
+    ESP_LOGI(TAG, "Branch: %s", FIRMWARE_BRANCH);
+    ESP_LOGI(TAG, "Built: %s", BUILD_DATE);   
     
     
     // Check for factory reset condition: Cold boot + button held

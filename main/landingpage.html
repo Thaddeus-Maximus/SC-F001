@@ -273,6 +273,10 @@ black: #2f2f2f
             <button onclick="calibrate('drive')">Drive Calibration</button></td>
         </tr>
         <tr>
+            <td>Current Version</td>
+            <td><input readonly="" id="version"/></td>
+        </tr>
+        <tr>
             <td>Firmware</td>
             <td>
             	<input type="file" id="firmware_file" accept=".bin" style="display: none;">
@@ -406,6 +410,28 @@ black: #2f2f2f
             });
         }
         
+        // Promise-based modal for prompt-style dialogs with text input
+        function modalPrompt(message, title = 'Input', defaultValue = '') {
+            return new Promise((resolve) => {
+                modalResolve = (result) => {
+                    if (result && result.button) {
+                        resolve(result.input);
+                    } else {
+                        resolve(null);
+                    }
+                };
+                showModal(title, message, [
+                    { text: 'Cancel', value: false },
+                    { text: 'OK', value: true, primary: true }
+                ], {
+                    showInput: true,
+                    inputType: 'text',
+                    inputValue: defaultValue,
+                    inputPlaceholder: ''
+                });
+            });
+        }
+        
         function showRebootModal() {
             showModal('Device Rebooting', 'Page will refresh in <span id="popup-countdown">5</span> seconds...', []);
             let countdown = 5;
@@ -460,6 +486,13 @@ black: #2f2f2f
         }
         
         let intervalId = null;
+        
+        function remote(command) {
+        	sendCommand(command);
+        	try {
+        		navigator.vibrate(200);
+        	} catch (error) {}
+        }
 
 		function startRemote(command, event) {
 		  if (event) {
@@ -471,11 +504,11 @@ black: #2f2f2f
 		  }
 		  
 		  // Send immediately
-		  sendCommand(command);
+		  remote(command);
 		  
 		  // Then send while held
 		  intervalId = setInterval(() => {
-		    sendCommand(command);
+		    remote(command);
 		  }, 150); //ms
 		}
 		
@@ -719,6 +752,10 @@ black: #2f2f2f
                 ge('voltage').value = data.voltage.toFixed(2);
             }
             
+            if (data.version) {
+            	ge('version').value = data.version;
+            }
+            
             // Update time (skip if changed or focused)
             const timeInput = ge('UX_TIME');
             if (data.time !== undefined && !timeInput.classList.contains('changed') && document.activeElement !== timeInput) {
@@ -757,6 +794,8 @@ black: #2f2f2f
             if (data.remaining_dist !== undefined && !remainingDistInput.classList.contains('changed') && document.activeElement !== remainingDistInput) {
                 remainingDistInput.value = data.remaining_dist.toFixed(1);
             }
+            
+            
         }
         
         function updateParamTable() {
@@ -784,6 +823,14 @@ black: #2f2f2f
                     
                     cell2.appendChild(input);
                 }
+                
+                // add listener so anytime you click anything you select the box
+                // duh
+                document.querySelectorAll('input').forEach(input => {
+			        input.addEventListener('click', function() {
+			            this.select();
+			        });
+			    });
                 
                 paramTableCreated = true;
             } else {
@@ -1066,6 +1113,100 @@ black: #2f2f2f
                 await fetchStatus();
             } catch (e) {
                 await modalAlert(`RF programming error: ${e.message}`);
+            }
+        }
+        
+        async function calibrate(axis) {
+            try {
+                // Start calibration
+                let response = await fetch('./post', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({cmd: `cal_${axis}_start`})
+                });
+                
+                if (!response.ok) {
+                    await modalAlert(`Failed to start ${axis} calibration: ${response.status}`);
+                    return;
+                }
+                
+                // Prompt user for actual distance
+                const amt = await modalPrompt(
+                    `Press button on mover. Press button again to stop it.\n\nThen, type the actual travelled distance in inches:`,
+                    'Calibration'
+                );
+                
+                if (amt === null || amt === '') {
+                    await modalAlert('Calibration cancelled');
+                    return;
+                }
+                
+                const distance = parseFloat(amt);
+                if (isNaN(distance) || distance <= 0) {
+                    await modalAlert('Invalid distance entered. Please enter a positive number.');
+                    return;
+                }
+                
+                // Get calibration data
+                response = await fetch('./post', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({cmd: 'cal_get'})
+                });
+                
+                if (!response.ok) {
+                    await modalAlert(`Failed to get calibration data: ${response.status}`);
+                    return;
+                }
+                
+                const calData = await response.json();
+                
+                // Calculate and update parameters based on axis
+                if (axis === 'drive') {
+                    // Convert inches to feet: divide by 12
+                    const ke = calData.e / (distance / 12);  // encoder steps per foot
+                    const kt = calData.t / (distance / 12) * 1.2; // timeout ms per foot, with 20% margin
+                    
+                    const keInput = ge('PARAM_DRIVE_KE');
+                    const ktInput = ge('PARAM_DRIVE_KT');
+                    
+                    if (keInput) {
+                        keInput.value = ke.toFixed(2);
+                        markChanged(keInput);
+                    } else {
+                        console.error('Could not find PARAM_DRIVE_KE');
+                    }
+                    
+                    if (ktInput) {
+                        ktInput.value = Math.round(kt);
+                        markChanged(ktInput);
+                    } else {
+                        console.error('Could not find PARAM_DRIVE_KT');
+                    }
+                    
+                    if (keInput || ktInput) {
+                        await modalAlert(`Drive calibration complete!\n\n${keInput ? `KE (steps/ft): ${ke.toFixed(2)}\n` : ''}${ktInput ? `KT (timeout ms/ft): ${Math.round(kt)}\n` : ''}\nPlease save changes.`);
+                    } else {
+                        await modalAlert('Drive calibration failed: Could not find DRIVE_KE or DRIVE_KT parameters.');
+                    }
+                    
+                } else if (axis === 'jack') {
+                    const kt = calData.t / distance; // timeout ms per inch
+                    
+                    const ktInput = ge('PARAM_JACK_KT');
+                    
+                    if (ktInput) {
+                        ktInput.value = Math.round(kt);
+                        markChanged(ktInput);
+                        await modalAlert(`Jack calibration complete!\n\nKT (timeout ms/in): ${Math.round(kt)}\n\nPlease save changes.`);
+                    } else {
+                        console.error('Could not find PARAM_JACK_KT');
+                        await modalAlert('Jack calibration failed: Could not find JACK_KT parameter.');
+                    }
+                }
+                
+            } catch (e) {
+                await modalAlert(`Calibration error: ${e.message}`);
             }
         }
         
