@@ -7,6 +7,7 @@
 #include "storage.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include "version.h"
 
 #define TAG "STORAGE"
 
@@ -294,6 +295,8 @@ esp_err_t commit_params(void) {
         ESP_LOGE(TAG, "Storage partition not initialized");
         return ESP_FAIL;
     }
+    
+    set_param_string(PARAM_BUILD_VERSION, FIRMWARE_VERSION);
     
     // Calculate flash offset for each parameter
     uint32_t flash_offset = PARAMS_OFFSET;

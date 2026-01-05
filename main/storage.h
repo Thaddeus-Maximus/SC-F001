@@ -119,6 +119,7 @@ static inline uint8_t param_type_size(param_type_e type) {
     PARAM_DEF(JACK_I_UP,   f32, 5.0, "A") \
     PARAM_DEF(JACK_I_DOWN, f32, 8.0, "A") \
     PARAM_DEF(V_SENS_K, f32, 0.00766666666, "V/mV") \
+    PARAM_DEF(BUILD_VERSION, str, "undefined", "") \
     
 
 // Generate enum for parameter indices

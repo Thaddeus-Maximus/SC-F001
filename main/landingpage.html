@@ -361,6 +361,7 @@ black: #2f2f2f
             
             // Clear and create buttons
             buttonsEl.innerHTML = '';
+            const buttonElements = [];
             buttons.forEach(btn => {
                 const button = document.createElement('button');
                 button.textContent = btn.text;
@@ -375,7 +376,40 @@ black: #2f2f2f
                     if (btn.callback) btn.callback(result);
                 };
                 buttonsEl.appendChild(button);
+                buttonElements.push({ button, btn });
             });
+            
+            // Add keyboard event listener for Enter and Escape
+            const keyHandler = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    // Find and click the primary button (or the last button if no primary)
+                    const primaryBtn = buttonElements.find(b => b.btn.primary);
+                    if (primaryBtn) {
+                        primaryBtn.button.click();
+                    } else if (buttonElements.length > 0) {
+                        buttonElements[buttonElements.length - 1].button.click();
+                    }
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    // Find and click the cancel/non-primary button (or first button if all primary)
+                    const cancelBtn = buttonElements.find(b => !b.btn.primary);
+                    if (cancelBtn) {
+                        cancelBtn.button.click();
+                    } else if (buttonElements.length > 0) {
+                        buttonElements[0].button.click();
+                    }
+                }
+            };
+            
+            // Remove any existing keyboard handler
+            if (window.modalKeyHandler) {
+                document.removeEventListener('keydown', window.modalKeyHandler);
+            }
+            
+            // Store and add new handler
+            window.modalKeyHandler = keyHandler;
+            document.addEventListener('keydown', keyHandler);
             
             overlay.style.display = 'flex';
         }
@@ -386,6 +420,11 @@ black: #2f2f2f
             if (modalResolve) {
                 modalResolve(false);
                 modalResolve = null;
+            }
+            // Remove keyboard handler when modal closes
+            if (window.modalKeyHandler) {
+                document.removeEventListener('keydown', window.modalKeyHandler);
+                window.modalKeyHandler = null;
             }
         }
         
@@ -752,8 +791,8 @@ black: #2f2f2f
                 ge('voltage').value = data.voltage.toFixed(2);
             }
             
-            if (data.version) {
-            	ge('version').value = data.version;
+            if (data.build_version || data.build_date) {
+            	ge('version').value = data.build_version + ' ('+data.build_date+')';
             }
             
             // Update time (skip if changed or focused)

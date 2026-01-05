@@ -346,7 +346,8 @@ static esp_err_t get_handler(httpd_req_t *req) {
 
     // Start JSON object
     head += sprintf(httpBuffer+head, "{");
-    head += sprintf(httpBuffer+head, "\"version\":\"%s\",", FIRMWARE_STRING);
+    head += sprintf(httpBuffer+head, "\"build_version\":\"%s\",", FIRMWARE_VERSION);
+    head += sprintf(httpBuffer+head, "\"build_date\":\"%s\",", BUILD_DATE);
     head += sprintf(httpBuffer+head, "\"time\":%lld,", (long long)rtc_get_s());
     head += sprintf(httpBuffer+head, "\"rtc_set\":%s,", rtc_is_set() ? "true" : "false");
     head += sprintf(httpBuffer+head, "\"state\":%d,", fsm_get_state());
