@@ -1,80 +1,57 @@
-/*
- * storage.h - Simple variable-size parameter storage with per-param CRC
- *
- *  Created on: Nov 5, 2025
- *      Author: Thad
- */
+#ifndef STORAGE_H
+#define STORAGE_H
 
-#ifndef MAIN_STORAGE_H_
-#define MAIN_STORAGE_H_
-
-#include <stdbool.h>
 #include <stdint.h>
-#include <time.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdarg.h>
-#include "i2c.h"
-
-#define PARAM_CRC_SALT 0xDEADBEEF  // Salt to prevent all-zero CRC collision
-
-// Union for parameter values - now sized appropriately
-typedef union {
-    uint16_t u16;
-    int16_t  i16;
-    uint32_t u32;
-    int32_t  i32;
-    float    f32;
-    double   f64;
-    char     str[16];  // 15 chars + null terminator
-} param_value_t;
-
-// Enum for parameter types
-typedef enum {
-    PARAM_TYPE_u16 = 0,
-    PARAM_TYPE_i16 = 1,
-    PARAM_TYPE_u32 = 2,
-    PARAM_TYPE_i32 = 3,
-    PARAM_TYPE_f32 = 6,
-    PARAM_TYPE_f64 = 7,
-    PARAM_TYPE_str = 8
-} param_type_e;
-
-// Storage format: each param stored as [data][crc32]
-typedef struct __attribute__((packed)) {
-    uint8_t data[16];   // Max size needed (for strings)
-    uint32_t crc;       // CRC of actual data bytes used
-} param_stored_t;
-
-// Get storage size for a given type (data only, not including CRC)
-static inline uint8_t param_type_size(param_type_e type) {
-    switch(type) {
-        case PARAM_TYPE_u16:
-        case PARAM_TYPE_i16: return 2;
-        case PARAM_TYPE_u32:
-        case PARAM_TYPE_i32:
-        case PARAM_TYPE_f32: return 4;
-        case PARAM_TYPE_f64: return 8;
-        case PARAM_TYPE_str: return 16;
-        default: return 8;  // Fallback
-    }
-}
+#include "esp_err.h"
 
 // ============================================================================
-// PARAMETER DEFINITION MACRO
+// FLASH LAYOUT CONSTANTS
 // ============================================================================
-// Usage: PARAM_DEF(NAME, TYPE, DEFAULT_VALUE, UNIT)
-// 
-// Examples:
-//   PARAM_DEF(NUM_MOVES,    u32, 0,      "")
-//   PARAM_DEF(EFUSE_1_AS,   u16, 2400,   "mA")
-//   PARAM_DEF(KEYCODE_0,    i64, -1,     "")
-//   PARAM_DEF(TEMPERATURE,  f32, 25.5,   "C")
-//   PARAM_DEF(DEVICE_NAME,  str, "ESP32", "")
+#define FLASH_SECTOR_SIZE 4096
+#define PARAMS_OFFSET 0
+#define LOG_START_OFFSET 4096  // Start after first sector (parameters)
+
 // ============================================================================
-// REMEMBER: ORDER IS IMPERATIVE! PARAMETERS ARE ENTERED IN THE TABLE BY INDEX!
+// LOG ENTRY TYPE DEFINITIONS (Magic values 0xC0-0xCF)
 // ============================================================================
+#define LOG_TYPE_DATA       0xC0  // Generic data log
+#define LOG_TYPE_EVENT      0xC1  // Event marker
+#define LOG_TYPE_ERROR      0xC2  // Error log
+#define LOG_TYPE_DEBUG      0xC3  // Debug message
+#define LOG_TYPE_SENSOR     0xC4  // Sensor reading
+#define LOG_TYPE_COMMAND    0xC5  // Command executed
+#define LOG_TYPE_STATUS     0xC6  // Status update
+#define LOG_TYPE_CUSTOM_1   0xC7  // Custom type 1
+#define LOG_TYPE_CUSTOM_2   0xC8  // Custom type 2
+#define LOG_TYPE_CUSTOM_3   0xC9  // Custom type 3
+// 0xCA-0xCF reserved for future use
+
+// Maximum payload size per log entry (255 max due to 1-byte size field)
+#define LOG_MAX_PAYLOAD 255
+
+// Helper macro to check if a byte is a valid log type
+#define IS_VALID_LOG_TYPE(x) ((x) >= 0xC0 && (x) <= 0xCF)
+
+// ============================================================================
+// LOG ENTRY STRUCTURE
+// ============================================================================
+// Variable-length log entry format:
+// [0]:     Type/Magic (0xC0-0xCF)
+// [1]:     Payload size (0-255 bytes)
+// [2-N]:   Payload data
+typedef struct {
+    uint8_t type;           // Type/Magic byte (0xC0-0xCF range)
+    uint8_t size;           // Payload size in bytes (0-255)
+    uint8_t data[];         // Flexible array member for payload
+} __attribute__((packed)) log_entry_header_t;
+
+#define LOG_HEADER_SIZE (sizeof(log_entry_header_t))  // 2 bytes
+
+// ============================================================================
+// PARAMETER SYSTEM
+// ============================================================================
+
+#define PARAMETER_NUM_SECTORS 4
 
 #define PARAM_LIST \
     PARAM_DEF(BOOT_TIME,    i32, 0, "us") \
@@ -121,7 +98,6 @@ static inline uint8_t param_type_size(param_type_e type) {
     PARAM_DEF(V_SENS_K, f32, 0.00766666666, "V/mV") \
     PARAM_DEF(BUILD_VERSION, str, "undefined", "") \
     PARAM_DEF(SAFETY_BREAK_US, u32, 200000, "") \
-    
 
 // Generate enum for parameter indices
 #define PARAM_DEF(name, type, default_val, unit) PARAM_##name,
@@ -131,51 +107,73 @@ typedef enum {
 } param_idx_t;
 #undef PARAM_DEF
 
-#define FLASH_SECTOR_SIZE 4096
-#define PARAMS_OFFSET 0
-#define PARAMETER_NUM_SECTORS 4
-#define LOG_START_OFFSET (FLASH_SECTOR_SIZE * PARAMETER_NUM_SECTORS)
+#define PARAM_STR_SIZE 16
 
-// External declarations
-extern param_value_t parameter_table[NUM_PARAMS];
-extern const param_value_t parameter_defaults[NUM_PARAMS];
-extern const param_type_e parameter_types[NUM_PARAMS];
-extern const char* parameter_names[NUM_PARAMS];
-extern const char parameter_units[NUM_PARAMS][8];
+// Parameter value union (16 bytes max to fit in storage efficiently)
+typedef union {
+    uint16_t u16;
+    int16_t i16;
+    uint32_t u32;
+    int32_t i32;
+    float f32;
+    double f64;
+    char str[PARAM_STR_SIZE];
+} param_value_t;
 
-// Core functions
+// Parameter types
+typedef enum {
+    PARAM_TYPE_u16,
+    PARAM_TYPE_i16,
+    PARAM_TYPE_u32,
+    PARAM_TYPE_i32,
+    PARAM_TYPE_f32,
+    PARAM_TYPE_f64,
+    PARAM_TYPE_str
+} param_type_e;
+
+// Stored parameter format (includes CRC)
+typedef struct {
+    uint8_t data[16];  // Raw parameter data
+    uint32_t crc;      // CRC32 checksum
+} __attribute__((packed)) param_stored_t;
+
+#define PARAM_CRC_SALT 0x12345678
+
+// ============================================================================
+// FUNCTION DECLARATIONS
+// ============================================================================
+
+// Initialization
 esp_err_t storage_init(void);
-esp_err_t log_init(void);
 void storage_deinit(void);
 
-// Parameter access functions
+// Parameter access
 param_value_t get_param_value_t(param_idx_t id);
 esp_err_t set_param_value_t(param_idx_t id, param_value_t val);
+esp_err_t set_param_string(param_idx_t id, const char* str);
+char* get_param_string(param_idx_t id);
 param_type_e get_param_type(param_idx_t id);
 const char* get_param_name(param_idx_t id);
 param_value_t get_param_default(param_idx_t id);
 const char* get_param_unit(param_idx_t id);
 const char* get_param_json_string(param_idx_t id, char* buffer, size_t buf_size);
 
-// Helper functions for string parameters
-esp_err_t set_param_string(param_idx_t id, const char* str);
-char* get_param_string(param_idx_t id);
-
-// Storage operations
+// Parameter commit to flash
 esp_err_t commit_params(void);
-esp_err_t factory_reset(void);
 
-// Log functions
-#define LOG_ENTRY_SIZE 32
-
+// Logging functions
+esp_err_t log_init(void);
+esp_err_t write_log(uint8_t type, const uint8_t* data, uint8_t size);
 uint32_t get_log_head(void);
 uint32_t get_log_tail(void);
 uint32_t get_log_offset(void);
-esp_err_t write_log(char* entry);
+uint32_t get_log_size(void);
 
-// Test functions
+esp_err_t factory_reset();
+
+// Test/debug functions
 esp_err_t write_dummy_log_1(void);
 esp_err_t write_dummy_log_2(void);
 esp_err_t write_dummy_log_3(void);
 
-#endif /* MAIN_STORAGE_H_ */
+#endif // STORAGE_H

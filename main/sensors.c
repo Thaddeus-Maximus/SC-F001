@@ -8,6 +8,10 @@
 #include "freertos/queue.h"
 #include "storage.h"
 
+// make the compiler shut up about casting an int to a void
+#define INT2VOIDP(i) (void*)(uintptr_t)(i)
+
+
 static const char* TAG = "SENS";
 
 uint8_t sensor_pins[N_SENSORS] = {GPIO_NUM_27, GPIO_NUM_14};
@@ -54,7 +58,7 @@ static void IRAM_ATTR sensor_isr_handler(void* arg) {
 static void sensor_debounce_task(void* param) {
     esp_task_wdt_add(NULL);
     sensor_event_t evt;
-    static uint64_t last_processed_time[N_SENSORS] = {0};
+    //static uint64_t last_processed_time[N_SENSORS] = {0};
     static bool last_raw_state[N_SENSORS] = {false};
 
     // Initialize stable state
@@ -62,7 +66,7 @@ static void sensor_debounce_task(void* param) {
         bool level = !gpio_get_level(sensor_pins[i]);
         sensor_stable_state[i] = level;
         last_raw_state[i] = level;
-        last_processed_time[i] = esp_timer_get_time();
+        //last_processed_time[i] = esp_timer_get_time();
     }
     
     // Initialize safety sensor
@@ -155,7 +159,7 @@ esp_err_t sensors_init() {
     ESP_ERROR_CHECK(gpio_install_isr_service(0));
 
     for (uint8_t i = 0; i < N_SENSORS; i++) {
-        ESP_ERROR_CHECK(gpio_isr_handler_add(sensor_pins[i], sensor_isr_handler, (void*)sensor_pins[i]));
+        ESP_ERROR_CHECK(gpio_isr_handler_add(sensor_pins[i], sensor_isr_handler, INT2VOIDP(sensor_pins[i])));
     	sensor_stable_state[i] = !gpio_get_level(sensor_pins[i]);
     }
 

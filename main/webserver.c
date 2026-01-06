@@ -173,12 +173,6 @@ static esp_err_t log_handler(httpd_req_t *req) {
             ESP_LOGW(TAG, "Invalid tail pointer %ld, using current tail", (long)tail);
             tail = get_log_tail();
         }
-        // Also validate tail is aligned to LOG_ENTRY_SIZE
-        if ((tail - log_start) % LOG_ENTRY_SIZE != 0) {
-            ESP_LOGW(TAG, "Tail pointer %ld not aligned to entry size, using current tail", 
-                     (long)tail);
-            tail = get_log_tail();
-        }
     }
     
     // Calculate total size to send
@@ -194,8 +188,8 @@ static esp_err_t log_handler(httpd_req_t *req) {
         total_size = (storage_partition->size - tail) + (head - log_start) + 8;
     }
 
-    //ESP_LOGI(TAG, "Log bounds: tail=%ld, head=%ld, total_size=%ld", 
-    //         (long)tail, (long)head, (long)total_size);
+    ESP_LOGI(TAG, "Log request: tail=%ld, head=%ld, total_size=%ld", 
+             (long)tail, (long)head, (long)total_size);
 
     // Send HTTP headers
     char len_str[16];
@@ -236,7 +230,6 @@ static esp_err_t log_handler(httpd_req_t *req) {
         return err;
     }
     
-    //int32_t sent = 8;
     int32_t offset = tail;
     
     // Only send data if there's something to send
@@ -263,7 +256,6 @@ static esp_err_t log_handler(httpd_req_t *req) {
                     return err;
                 }
                 
-                //sent += to_read;
                 offset += to_read;
             }
             
@@ -292,7 +284,6 @@ static esp_err_t log_handler(httpd_req_t *req) {
                 return err;
             }
             
-            //sent += to_read;
             offset += to_read;
         }
     }
@@ -304,7 +295,7 @@ static esp_err_t log_handler(httpd_req_t *req) {
         return err;
     }
     
-    //ESP_LOGI(TAG, "Successfully sent %ld bytes", (long)sent);
+    //ESP_LOGI(TAG, "Successfully sent log data");
     
     err = httpd_resp_set_hdr(req, "Connection", "close");
     if (err != ESP_OK) {

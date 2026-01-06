@@ -19,7 +19,7 @@ if(NOT CMAKE_BUILD_EARLY_EXPANSION)
     add_custom_command(
         OUTPUT ${COMPONENT_DIR}/webpage.h
         COMMAND python ${COMPONENT_DIR}/webpage_compile.py
-        DEPENDS ${COMPONENT_DIR}/landingpage.html ${COMPONENT_DIR}/webpage_compile.py
+        DEPENDS ${COMPONENT_DIR}/webpage.html ${COMPONENT_DIR}/webpage_compile.py
         WORKING_DIRECTORY ${COMPONENT_DIR}
         COMMENT "Generating webpage.h from landingpage.html"
         VERBATIM

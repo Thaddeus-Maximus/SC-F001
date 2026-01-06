@@ -63,8 +63,8 @@ static void dns_server_task(void *pvParameters) {
             continue;
         }
         
-        // Parse DNS query
-        dns_header_t *header = (dns_header_t *)rx_buffer;
+        // Parse DNS query (unused)
+        // dns_header_t *header = (dns_header_t *)rx_buffer;
         
         // Build DNS response
         memcpy(tx_buffer, rx_buffer, len);

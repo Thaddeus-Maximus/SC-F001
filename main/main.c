@@ -13,14 +13,15 @@
 #include "rf_433.h"
 #include "webserver.h"
 #include "version.h"
+#include <string.h>
 
 #define TAG "MAIN"
 
 int64_t last_log_time = 0;
 esp_err_t send_log() {
 	// >Hqfffflccc
-	char entry[LOG_ENTRY_SIZE] = {0};
-    entry[0] = LOG_ENTRY_SIZE;
+	uint8_t entry[32] = {0};
+    entry[0] = 32;
     
     // Pack 64-bit timestamp into bytes 1-8
     uint64_t be_timestamp = rtc_get_ms();
@@ -45,7 +46,7 @@ esp_err_t send_log() {
     
     last_log_time = esp_timer_get_time();
     
-    return write_log(entry);
+    return write_log(LOG_TYPE_DATA, entry, 32);
 }
 
 
