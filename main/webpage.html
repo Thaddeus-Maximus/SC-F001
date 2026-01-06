@@ -333,6 +333,7 @@ black: #2f2f2f
         let paramTableCreated = false; // Track if param table has been created
         let pollInterval = null; // Store interval ID for polling
         let modalResolve = null;
+        let modalDismissed = false; // Track if out-of-distance modal was dismissed
         
         const ge = (id) => document.getElementById(id);
         
@@ -834,6 +835,11 @@ black: #2f2f2f
                 remainingDistInput.value = data.remaining_dist.toFixed(1);
             }
             
+            // Check if we should show the "out of distance" modal
+            if (!modalDismissed && (data.remaining_dist === undefined || data.remaining_dist === null || data.remaining_dist <= 0)) {
+                showOutOfDistanceModal();
+            }
+            
             
         }
         
@@ -1280,6 +1286,34 @@ black: #2f2f2f
           } catch (error) {
             await modalAlert(`Error downloading log file: ${error.message}`);
           }
+        }
+        
+        async function showOutOfDistanceModal() {
+            const distance = await modalPrompt(
+                'Remaining distance is 0 or less. Would you like to add more distance?',
+                'Add Distance (feet)'
+            );
+            
+            if (distance === null || distance === '') {
+                // User clicked cancel or entered nothing - mark as dismissed
+                modalDismissed = true;
+                return;
+            }
+            
+            const dist = parseFloat(distance);
+            if (isNaN(dist) || dist <= 0) {
+                await modalAlert('Invalid distance. Modal dismissed.');
+                modalDismissed = true;
+                return;
+            }
+            
+            // Set the remaining distance input and commit
+            const remainingDistInput = ge('UX_REM_DIST');
+            if (remainingDistInput) {
+                remainingDistInput.value = dist.toFixed(1);
+                markChanged(remainingDistInput);
+                await commitParams();
+            }
         }
         
         // Start automatic polling

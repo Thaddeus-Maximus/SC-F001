@@ -12,6 +12,7 @@
 #include "power_mgmt.h"
 #include "rtc_wdt.h"
 #include "driver/gpio.h"
+#include "sc_err.h"
 #include "storage.h"
 #include "rtc.h"
 #include "sensors.h"
@@ -25,6 +26,10 @@
 #define TAG "FSM"
 
 static QueueHandle_t fsm_cmd_queue = NULL;
+
+RTC_DATA_ATTR esp_err_t error = ESP_OK;
+esp_err_t fsm_get_error() { return error; }
+void fsm_clear_error() { error = ESP_OK; }
 	
 // map from relay number to bridge
 bridge_t bridge_map[] = {
@@ -171,19 +176,41 @@ void control_task(void *param) {
         
         fsm_cmd_t cmd;
         while (xQueueReceive(fsm_cmd_queue, &cmd, 0) == pdTRUE) {
+            // if (error != ESP_OK) continue; // don't do anything until error is cleared
+            
             switch (cmd) {
                 case FSM_CMD_START:
                     if (current_state == STATE_IDLE) {
                     	// Check if we have remaining distance before starting
-                    	if (remaining_distance > 0.0f
-                    		 && !efuse_is_tripped(BRIDGE_DRIVE)
-                    		  && !efuse_is_tripped(BRIDGE_JACK)
-                    		   && !efuse_is_tripped(BRIDGE_AUX)) {
-							current_state = STATE_MOVE_START_DELAY;
-							set_timer(TRANSITION_DELAY_US);
-						} else {
-							ESP_LOGW(TAG, "Cannot start move: no remaining distance (%.2f)", remaining_distance);
+                    	if (remaining_distance <= 0.0f) {
+                    		error = SC_ERR_LEASH_HIT;
+                    		continue;
+                    	}
+                    	
+                    	if (get_battery_V() > get_param_value_t(PARAM_LOW_PROTECTION_V).f32) {
+							error = SC_ERR_LOW_BATTERY;
+							continue;
 						}
+                    	if (get_safety_sensor()) {
+							error = SC_ERR_SAFETY_TRIP;
+							continue;
+						}
+                    	if (efuse_is_tripped(BRIDGE_DRIVE)) {
+							error = SC_ERR_EFUSE_TRIP_1;
+							continue;
+						}
+                    	if (efuse_is_tripped(BRIDGE_JACK)) {
+							error = SC_ERR_EFUSE_TRIP_2;
+							continue;
+						}
+                    	if (efuse_is_tripped(BRIDGE_AUX)) {
+							error = SC_ERR_EFUSE_TRIP_3;
+							continue;
+						}
+						
+						error = ESP_OK; // if everything is OK now, we're OK.
+						current_state = STATE_MOVE_START_DELAY;
+						set_timer(TRANSITION_DELAY_US);
                     }
                     break;
                 case FSM_CMD_STOP:
@@ -202,14 +229,16 @@ void control_task(void *param) {
                 	
                 case FSM_CMD_CALIBRATE_JACK_PREP:
 					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_PREP");
-					if (current_state == STATE_IDLE) {
+					if (current_state == STATE_IDLE
+                    		&& get_battery_V() > get_param_value_t(PARAM_LOW_PROTECTION_V).f32) {
 						current_state = STATE_CALIBRATE_JACK_DELAY;
 					}
 					break;
                 	
 				case FSM_CMD_CALIBRATE_JACK_START:
 					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_START");
-					if (current_state == STATE_CALIBRATE_JACK_DELAY) {
+					if (current_state == STATE_CALIBRATE_JACK_DELAY
+                    		&& get_battery_V() > get_param_value_t(PARAM_LOW_PROTECTION_V).f32) {
 						current_state = STATE_CALIBRATE_JACK_MOVE;
 						set_timer(CALIBRATE_JACK_MAX_TIME);
 					}
@@ -231,14 +260,16 @@ void control_task(void *param) {
                 	
                 case FSM_CMD_CALIBRATE_DRIVE_PREP:
 					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_PREP");
-					if (current_state == STATE_IDLE) {
+					if (current_state == STATE_IDLE
+                    		&& get_battery_V() > get_param_value_t(PARAM_LOW_PROTECTION_V).f32) {
 						current_state = STATE_CALIBRATE_DRIVE_DELAY;
 					}
 					break;
                 	
 				case FSM_CMD_CALIBRATE_DRIVE_START:
 					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_START");
-					if (current_state == STATE_CALIBRATE_DRIVE_DELAY) {
+					if (current_state == STATE_CALIBRATE_DRIVE_DELAY
+                    		&& get_battery_V() > get_param_value_t(PARAM_LOW_PROTECTION_V).f32) {
 						current_state = STATE_CALIBRATE_DRIVE_MOVE;
 						set_timer(CALIBRATE_DRIVE_MAX_TIME);
 						set_sensor_counter(SENSOR_DRIVE, 0);
@@ -306,6 +337,10 @@ void control_task(void *param) {
 			    }
 			    break;
             case STATE_MOVE_START_DELAY:
+            	if (!get_safety_sensor()) {
+					error = SC_ERR_SAFETY_TRIP;
+					current_state = STATE_IDLE;
+				}
                 if (timer_done()) {
 					current_state = STATE_JACK_UP_START;
 					set_timer(JACK_TIME / 2);  // First phase is half of total jack time
@@ -313,6 +348,11 @@ void control_task(void *param) {
 				}
                 break;
             case STATE_JACK_UP_START:
+            	if (!get_safety_sensor()) {
+					error = SC_ERR_SAFETY_TRIP;
+					current_state = STATE_UNDO_JACK_START;
+				}
+            
                 {
                 	// Track elapsed time
                 	int64_t elapsed = current_time - timer_start;
@@ -332,14 +372,19 @@ void control_task(void *param) {
 						}
 					}
 					
-					// E-fuse trip should still cause undo
+					// E-fuse trip
 					if (efuse_is_tripped(BRIDGE_JACK)) {
-						ESP_LOGI(TAG, "START->UP BY TIME");
-						current_state = STATE_UNDO_JACK_START;
+						error = SC_ERR_EFUSE_TRIP_2;
+						current_state = STATE_IDLE;
 					}
 				}
                 break;
             case STATE_JACK_UP:
+            	if (!get_safety_sensor()) {
+					error = SC_ERR_SAFETY_TRIP;
+					current_state = STATE_UNDO_JACK_START;
+				}
+				
                 {                	
                 	if (timer_done() || efuse_is_tripped(BRIDGE_JACK)) {
                 		// Track total time including first phase
@@ -348,12 +393,16 @@ void control_task(void *param) {
 						set_timer(TRANSITION_DELAY_US);
 					}
 					if (efuse_is_tripped(BRIDGE_JACK)) {
-						ESP_LOGE(TAG, "JACK TRIPPED EFUSE");
-						current_state = STATE_UNDO_JACK_START;
+						error = SC_ERR_EFUSE_TRIP_2;
+						current_state = STATE_IDLE;
 					}
 				}
                 break;
             case STATE_DRIVE_START_DELAY:
+            	if (!get_safety_sensor()) {
+					error = SC_ERR_SAFETY_TRIP;
+					current_state = STATE_UNDO_JACK_START;
+				}
                 if (timer_done()) {
 					current_state = STATE_DRIVE;
 					set_timer(DRIVE_TIME);
@@ -366,6 +415,10 @@ void control_task(void *param) {
 				}
                 break;
             case STATE_DRIVE:
+            	if (!get_safety_sensor()) {
+					error = SC_ERR_SAFETY_TRIP;
+					current_state = STATE_UNDO_JACK_START;
+				}
             	{
 					int32_t current_encoder = get_sensor_counter(SENSOR_DRIVE);
 					int32_t ticks_traveled = current_encoder - move_start_encoder;
@@ -407,17 +460,27 @@ void control_task(void *param) {
 						if (remaining_distance < 0.0f) remaining_distance = 0.0f;
 						ESP_LOGW(TAG, "Drive fault: traveled %.2f, old_remaining %.2f, new_remaining %.2f", 
 						         distance_traveled, old_remaining, remaining_distance);
+						
+						error = SC_ERR_EFUSE_TRIP_1;
 						current_state = STATE_UNDO_JACK_START;
 					}
 				}
                 break;
             case STATE_DRIVE_END_DELAY:
+            	if (!get_safety_sensor()) {
+					error = SC_ERR_SAFETY_TRIP;
+					current_state = STATE_UNDO_JACK_START;
+				}
                 if (timer_done()) {
 					current_state = STATE_JACK_DOWN;
 					set_timer(jack_up_total_time);  // Use the tracked jack up time
 				}
 				break;
             case STATE_JACK_DOWN:
+            	if (!get_safety_sensor()) {
+					error = SC_ERR_SAFETY_TRIP;
+					current_state = STATE_UNDO_JACK_START;
+				}
                 {
                 	// Get current sensing parameters
                 	int64_t delay = get_param_value_t(PARAM_EFUSE_INRUSH_US).u32;
@@ -474,7 +537,6 @@ void control_task(void *param) {
 				break;
 			case STATE_CALIBRATE_JACK_MOVE:
 				if (timer_done()) {
-					ESP_LOGI(TAG, "STATE_CALIBRATE_JACK_END");
 					current_state = STATE_IDLE;
 					fsm_cal_t = current_time - timer_start;
 				}
@@ -485,8 +547,7 @@ void control_task(void *param) {
 				// no way out of this except a command
 				break;
 			case STATE_CALIBRATE_DRIVE_MOVE:
-				if (timer_done()) {
-					ESP_LOGI(TAG, "STATE_CALIBRATE_DRIVE_END");
+				if (!get_safety_sensor() || timer_done()) {
 					current_state = STATE_IDLE;
 					fsm_cal_t = current_time - timer_start;
 					fsm_cal_e = get_sensor_counter(SENSOR_DRIVE);

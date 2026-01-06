@@ -1,329 +1,139 @@
 #include "uart_comms.h"
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include "esp_task_wdt.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "comms.h"
+#include "cJSON.h"
 #include "driver/uart.h"
 #include "esp_log.h"
 #include "esp_system.h"
-#include "storage.h"
-#include <errno.h>
-#include <ctype.h>
-#include "rf_433.h"
+#include "esp_task_wdt.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "rtc.h"
+#include <stdio.h>
+#include <string.h>
 
 #define TAG "UART"
 
 #define UART_NUM UART_NUM_0
 #define BUF_SIZE (1024)
-#define CMD_MAX_LEN (256)
+#define CMD_MAX_LEN (2048)
 
 static char cmd_buffer[CMD_MAX_LEN];
 static int cmd_pos = 0;
 static TaskHandle_t uart_task_handle = NULL;
 
-// TODO: Set Time
-// TODO: Pair Remote
-// TODO: Command Move
-// TODO: Show current sensor values
-
-// Parse value as either decimal or hex (0x prefix)
-static bool parse_uint64(const char *str, uint64_t *result) {
-    char *endptr;
-    
-    if (str == NULL || result == NULL) {
-        return false;
-    }
-    
-    // Check for hex prefix
-    if (strlen(str) > 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) {
-        *result = strtoull(str, &endptr, 16);
-    } else {
-        *result = strtoull(str, &endptr, 10);
-    }
-    
-    // Check if conversion was successful (endptr should point to null terminator)
-    return (*endptr == '\0' && endptr != str);
-}
-
-// Format parameter value for display based on its type
-static void print_param_value(param_idx_t id, param_value_t val) {
-    param_type_e type = get_param_type(id);
-    
-    char sbuf[9] = {0};
-    
-    switch (type) {
-        case PARAM_TYPE_u16:
-            printf("%u (0x%04X)\n",
-              val.u16, val.u16);
-            break;
-            
-        case PARAM_TYPE_i16:
-            printf("%d (0x%04X)\n",
-              val.i16, (uint16_t)val.i16);
-            break;
-            
-        case PARAM_TYPE_u32:
-            printf("%lu (0x%08lX)\n",
-              (unsigned long)val.u32, (unsigned long)val.u32);
-            break;
-            
-        case PARAM_TYPE_i32:
-            printf("%ld (0x%08lX)\n",
-              (long)val.i32, (unsigned long)val.i32);
-            break;
-            
-        case PARAM_TYPE_f32:
-            printf("%.6f (0x%08lX as bits)\n",
-              val.f32, (unsigned long)val.u32);
-            break;
-            
-            
-        case PARAM_TYPE_f64:
-            printf("%.6f (0x%016llX as bits)\n",
-              val.f64, (unsigned long long)val.f64);
-            break;
-            
-        case PARAM_TYPE_str:
-        	memcpy(val.str, sbuf, 8);
-        	sbuf[8] = '\0';
-            printf("\"%s\"", sbuf);
-            break;
-            
-        default:
-            printf("UNKNOWN TYPE\n");
-            break;
-    }
-}
-
-static esp_err_t parse_param_value(const char *orig_str, param_type_e type, param_value_t *val) {
-    const char *str = orig_str;
-    // Skip leading whitespace
-    while (isspace((unsigned char)*str)) str++;
-
-    // Check for negative sign on unsigned integer types
-    bool is_unsigned_int = (type == PARAM_TYPE_u16 || type == PARAM_TYPE_u32);
-    if (is_unsigned_int && *str == '-') {
-        return ESP_FAIL;
-    }
-
-    char *endptr;
-    errno = 0;
-
-    switch (type) {
-        case PARAM_TYPE_u16:
-            val->u16 = strtoull(str, &endptr, 0);
-            break;
-        case PARAM_TYPE_u32:
-            val->u32 = strtoull(str, &endptr, 0);
-            break;
-
-        case PARAM_TYPE_i16:
-            val->i16 = strtoll(str, &endptr, 0);
-            break;
-        case PARAM_TYPE_i32:
-            val->i32 = strtoll(str, &endptr, 0);
-            break;
-
-        case PARAM_TYPE_f32:
-            val->f32 = strtof(str, &endptr);
-            break;
-
-        case PARAM_TYPE_f64:
-            val->f64 = strtod(str, &endptr);
-            break;
-
-        default:
-            return ESP_FAIL;
-    }
-
-    if (errno == ERANGE || endptr == str || *endptr != '\0') {
-        return ESP_FAIL;
-    }
-
-    return ESP_OK;
-}
-
-// Process set parameter command: sp <id> <value>
-static void cmd_set_param(char *args) {
-    char *id_str = strtok(args, " \t");
-    char *val_str = strtok(NULL, " \t");
-    
-    if (id_str == NULL || val_str == NULL) {
-        printf("ERROR: Usage: sp <id> <value>\n");
-        return;
-    }
-    
-    // Parse parameter ID
-    uint64_t id_u64;
-    if (!parse_uint64(id_str, &id_u64)) {
-        printf("ERROR: Invalid parameter ID\n");
-        return;
-    }
-    
-    param_idx_t id = (param_idx_t)id_u64;
-    if (id >= NUM_PARAMS) {
-        printf("ERROR: Parameter ID %u out of range (max %d)\n",
-          id, NUM_PARAMS - 1);
-        return;
-    }
-    
-    param_value_t param_val = {0};
-    param_type_e type = get_param_type(id);
-    esp_err_t parse_err = parse_param_value(val_str, type, &param_val);
-    if (parse_err != ESP_OK) {
-        printf("ERROR: Invalid value\n");
-        return;
-    }
-    
-    esp_err_t err = set_param_value_t(id, param_val);
-    if (err == ESP_OK) {
-        printf("OK: Parameter %u (%s) set to ",
-          id, get_param_name(id));
-        print_param_value(id, param_val);
-        printf("(Not committed - use 'cp' to save)\n");
-    } else {
-        printf("ERROR: Failed to set parameter\n");
-    }
-}
-
-// Process get parameter command: gp <id>
-static void cmd_get_param(char *args) {
-    char *id_str = strtok(args, " \t");
-    
-    if (id_str == NULL) {
-        printf("ERROR: Usage: gp <id>\n");
-        return;
-    }
-    
-    // Parse parameter ID
-    uint64_t id_u64;
-    if (!parse_uint64(id_str, &id_u64)) {
-        printf("ERROR: Invalid parameter ID\n");
-        return;
-    }
-    
-    param_idx_t id = (param_idx_t)id_u64;
-    if (id >= NUM_PARAMS) {
-        printf("ERROR: Parameter ID %u out of range (max %d)\n",
-          id, NUM_PARAMS - 1);
-        return;
-    }
-    
-    // Get parameter
-    param_value_t val = get_param_value_t(id);
-    printf("Parameter %u (%s) = ", id, get_param_name(id));
-    print_param_value(id, val);
-}
-
-// Process commit parameters command: cp
-static void cmd_commit_params(char *args) {
-    (void)args; // Unused
-    
-    printf("Committing parameters to flash...\n");
-    commit_params();
-    printf("OK: Parameters committed\n");
-}
-
-// Process reset parameter command: rp <id>
-static void cmd_reset_param(char *args) {
-    char *id_str = strtok(args, " \t");
-    
-    if (id_str == NULL) {
-        printf("ERROR: Usage: rp <id>\n");
-        return;
-    }
-    
-    // Parse parameter ID
-    uint64_t id_u64;
-    if (!parse_uint64(id_str, &id_u64)) {
-        printf("ERROR: Invalid parameter ID\n");
-        return;
-    }
-    
-    param_idx_t id = (param_idx_t)id_u64;
-    if (id >= NUM_PARAMS) {
-        printf("ERROR: Parameter ID %u out of range (max %d)\n",
-          id, NUM_PARAMS - 1);
-        return;
-    }
-    
-    // Reset to default
-    param_value_t default_val = get_param_default(id);
-    esp_err_t err = set_param_value_t(id, default_val);
-    
-    if (err == ESP_OK) {
-        printf("OK: Parameter %u (%s) reset to default: ",
-          id, get_param_name(id));
-        print_param_value(id, default_val);
-        printf("(Not committed - use 'cp' to save)\n");
-    } else {
-        printf("ERROR: Failed to reset parameter\n");
-    }
-}
-
-// Process list parameters command: lp
-static void cmd_list_params(char *args) {
-    (void)args; // Unused
-    
-    printf("\n=== Parameter List ===\n");
-    printf("ID  | Name              | Type | Value\n");
-    printf("----+-------------------+------+------------------\n");
-    
-    const char* type_names[] = {
-        "u8 ", "i8 ", "u16", "i16", "u32", "i32", "u64", "i64", "f32", "f64"
-    };
-    
-    for (int i = 0; i < NUM_PARAMS; i++) {
-        param_value_t val = get_param_value_t(i);
-        param_type_e type = get_param_type(i);
-        
-        printf("%-3d | %-17s | %-4s | ", i, get_param_name(i), type_names[type]);
-        print_param_value(i, val);
-    }
+// Process GET command
+static void cmd_get(void) {
     printf("\n");
+    
+    cJSON *response = comms_handle_get();
+    if (response == NULL) {
+        printf("ERROR: Failed to generate GET response\n");
+        return;
+    }
+    
+    // Pretty print the JSON
+    char *json_str = cJSON_Print(response);
+    cJSON_Delete(response);
+    
+    if (json_str == NULL) {
+        printf("ERROR: Failed to serialize JSON\n");
+        return;
+    }
+    
+    printf("%s\n", json_str);
+    free(json_str);
+}
+
+// Process POST command with JSON data
+static void cmd_post(char *json_data) {
+    printf("\n");
+    
+    // Parse the JSON input
+    cJSON *request = cJSON_Parse(json_data);
+    if (request == NULL) {
+        const char *error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            printf("ERROR: JSON parse error before: %s\n", error_ptr);
+        } else {
+            printf("ERROR: Failed to parse JSON\n");
+        }
+        return;
+    }
+    
+    // Call the unified POST handler
+    cJSON *response = NULL;
+    esp_err_t err = comms_handle_post(request, &response);
+    cJSON_Delete(request);
+    
+    if (response == NULL) {
+        printf("ERROR: Failed to generate POST response\n");
+        return;
+    }
+    
+    // Pretty print the response
+    char *json_str = cJSON_Print(response);
+    
+    // Check for special response flags before deleting
+    cJSON *reboot_flag = cJSON_GetObjectItem(response, "reboot");
+    cJSON *sleep_flag = cJSON_GetObjectItem(response, "sleep");
+    bool should_reboot = cJSON_IsTrue(reboot_flag);
+    bool should_sleep = cJSON_IsTrue(sleep_flag);
+    
+    cJSON_Delete(response);
+    
+    if (json_str == NULL) {
+        printf("ERROR: Failed to serialize JSON\n");
+        return;
+    }
+    
+    printf("%s\n", json_str);
+    free(json_str);
+    
+    // Handle special actions
+    if (should_reboot) {
+        printf("\nRebooting in 2 seconds...\n");
+        fflush(stdout);
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        esp_restart();
+    }
+    
+    if (should_sleep) {
+        printf("\nEntering deep sleep in 2 seconds...\n");
+        fflush(stdout);
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        rtc_enter_deep_sleep();
+    }
 }
 
 // Process help command
-static void cmd_help(char *args) {
-    (void)args; // Unused
-    
-    printf("\n=== Available Commands ===\n");
-    printf("sp <id> <value>  - Set parameter (e.g., sp 0 42 or sp 14 0xDEADBEEF)\n");
-    printf("gp <id>          - Get parameter (e.g., gp 0)\n");
-    printf("rp <id>          - Reset parameter to default (e.g., rp 0)\n");
-    printf("cp               - Commit parameters to flash\n");
-    printf("lp               - List all parameters\n");
-    printf("help             - Show this help\n");
-    printf("\nNotes:\n");
-    printf("- Values can be decimal (123) or hex (0xABC)\n");
-    printf("- Changes are not saved until you run 'cp'\n");
-    printf("- Parameter IDs range from 0 to %d\n\n", NUM_PARAMS - 1);
-}
-
-static void cmd_rf_learn(char *args) {
-	char *id_str = strtok(args, " \t");
-    
-    if (id_str == NULL) {
-        rf_433_cancel_learn_keycode();
-        return;
-    }
-    
-    // Parse parameter ID
-    uint64_t id_u64;
-    if (!parse_uint64(id_str, &id_u64)) {
-        printf("ERROR: Invalid parameter ID\n");
-        return;
-    }
-    
-    param_idx_t id = (param_idx_t)id_u64;
-    if (id < 8) {
-		printf("Listening for keycode for slot %d\n", id);
-        rf_433_learn_keycode(id);
-        return;
-    }
-	printf("ERROR: Keycode slot index out of bounds.\n");
+static void cmd_help(void) {
+    printf("\n=== UART JSON Interface ===\n");
+    printf("\nCommands:\n");
+    printf("  GET                  - Get complete system status (JSON)\n");
+    printf("  POST: {json}         - Send command or update parameters (JSON)\n");
+    printf("  HELP                 - Show this help\n");
+    printf("\nPOST JSON Format:\n");
+    printf("{\n");
+    printf("  \"time\": 1234567,          // Set RTC time (optional)\n");
+    printf("  \"remaining_dist\": 100,    // Set remaining distance (optional)\n");
+    printf("  \"cmd\": \"start\",           // Execute command (optional)\n");
+    printf("  \"parameters\": {           // Update parameters (optional)\n");
+    printf("    \"PARAM_NAME\": value,\n");
+    printf("    \"PARAM_NAME2\": value\n");
+    printf("  }\n");
+    printf("}\n");
+    printf("\nAvailable Commands:\n");
+    printf("  start, stop, undo, fwd, rev, up, down, aux\n");
+    printf("  reboot, sleep\n");
+    printf("  rf_learn, rf_clear_temp, rf_disable, rf_enable, rf_status\n");
+    printf("  cal_jack_start, cal_jack_finish, cal_drive_start, cal_drive_finish, cal_get\n");
+    printf("\nExamples:\n");
+    printf("  GET\n");
+    printf("  POST: {\"cmd\":\"start\"}\n");
+    printf("  POST: {\"time\":1704067200}\n");
+    printf("  POST: {\"parameters\":{\"WIFI_SSID\":\"MyNetwork\",\"WIFI_CHANNEL\":6}}\n");
+    printf("  POST: {\"cmd\":\"rf_learn\",\"channel\":0}\n");
+    printf("\n");
 }
 
 // Parse and execute command
@@ -338,49 +148,47 @@ static void process_command(char *cmd) {
         return;
     }
     
-    // Extract command
-    char *space = strchr(cmd, ' ');
-    char *tab = strchr(cmd, '\t');
-    char *delim = NULL;
-    
-    if (space && tab) {
-        delim = (space < tab) ? space : tab;
-    } else if (space) {
-        delim = space;
-    } else if (tab) {
-        delim = tab;
-    }
-    
+    // Convert to uppercase for command matching
     char command[16] = {0};
-    if (delim) {
-        int cmd_len = delim - cmd;
-        if (cmd_len >= sizeof(command)) {
-            cmd_len = sizeof(command) - 1;
-        }
-        strncpy(command, cmd, cmd_len);
-        cmd = delim + 1; // Point to arguments
-    } else {
-        strncpy(command, cmd, sizeof(command) - 1);
-        cmd = cmd + strlen(cmd); // Point to empty string
+    int i = 0;
+    while (cmd[i] && cmd[i] != ' ' && cmd[i] != '\t' && cmd[i] != ':' && i < 15) {
+        command[i] = (cmd[i] >= 'a' && cmd[i] <= 'z') ? (cmd[i] - 32) : cmd[i];
+        i++;
     }
+    command[i] = '\0';
     
     // Execute command
-    if (strcmp(command, "sp") == 0) {
-        cmd_set_param(cmd);
-    } else if (strcmp(command, "gp") == 0) {
-        cmd_get_param(cmd);
-    } else if (strcmp(command, "rp") == 0) {
-        cmd_reset_param(cmd);
-    } else if (strcmp(command, "cp") == 0) {
-        cmd_commit_params(cmd);
-    } else if (strcmp(command, "lp") == 0) {
-        cmd_list_params(cmd);
-    } else if (strcmp(command, "help") == 0) {
-        cmd_help(cmd);
-    } else if (strcmp(command, "rfl") == 0) {
-        cmd_rf_learn(cmd);
-    } else {
-        printf("ERROR: Unknown command '%s' (type 'help' for commands)\n", command);
+    if (strcmp(command, "GET") == 0) {
+        cmd_get();
+    }
+    else if (strcmp(command, "POST") == 0) {
+        // Find the start of JSON data (after ':')
+        char *json_start = strchr(cmd, ':');
+        if (json_start == NULL) {
+            printf("ERROR: POST command requires JSON data after ':'\n");
+            printf("Usage: POST: {json data}\n");
+            return;
+        }
+        json_start++; // Skip the ':'
+        
+        // Trim whitespace
+        while (*json_start == ' ' || *json_start == '\t') {
+            json_start++;
+        }
+        
+        if (*json_start == '\0') {
+            printf("ERROR: No JSON data provided\n");
+            return;
+        }
+        
+        cmd_post(json_start);
+    }
+    else if (strcmp(command, "HELP") == 0) {
+        cmd_help();
+    }
+    else {
+        printf("ERROR: Unknown command '%s'\n", command);
+        printf("Type 'HELP' for available commands\n");
     }
 }
 
@@ -390,7 +198,7 @@ void uart_event_task(void *pvParameters) {
     uint8_t data[BUF_SIZE];
     
     while (1) {
-		esp_task_wdt_reset();
+        esp_task_wdt_reset();
         int len = uart_read_bytes(UART_NUM, data, BUF_SIZE - 1, 20 / portTICK_PERIOD_MS);
         
         if (len > 0) {
@@ -421,7 +229,7 @@ void uart_event_task(void *pvParameters) {
                     }
                     
                     cmd_pos = 0;
-                    printf("> ");
+                    printf("\n> ");
                     fflush(stdout);
                     continue;
                 }
@@ -435,7 +243,7 @@ void uart_event_task(void *pvParameters) {
     }
 }
 
-esp_err_t uart_init() {
+esp_err_t uart_init(void) {
     // Configure UART
     uart_config_t uart_config = {
         .baud_rate  = 115200,
@@ -450,13 +258,14 @@ esp_err_t uart_init() {
     ESP_ERROR_CHECK(uart_param_config(UART_NUM, &uart_config));
     
     // Print startup message
-    /*printf("\n\n");
-    printf("=================================\n");
-    printf("  ESP32 Parameter Manager\n");
-    printf("=================================\n");
-    printf("Type 'help' for available commands\n\n");
-    printf("> ");
-    fflush(stdout);*/
+    printf("\n\n");
+    printf("========================================\n");
+    printf("  UART JSON Interface Ready\n");
+    printf("========================================\n");
+    printf("Type 'HELP' for available commands\n");
+    printf("Type 'GET' to see system status\n");
+    printf("\n> ");
+    fflush(stdout);
     
     // Create UART task    
     xTaskCreate(uart_event_task, "uart_event_task", 4096, NULL, 12, &uart_task_handle);
@@ -465,7 +274,7 @@ esp_err_t uart_init() {
     return ESP_OK;
 }
 
-esp_err_t uart_stop() {
+esp_err_t uart_stop(void) {
     if (uart_task_handle == NULL) {
         ESP_LOGW(TAG, "UART task not running");
         return ESP_OK;

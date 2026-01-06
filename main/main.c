@@ -124,7 +124,7 @@ void app_main(void) {
     ESP_LOGI(TAG, "Firmware: %s", FIRMWARE_STRING);
     ESP_LOGI(TAG, "Version: %s", FIRMWARE_VERSION);
     ESP_LOGI(TAG, "Branch: %s", FIRMWARE_BRANCH);
-    ESP_LOGI(TAG, "Built: %s", BUILD_DATE);   
+    ESP_LOGI(TAG, "Built: %s", BUILD_DATE);
     
     
     // Check for factory reset condition: Cold boot + button held
@@ -240,12 +240,13 @@ void app_main(void) {
         			driveLEDs(LED_STATE_START2);
         		} else if (i2c_get_button_ms(0) > 100){
         			driveLEDs(LED_STATE_START1);
-        		} else{
+        		} else {
 					if (
 						rtc_is_set() &&
 						!efuse_is_tripped(BRIDGE_JACK) &&
 						!efuse_is_tripped(BRIDGE_AUX) &&
-						!efuse_is_tripped(BRIDGE_DRIVE)
+						!efuse_is_tripped(BRIDGE_DRIVE) &&
+						fsm_get_error() == ESP_OK
 					) {
         				driveLEDs(LED_STATE_AWAKE);
         			} else {

@@ -44,7 +44,7 @@ typedef enum {
 } fsm_state_t;
 
 typedef enum {
-	RELAY_NONE = 0,
+	RELAY_SENSORS = 0,
 	RELAY_C3,
 	RELAY_B3,
 	RELAY_A3,
@@ -74,6 +74,9 @@ void fsm_set_cal_val(float v);
 int64_t fsm_get_cal_t();
 int64_t fsm_get_cal_e();
 void fsm_request(fsm_cmd_t cmd);
+
+esp_err_t fsm_get_error();
+void fsm_clear_error();
 
 
 float fsm_get_remaining_distance(void);

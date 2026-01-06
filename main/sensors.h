@@ -26,6 +26,7 @@ void set_sensor_counter(sensor_t i, int32_t to);
 int32_t get_sensor_counter(sensor_t i);
 
 bool get_sensor(sensor_t i);
+bool get_safety_sensor(void);
 
 esp_err_t sensors_init();
 esp_err_t sensors_stop();

@@ -138,7 +138,7 @@ def print_compression_stats(original_size, minified_size, gzip_size, brotli_size
 
 
 def main():
-    input_file = "landingpage.html"
+    input_file = "webpage.html"
     
     # Check if input file exists
     if not Path(input_file).exists():

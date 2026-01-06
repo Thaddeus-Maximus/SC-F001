@@ -8,6 +8,7 @@
 */
 
 #include "cJSON.h"
+#include "comms.h"
 #include "control_fsm.h"
 #include "endian.h"
 #include "esp_ota_ops.h"
@@ -332,6 +333,9 @@ static esp_err_t log_handler(httpd_req_t *req) {
  *   ... other parameters as direct key-value pairs
  * }
  */
+/**
+ * Unified GET handler - returns complete system status
+ */
 static esp_err_t get_handler(httpd_req_t *req) {
     ESP_LOGI(TAG, "get_handler");
     
@@ -340,139 +344,43 @@ static esp_err_t get_handler(httpd_req_t *req) {
         return ESP_FAIL;
     }
     
-    rtc_reset_shutdown_timer();
-
-    int head = 0;
-
-    // Start JSON object
-    head += sprintf(httpBuffer+head, "{");
-    head += sprintf(httpBuffer+head, "\"build_version\":\"%s\",", FIRMWARE_VERSION);
-    head += sprintf(httpBuffer+head, "\"build_date\":\"%s\",", BUILD_DATE);
-    head += sprintf(httpBuffer+head, "\"time\":%lld,", (long long)rtc_get_s());
-    head += sprintf(httpBuffer+head, "\"rtc_set\":%s,", rtc_is_set() ? "true" : "false");
-    head += sprintf(httpBuffer+head, "\"state\":%d,", fsm_get_state());
-    head += sprintf(httpBuffer+head, "\"voltage\":%.3f,", get_battery_V());
-    head += sprintf(httpBuffer+head, "\"remaining_dist\":%.3f,", fsm_get_remaining_distance());
-    head += sprintf(httpBuffer+head, "\"next_alarm\":%lld,", rtc_get_next_alarm_s());
-    
-    head += sprintf(httpBuffer+head, "\"msg\":\"");
-    
-    switch(fsm_get_state()) {
-		case STATE_IDLE:
-			head += sprintf(httpBuffer+head, "IDLE");
-			break;
-		case STATE_UNDO_JACK:
-		case STATE_UNDO_JACK_START:
-			head += sprintf(httpBuffer+head, "CANCELLING MOVE");
-			break;
-		default:
-			head += sprintf(httpBuffer+head, "MOVING...");
-			break;
-	}
-	
-	if (fsm_get_remaining_distance()<=0) {
-		head += sprintf(httpBuffer+head, " | DISTANCE LIMIT HIT");
-	}
-	if (efuse_is_tripped(BRIDGE_AUX))   head += sprintf(httpBuffer+head, " | AUX EFUSE TRIP");
-	if (efuse_is_tripped(BRIDGE_JACK))  head += sprintf(httpBuffer+head, " | JACK EFUSE TRIP");
-	if (efuse_is_tripped(BRIDGE_DRIVE)) head += sprintf(httpBuffer+head, " | DRIVE EFUSE TRIP");
-    if (!rtc_is_set()) {
-		head += sprintf(httpBuffer+head, " | CLOCK NOT SET");
-	}
-	
-    // Add parameters metadata object
-    head += sprintf(httpBuffer+head, "\",\"parameters\":{");
-    
-    // Values array
-    //head += sprintf(httpBuffer+head, "\"names\":[");
-    for (param_idx_t i = 0; i < NUM_PARAMS; i++) {
-        if (i > 0) {
-            head += sprintf(httpBuffer+head, ",");
-        }
-        
-        head += sprintf(httpBuffer+head, "\"%s\":", get_param_name(i));
-        
-        param_value_t value = get_param_value_t(i);
-        
-        switch (get_param_type(i)) {
-            case PARAM_TYPE_f32:
-                head += sprintf(httpBuffer+head, "%.4f", value.f32);
-                break;
-            case PARAM_TYPE_f64:
-                head += sprintf(httpBuffer+head, "%.4f", value.f64);
-                break;
-            case PARAM_TYPE_i32:
-                head += sprintf(httpBuffer+head, "%ld", (long)value.i32);
-                break;
-            case PARAM_TYPE_i16:
-                head += sprintf(httpBuffer+head, "%d", value.i16);
-                break;
-            case PARAM_TYPE_u32:
-                head += sprintf(httpBuffer+head, "%lu", (long)value.u32);
-                break;
-            case PARAM_TYPE_u16:
-                head += sprintf(httpBuffer+head, "%u", value.u16);
-                break;
-            case PARAM_TYPE_str:
-                head += sprintf(httpBuffer+head, "\"%s\"", get_param_string(i));
-                break;
-            default:
-                head += sprintf(httpBuffer+head, "null");
-                break;
-        }
-    }
-    /*head += sprintf(httpBuffer+head, "],");
-    
-    // Names array
-    head += sprintf(httpBuffer+head, "\"names\":[");
-    for (param_idx_t i = 0; i < NUM_PARAMS; i++) {
-        if (i > 0) {
-            head += sprintf(httpBuffer+head, ",");
-        }
-        head += sprintf(httpBuffer+head, "\"%s\"", get_param_name(i));
-    }
-    head += sprintf(httpBuffer+head, "],");
-    
-    // Units array
-    head += sprintf(httpBuffer+head, "\"units\":[");
-    for (param_idx_t i = 0; i < NUM_PARAMS; i++) {
-        if (i > 0) {
-            head += sprintf(httpBuffer+head, ",");
-        }
-        head += sprintf(httpBuffer+head, "\"%s\"", get_param_unit(i));
-    }
-    head += sprintf(httpBuffer+head, "]");*/
-    
-    // Close parameters object
-    head += sprintf(httpBuffer+head, "}");
-    
-    // Close main JSON object
-    head += sprintf(httpBuffer+head, "}");
-    
-    // Check if buffer might overflow
-    if (head >= (int)(sizeof(httpBuffer) - 100)) {
-        ESP_LOGE(TAG, "GET response buffer near overflow");
+    // Call unified GET handler
+    cJSON *response = comms_handle_get();
+    if (response == NULL) {
+        ESP_LOGE(TAG, "Failed to generate GET response");
         return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
-                                    "Status data too large");
+                                    "Failed to generate response");
     }
-
+    
+    // Convert to string (not pretty printed for web - save bandwidth)
+    char *json_str = cJSON_PrintUnformatted(response);
+    cJSON_Delete(response);
+    
+    if (json_str == NULL) {
+        ESP_LOGE(TAG, "Failed to serialize JSON");
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
+                                    "Failed to serialize response");
+    }
+    
+    // Send response
     esp_err_t err = httpd_resp_set_type(req, "application/json");
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set response type: %s", esp_err_to_name(err));
+        free(json_str);
         return err;
     }
     
-    err = httpd_resp_send(req, httpBuffer, head);
+    err = httpd_resp_send(req, json_str, strlen(json_str));
+    free(json_str);
+    
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to send status response: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Failed to send response: %s", esp_err_to_name(err));
         return err;
     }
-    
     
     err = httpd_resp_set_hdr(req, "Connection", "close");
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set connection header: %s", esp_err_to_name(err));
-        // Continue anyway
+        ESP_LOGW(TAG, "Failed to set connection header: %s", esp_err_to_name(err));
     }
     
     return err;
@@ -492,6 +400,9 @@ static esp_err_t get_handler(httpd_req_t *req) {
  *   }
  * }
  */
+/**
+ * Unified POST handler - handles commands, parameter updates, time updates
+ */
 static esp_err_t post_handler(httpd_req_t *req) {
     ESP_LOGI(TAG, "post_handler");
     
@@ -499,8 +410,6 @@ static esp_err_t post_handler(httpd_req_t *req) {
         ESP_LOGE(TAG, "Null request pointer");
         return ESP_FAIL;
     }
-    
-    rtc_reset_shutdown_timer();
     
     // Receive POST data
     int ret = httpd_req_recv(req, httpBuffer, sizeof(httpBuffer));
@@ -532,390 +441,63 @@ static esp_err_t post_handler(httpd_req_t *req) {
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
     }
     
-    bool cmd_executed = false;
-    bool sleep_requested = false;
-    bool reboot_requested = false;
-    const char *error_msg = NULL;
-    int params_updated = 0;
-    int params_failed = 0;
-    
-    // Process time if present
-    cJSON *time = cJSON_GetObjectItem(root, "time");
-    if (cJSON_IsNumber(time)) {
-        int64_t new_time = (int64_t)cJSON_GetNumberValue(time);
-        ESP_LOGI(TAG, "Setting time to %lld", new_time);
-        rtc_set_s(new_time);
-    }
-    
-    
-    cJSON *remaining_dist = cJSON_GetObjectItem(root, "remaining_dist");
-    if (cJSON_IsNumber(remaining_dist)) {
-        int64_t new_dist = (int64_t)cJSON_GetNumberValue(remaining_dist);
-        ESP_LOGI(TAG, "Setting time to %lld", new_dist);
-        fsm_set_remaining_distance(new_dist);
-    }
-    
-    // WE DO NOT PROCESS STATE. STATE IS A READ-ONLY.
-    
-    // Process command if present
-    cJSON *cmd = cJSON_GetObjectItem(root, "cmd");
-    if (cJSON_IsString(cmd)) {
-        const char *cmd_str = cmd->valuestring;
-        ESP_LOGI(TAG, "Executing command: %s", cmd_str);
-        
-        /*
-        // Claude made this, wtf?
-        if (strcmp(cmd_str, "trigger") == 0) {
-            // Trigger RF433 transmitter
-            rf_433_transmit();
-            cmd_executed = true;
-        } else */
-        if (strcmp(cmd_str, "start") == 0) {
-            // Start operation - transition FSM to running state
-            //fsm_set_state(FSM_STATE_RUNNING);
-            fsm_request(FSM_CMD_START);
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "stop") == 0) {
-            // Stop operation - transition FSM to idle state
-            //fsm_set_state(FSM_STATE_IDLE);
-            fsm_request(FSM_CMD_STOP);
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "undo") == 0) {
-            // Stop operation - transition FSM to idle state
-            //fsm_set_state(FSM_STATE_IDLE);
-            fsm_request(FSM_CMD_UNDO);
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "fwd") == 0) {
-            pulseOverride(RELAY_A1); pulseOverride(RELAY_A3);
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "rev") == 0) {
-            pulseOverride(RELAY_B1); pulseOverride(RELAY_A3);
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "up") == 0) {
-            pulseOverride(RELAY_A2);
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "down") == 0) {
-            pulseOverride(RELAY_B2);
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "aux") == 0) {
-            pulseOverride(RELAY_A3);
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "reboot") == 0) {
-            reboot_requested = true;
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "sleep") == 0) {
-            sleep_requested = true;
-            cmd_executed = true;
-        }
-        /*else if (strcmp(cmd_str, "rfp") == 0) {
-            // RF programming command - get channel parameter
-            cJSON *channel = cJSON_GetObjectItem(root, "channel");
-            if (cJSON_IsNumber(channel)) {
-                int ch = (int)cJSON_GetNumberValue(channel);
-                ESP_LOGI(TAG, "RF programming channel: %d", ch);
-                rf_433_learn(ch);
-                cmd_executed = true;
-            } else {
-                ESP_LOGW(TAG, "rfp command missing or invalid channel parameter");
-                error_msg = "rfp requires channel parameter";
-            }
-        }*/
-        else if (strcmp(cmd_str, "rf_clear_temp") == 0) {
-            rf_433_clear_temp_keycodes();
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "rf_disable") == 0) {
-            rf_433_disable_controls();
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "rf_enable") == 0) {
-            rf_433_enable_controls();
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "rf_learn") == 0) {
-            // Start learning for a specific channel
-            cJSON *channel = cJSON_GetObjectItem(root, "channel");
-            if (cJSON_IsNumber(channel)) {
-                int ch = (int)cJSON_GetNumberValue(channel);
-                if (ch >= 0 && ch < NUM_RF_BUTTONS) {
-                    rf_433_learn_keycode(ch);
-                    cmd_executed = true;
-                } else if (ch == -1) {
-                    rf_433_cancel_learn_keycode();
-                    cmd_executed = true;
-                } else {
-                    error_msg = "Invalid channel number";
-                }
-            } else {
-                error_msg = "rf_learn requires channel parameter";
-            }
-        }
-        else if (strcmp(cmd_str, "rf_set_temp") == 0) {
-            cJSON *index = cJSON_GetObjectItem(root, "index");
-            cJSON *code = cJSON_GetObjectItem(root, "code");
-            if (cJSON_IsNumber(index) && cJSON_IsNumber(code)) {
-                int idx = (int)cJSON_GetNumberValue(index);
-                int32_t rf_code = (int32_t)cJSON_GetNumberValue(code);
-                rf_433_set_temp_keycode(idx, rf_code);
-                cmd_executed = true;
-            } else {
-                error_msg = "rf_set_temp requires index and code parameters";
-            }
-        }
-        else if (strcmp(cmd_str, "rf_status") == 0) {
-            // Return current temp keycodes
-            cJSON *response = cJSON_CreateObject();
-            cJSON *codes_array = cJSON_CreateArray();
-            
-            for (int i = 0; i < 4; i++) {  // Only return first 4 for web UI
-                int32_t code = rf_433_get_temp_keycode(i);
-                cJSON_AddItemToArray(codes_array, cJSON_CreateNumber(code));
-            }
-            
-            cJSON_AddItemToObject(response, "codes", codes_array);
-            
-            char *json_str = cJSON_Print(response);
-            cJSON_Delete(response);
-            cJSON_Delete(root);
-            
-            esp_err_t err = httpd_resp_set_type(req, "application/json");
-            if (err == ESP_OK) {
-                err = httpd_resp_send(req, json_str, strlen(json_str));
-            }
-            free(json_str);
-            return err;
-        }
-        
-        else if (strcmp(cmd_str, "cal_jack_start") == 0) {
-            fsm_request(FSM_CMD_CALIBRATE_JACK_PREP);
-            ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_PREP");
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "cal_jack_finish") == 0) {
-            cJSON *i = cJSON_GetObjectItem(root, "amt");
-            if (cJSON_IsNumber(i) && i->valuedouble >= 0 && i->valuedouble < 8) {
-                ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_FINISH");
-                fsm_set_cal_val(i->valuedouble);
-                fsm_request(FSM_CMD_CALIBRATE_JACK_FINISH);
-                cmd_executed = true;
-            } else {
-                error_msg = "cal_jack_finish requires amt parameter (0-8)";
-            }
-        }
-        else if (strcmp(cmd_str, "cal_drive_start") == 0) {
-            fsm_request(FSM_CMD_CALIBRATE_DRIVE_PREP);
-            ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_PREP");
-            cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "cal_drive_finish") == 0) {
-            cJSON *i = cJSON_GetObjectItem(root, "amt");
-            if (cJSON_IsNumber(i) && i->valuedouble >= 0 && i->valuedouble < 8) {
-                ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_FINISH");
-                fsm_set_cal_val(i->valuedouble);
-                fsm_request(FSM_CMD_CALIBRATE_DRIVE_FINISH);
-                cmd_executed = true;
-            } else {
-                error_msg = "cal_drive_finish requires amt parameter (0-8)";
-            }
-        }
-        
-        else if (strcmp(cmd_str, "cal_get") == 0) {
-            ESP_LOGI(TAG, "CAL_GET");
-            
-            // Build JSON response with calibration values
-            cJSON *response = cJSON_CreateObject();
-            cJSON_AddItemToObject(response, "e", cJSON_CreateNumber(fsm_get_cal_e()));
-            cJSON_AddItemToObject(response, "t", cJSON_CreateNumber(fsm_get_cal_t()));
-            
-            char *json_str = cJSON_Print(response);
-            cJSON_Delete(response);
-            cJSON_Delete(root);
-            
-            esp_err_t err = httpd_resp_set_type(req, "application/json");
-            if (err == ESP_OK) {
-                err = httpd_resp_send(req, json_str, strlen(json_str));
-            }
-            free(json_str);
-            return err;
-        }
-        
-        else {
-            ESP_LOGW(TAG, "Unknown command: %s", cmd_str);
-            error_msg = "Unknown command";
-        }
-    }
-    
-    // Process batch parameter updates if present
-    cJSON *parameters = cJSON_GetObjectItem(root, "parameters");
-    if (cJSON_IsObject(parameters)) {
-	    // Process individual parameter updates (direct key-value pairs)
-	    cJSON *item = NULL;
-	    cJSON_ArrayForEach(item, parameters) {
-	        const char *key = item->string;
-			ESP_LOGW(TAG, "PARAMETER %s", key);
-	        
-	        // Find parameter index by name
-	        param_idx_t param_idx = NUM_PARAMS;
-	        for (param_idx_t i = 0; i < NUM_PARAMS; i++) {
-	            if (strcmp(get_param_name(i), key) == 0) {
-	                param_idx = i;
-	                break;
-	            }
-	        }
-	        
-	        if (param_idx == NUM_PARAMS) {
-				ESP_LOGW(TAG, "UNKNOWN PARAMETER %s", key);
-	            // Not a known parameter, skip silently
-	            continue;
-	        }
-	        
-	        cJSON *value_json = cJSON_GetObjectItem(parameters, key);
-	        
-	        // Set parameter value based on type
-	        switch (get_param_type(param_idx)) {
-	            case PARAM_TYPE_f32:
-	                if (cJSON_IsNumber(value_json)) {
-			            set_param_value_t(param_idx,
-			            	(param_value_t){.f32=value_json->valueint});
-			            params_updated++;
-	                } else { ESP_LOGW(TAG, "PARAM TYPE MISMATCH FOR %s", key); }
-	                break;
-	            case PARAM_TYPE_f64:
-	                if (cJSON_IsNumber(value_json)) {
-			            set_param_value_t(param_idx,
-			            	(param_value_t){.f64=value_json->valueint});
-			            params_updated++;
-	                } else { ESP_LOGW(TAG, "PARAM TYPE MISMATCH FOR %s", key); }
-	                break;
-	            case PARAM_TYPE_i32:
-	                if (cJSON_IsNumber(value_json)) {
-			            set_param_value_t(param_idx,
-			            	(param_value_t){.i32=value_json->valueint});
-			            params_updated++;
-	                } else { ESP_LOGW(TAG, "PARAM TYPE MISMATCH FOR %s", key); }
-	                break;
-	            case PARAM_TYPE_i16:
-	                if (cJSON_IsNumber(value_json)) {
-			            set_param_value_t(param_idx,
-			            	(param_value_t){.i16=value_json->valueint});
-			            params_updated++;
-	                } else { ESP_LOGW(TAG, "PARAM TYPE MISMATCH FOR %s", key); }
-	                break;
-	            case PARAM_TYPE_u32:
-	                if (cJSON_IsNumber(value_json)) {
-			            set_param_value_t(param_idx,
-			            	(param_value_t){.u32=value_json->valueint});
-			            params_updated++;
-	                } else { ESP_LOGW(TAG, "PARAM TYPE MISMATCH FOR %s", key); }
-	                break;
-	            case PARAM_TYPE_u16:
-	                if (cJSON_IsNumber(value_json)) {
-			            set_param_value_t(param_idx,
-			            	(param_value_t){.u16=value_json->valueint});
-			            params_updated++;
-	                } else { ESP_LOGW(TAG, "PARAM TYPE MISMATCH FOR %s", key); }
-	                break;
-	            case PARAM_TYPE_str:
-	                if (cJSON_IsString(value_json)) {
-	                    set_param_string(param_idx, value_json->valuestring);
-	                    params_updated++;
-	                } else { ESP_LOGW(TAG, "PARAM TYPE MISMATCH FOR %s", key); }
-	                break;
-	            default:
-	                break;
-	        }
-	    }
-	    
-	    if (params_updated > 0) {
-			rtc_schedule_next_alarm();
-			commit_params();
-		}
-    }
-    
+    // Call unified POST handler
+    cJSON *response = NULL;
+    esp_err_t err = comms_handle_post(root, &response);
     cJSON_Delete(root);
     
+    if (response == NULL) {
+        ESP_LOGE(TAG, "Failed to generate POST response");
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
+                                    "Failed to generate response");
+    }
+    
+    // Check for special response flags
+    cJSON *reboot_flag = cJSON_GetObjectItem(response, "reboot");
+    cJSON *sleep_flag = cJSON_GetObjectItem(response, "sleep");
+    bool should_reboot = cJSON_IsTrue(reboot_flag);
+    bool should_sleep = cJSON_IsTrue(sleep_flag);
+    
+    // Convert response to string
+    char *json_str = cJSON_PrintUnformatted(response);
+    cJSON_Delete(response);
+    
+    if (json_str == NULL) {
+        ESP_LOGE(TAG, "Failed to serialize JSON");
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
+                                    "Failed to serialize response");
+    }
+    
     // Send response
-    esp_err_t err;
-    char response[256];
-    int response_len;
-    
-    if (reboot_requested) {
-        // Special handling for reboot
-        response_len = snprintf(response, sizeof(response), 
-                               "{\"status\":\"ok\",\"message\":\"Rebooting...\"}");
-        
-        if (response_len > 0 && response_len < (int)sizeof(response)) {
-            err = httpd_resp_set_type(req, "application/json");
-            if (err == ESP_OK) {
-                err = httpd_resp_send(req, response, response_len);
-            }
-        }
-        
-        ESP_LOGI(TAG, "Rebooting in 2 seconds...");
-        vTaskDelay(pdMS_TO_TICKS(2000));
-        esp_restart();
-        return ESP_OK;  // Never reached
+    err = httpd_resp_set_type(req, "application/json");
+    if (err == ESP_OK) {
+        err = httpd_resp_send(req, json_str, strlen(json_str));
     }
-    
-    if (sleep_requested) {
-		// Special handling for sleep
-        response_len = snprintf(response, sizeof(response), 
-                               "{\"status\":\"ok\",\"message\":\"Sleeping...\"}");
-        
-        if (response_len > 0 && response_len < (int)sizeof(response)) {
-            err = httpd_resp_set_type(req, "application/json");
-            if (err == ESP_OK) {
-                err = httpd_resp_send(req, response, response_len);
-            }
-        }
-        
-        ESP_LOGI(TAG, "Sleeping in 2 seconds...");
-        vTaskDelay(pdMS_TO_TICKS(2000));
-        rtc_enter_deep_sleep();
-        return ESP_OK;  // Never reached
-	}
-    
-    if (error_msg != NULL) {
-        err = httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, error_msg);
-    } else {
-        response_len = snprintf(response, sizeof(response), 
-                               "{\"status\":\"ok\",\"params_updated\":%d,\"params_failed\":%d,\"cmd_executed\":%s}", 
-                               params_updated, params_failed, cmd_executed ? "true" : "false");
-        
-        if (response_len < 0 || response_len >= (int)sizeof(response)) {
-            ESP_LOGE(TAG, "Failed to format response");
-            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
-                                        "Internal error");
-        }
-        
-        err = httpd_resp_set_type(req, "application/json");
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to set response type: %s", esp_err_to_name(err));
-            return err;
-        }
-        
-        err = httpd_resp_send(req, response, response_len);
-    }
+    free(json_str);
     
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to send response: %s", esp_err_to_name(err));
         return err;
     }
     
+    // Handle special actions after response is sent
+    if (should_reboot) {
+        ESP_LOGI(TAG, "Rebooting in 2 seconds...");
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        esp_restart();
+        return ESP_OK;  // Never reached
+    }
+    
+    if (should_sleep) {
+        ESP_LOGI(TAG, "Sleeping in 2 seconds...");
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        rtc_enter_deep_sleep();
+        return ESP_OK;  // Never reached
+    }
     
     err = httpd_resp_set_hdr(req, "Connection", "close");
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set connection header: %s", esp_err_to_name(err));
-        // Continue anyway
+        ESP_LOGW(TAG, "Failed to set connection header: %s", esp_err_to_name(err));
     }
     
     return err;
@@ -1412,6 +994,7 @@ static esp_err_t launchSoftAp(void) {
 esp_err_t webserver_init(void) {
     ESP_LOGI(TAG, "Initializing webserver...");
     
+    // Initialize comms module
     esp_err_t err = launchSoftAp();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to launch SoftAP: %s", esp_err_to_name(err));

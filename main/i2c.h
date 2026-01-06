@@ -11,6 +11,7 @@ esp_err_t i2c_stop(void);
 
 esp_err_t i2c_set_relays(uint8_t states);
 esp_err_t i2c_set_led1(uint8_t state);
+void i2c_set_safety_status(bool safe);
 
 esp_err_t i2c_poll_buttons();
 

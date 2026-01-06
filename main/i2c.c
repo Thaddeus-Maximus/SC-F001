@@ -28,8 +28,12 @@
 #define REPEAT_MS         200
 #define REPEAT_START_MS   700
 
+#define SAFETY_MASK 0b00111111
+
 // Static Variables
 static bool i2c_initted = false;
+static bool safety_ok = false;  // Safety interlock
+static uint8_t last_relay_request = 0;  // Track last relay request
 
 // === I2C LOW-LEVEL ===
 static esp_err_t tca_write_word_8(uint8_t reg, uint8_t value) {
@@ -64,12 +68,37 @@ esp_err_t i2c_init(void) {
     ESP_ERROR_CHECK(tca_write_word_8(TCA_REG_CONFIG1, 0b00000000));
     
     i2c_initted = true;
+    safety_ok = false;  // Start with safety not OK
+    last_relay_request = 0;
+    
     return ESP_OK;
 }
 
-esp_err_t i2c_set_relays(uint8_t states) {
-	return tca_write_word_8(TCA_REG_OUTPUT1, states);
+void i2c_set_safety_status(bool safe) {
+    safety_ok = safe;
+    
+    if (!safe) {
+        // Safety tripped - immediately turn off all relays
+        ESP_LOGW("I2C", "Safety interlock activated");
+        tca_write_word_8(TCA_REG_OUTPUT1, last_relay_request & SAFETY_MASK);
+    } else {
+        // Safety cleared - restore last requested relay state
+        ESP_LOGI("I2C", "Safety interlock cleared");
+    }
 }
+
+esp_err_t i2c_set_relays(uint8_t states) {
+    last_relay_request = states;  // Always track the request
+    
+    if (!safety_ok) {
+        // Safety interlock active - refuse to energize relays
+        ESP_LOGW("I2C", "Main relay operation blocked by safety interlock");
+        return tca_write_word_8(TCA_REG_OUTPUT1, states & SAFETY_MASK);
+    }
+    
+    return tca_write_word_8(TCA_REG_OUTPUT1, states);
+}
+
 esp_err_t i2c_set_led1(uint8_t state) {
 	// push 3 LSB to top
 	return tca_write_word_8(TCA_REG_OUTPUT0, state<<5);
