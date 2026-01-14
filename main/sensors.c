@@ -1,12 +1,13 @@
 #include "sensors.h"
-#include "i2c.h"
 #include "esp_log.h"
 #include "esp_task_wdt.h"
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include "i2c.h"
 #include "storage.h"
+#include <sys/param.h>
 
 // make the compiler shut up about casting an int to a void
 #define INT2VOIDP(i) (void*)(uintptr_t)(i)
@@ -14,19 +15,22 @@
 
 static const char* TAG = "SENS";
 
-uint8_t sensor_pins[N_SENSORS] = {GPIO_NUM_27, GPIO_NUM_14};
+uint8_t sensor_pins[N_SENSORS] = {GPIO_NUM_27, GPIO_NUM_14, GPIO_NUM_16, GPIO_NUM_19};
 
-volatile int32_t sensor_count[N_SENSORS] = {0};
+volatile int16_t sensor_count[N_SENSORS] = {0};
 static volatile uint64_t sensor_last_isr_time[N_SENSORS] = {0};
 static volatile bool sensor_stable_state[N_SENSORS] = {false};
 static QueueHandle_t sensor_event_queue = NULL;
 
+
+static volatile bool last_raw_state[N_SENSORS] = {false};
+
 // Safety sensor debouncing
-static volatile bool safety_tripped = false;
+static volatile bool is_safe = true;
 static volatile uint64_t safety_low_start_time = 0;
 static volatile uint64_t safety_high_start_time = 0;
-#define SAFETY_TRIP_DEBOUNCE_US   get_param_value_t(PARAM_SAFETY_BREAK_US).u32
-#define SAFETY_UNTRIP_DEBOUNCE_US get_param_value_t(PARAM_SAFETY_BREAK_US).u32
+#define SAFETY_BREAK_DEBOUNCE_US   get_param_value_t(PARAM_SAFETY_BREAK_US).u32
+#define SAFETY_MAKE_DEBOUNCE_US    get_param_value_t(PARAM_SAFETY_MAKE_US).u32
 
 #define DEBOUNCE_TIME_US    2000   // 2 ms debounce (adjust per switch)
 #define DEBOUNCE_TICKS      pdMS_TO_TICKS(DEBOUNCE_TIME_MS)
@@ -59,7 +63,6 @@ static void sensor_debounce_task(void* param) {
     esp_task_wdt_add(NULL);
     sensor_event_t evt;
     //static uint64_t last_processed_time[N_SENSORS] = {0};
-    static bool last_raw_state[N_SENSORS] = {false};
 
     // Initialize stable state
     for (uint8_t i = 0; i < N_SENSORS; i++) {
@@ -113,12 +116,10 @@ static void sensor_debounce_task(void* param) {
                 // First time going low, start timing
                 safety_low_start_time = now;
                 safety_high_start_time = 0;
-                ESP_LOGI(TAG, "Safety sensor went LOW, starting trip timer");
-            } else if (!safety_tripped && (now - safety_low_start_time >= SAFETY_TRIP_DEBOUNCE_US)) {
-                // Been low for 200ms, trip the safety
-                safety_tripped = true;
-                i2c_set_safety_status(false);
-                ESP_LOGW(TAG, "SAFETY TRIPPED - Relays disabled");
+                ESP_LOGI(TAG, "Safety sensor went LOW, starting make timer");
+            } else if (!is_safe && (now - safety_low_start_time >= SAFETY_MAKE_DEBOUNCE_US)) {
+                is_safe = true;
+                ESP_LOGW(TAG, "SAFETY MADE - Relays enabled");
             }
         } else {
             // Safety sensor is HIGH (inactive)
@@ -126,17 +127,25 @@ static void sensor_debounce_task(void* param) {
                 // First time going high, start timing
                 safety_high_start_time = now;
                 safety_low_start_time = 0;
-                ESP_LOGI(TAG, "Safety sensor went HIGH, starting un-trip timer");
-            } else if (safety_tripped && (now - safety_high_start_time >= SAFETY_UNTRIP_DEBOUNCE_US)) {
-                // Been high for 300ms, un-trip the safety
-                safety_tripped = false;
-                i2c_set_safety_status(true);
-                ESP_LOGI(TAG, "SAFETY CLEARED - Relays enabled");
+                ESP_LOGI(TAG, "Safety sensor went HIGH, starting break timer");
+            } else if (is_safe && (now - safety_high_start_time >= SAFETY_BREAK_DEBOUNCE_US)) {
+                is_safe = false;
+                i2c_set_relays(0);
+                ESP_LOGI(TAG, "SAFETY BREAK - Relays disabled");
             }
         }
         
         esp_task_wdt_reset();
     }
+}
+
+int8_t pack_sensors() {
+	int8_t ret = 0;
+	for(uint8_t i=0; i<MIN(4, N_SENSORS); i++) {
+		if(sensor_stable_state[i]) ret |= 0x01<<i;
+		if(last_raw_state[i]) ret |= 0x01<<(i+4);
+	}
+	return ret;
 }
 
 esp_err_t sensors_init() {
@@ -183,14 +192,14 @@ bool get_sensor(sensor_t i) {
     return sensor_stable_state[i];
 }
 
-bool get_safety_sensor(void) {
-    return !safety_tripped;  // Returns true if safe, false if tripped
+bool get_is_safe(void) {
+    return is_safe;
 }
 
-int32_t get_sensor_counter(sensor_t i) {
+int16_t get_sensor_counter(sensor_t i) {
     return sensor_count[i];
 }
 
-void set_sensor_counter(sensor_t i, int32_t to) {
+void set_sensor_counter(sensor_t i, int16_t to) {
     sensor_count[i] = to;
 }

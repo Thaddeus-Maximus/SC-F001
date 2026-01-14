@@ -314,6 +314,12 @@ float get_bridge_A(bridge_t bridge)
     return isens[bridge].current;
 }
 
+
+float get_bridge_heat(bridge_t bridge) {
+    if (bridge >= N_BRIDGES) return NAN;
+    return isens[bridge].heat;	
+}
+
 float get_battery_V(void)
 {
 	if (ema_battery_init)

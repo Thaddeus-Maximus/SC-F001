@@ -18,10 +18,12 @@
 #define TAG "MAIN"
 
 int64_t last_log_time = 0;
+#define LOGSIZE 40
 esp_err_t send_log() {
-	// >Hqfffflccc
-	uint8_t entry[32] = {0};
-    entry[0] = 32;
+	uint8_t entry[LOGSIZE] = {};
+	
+	
+    entry[0] = fsm_get_state();
     
     // Pack 64-bit timestamp into bytes 1-8
     uint64_t be_timestamp = rtc_get_ms();
@@ -37,16 +39,29 @@ esp_err_t send_log() {
     float be_current3 = get_bridge_A(BRIDGE_AUX);
     memcpy(&entry[21], &be_current3, 4);
     
-    int32_t be_counter = get_sensor_counter(SENSOR_DRIVE);
-    memcpy(&entry[25], &be_counter, 4);
+    int16_t be_counter = get_sensor_counter(SENSOR_DRIVE);
+    memcpy(&entry[25], &be_counter, 2);
     
-    entry[29] = get_sensor(SENSOR_SAFETY);
-    entry[30] = get_sensor(SENSOR_DRIVE);
-    entry[31] = fsm_get_state();
+    entry[27] = pack_sensors();
+    
+    
+    
+    
+    float heat1 = get_bridge_heat(BRIDGE_DRIVE);
+    memcpy(&entry[28], &heat1, 4);
+    float heat2 = get_bridge_heat(BRIDGE_JACK);
+    memcpy(&entry[32], &heat2, 4);
+    float heat3 = get_bridge_heat(BRIDGE_AUX);
+    memcpy(&entry[36], &heat3, 4);
     
     last_log_time = esp_timer_get_time();
     
-    return write_log(LOG_TYPE_DATA, entry, 32);
+    
+    log_write(entry, LOGSIZE);
+    
+    ESP_LOGI(TAG, "WROTE LOG; %lld / %ld/%ld; %5.2f %5.2f %5.2f", (long long)rtc_get_ms(), (unsigned long)log_get_tail(), (unsigned long)log_get_head(), heat1, heat2, heat3);
+    
+    return ESP_OK;
 }
 
 
@@ -242,7 +257,7 @@ void app_main(void) {
         		} else if (i2c_get_button_ms(0) > 100){
         			driveLEDs(LED_STATE_START1);
         		} else {
-					if (
+					/*if (
 						rtc_is_set() &&
 						!efuse_is_tripped(BRIDGE_JACK) &&
 						!efuse_is_tripped(BRIDGE_AUX) &&
@@ -252,11 +267,16 @@ void app_main(void) {
         				driveLEDs(LED_STATE_AWAKE);
         			} else {
         				driveLEDs(LED_STATE_ERROR);
-        			}
+        			}*/
+        			
+        			int8_t state = 0b001;
+        			if (get_is_safe()) state |= 0b010;
+        			if (get_sensor(SENSOR_SAFETY)) state |= 0b100;
+        			i2c_set_led1(state);
 				}
 				
 				// when not actively moving we log at a low frequency
-				if (isRunning() || (esp_timer_get_time() > last_log_time + DEEP_SLEEP_US))
+				if (isRunning() || (esp_timer_get_time() > last_log_time + 3000000)) //DEEP_SLEEP_US))
 				  send_log();
 				
 				if(i2c_get_button_ms(0) > 2100)

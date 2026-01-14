@@ -6,6 +6,7 @@
 #include "esp_log.h"
 #include "driver/i2c.h"
 #include "esp_rom_sys.h"
+#include "sensors.h"
 
 #define I2C_PORT I2C_NUM_0
 #define TCA_ADDR_READ  0x21
@@ -28,11 +29,12 @@
 #define REPEAT_MS         200
 #define REPEAT_START_MS   700
 
-#define SAFETY_MASK 0b00111111
+#define SAFETY_MASK    0b00110001 // & permissible channels (jack and sensors)
+#define SENSOR_EN_MASK 0b00000001 // | need forced high
 
 // Static Variables
 static bool i2c_initted = false;
-static bool safety_ok = false;  // Safety interlock
+//static bool safety_ok = false;  // Safety interlock
 static uint8_t last_relay_request = 0;  // Track last relay request
 
 // === I2C LOW-LEVEL ===
@@ -68,35 +70,22 @@ esp_err_t i2c_init(void) {
     ESP_ERROR_CHECK(tca_write_word_8(TCA_REG_CONFIG1, 0b00000000));
     
     i2c_initted = true;
-    safety_ok = false;  // Start with safety not OK
+    //safety_ok = false;  // Start with safety not OK
     last_relay_request = 0;
     
     return ESP_OK;
 }
 
-void i2c_set_safety_status(bool safe) {
-    safety_ok = safe;
-    
-    if (!safe) {
-        // Safety tripped - immediately turn off all relays
-        ESP_LOGW("I2C", "Safety interlock activated");
-        tca_write_word_8(TCA_REG_OUTPUT1, last_relay_request & SAFETY_MASK);
-    } else {
-        // Safety cleared - restore last requested relay state
-        ESP_LOGI("I2C", "Safety interlock cleared");
-    }
-}
-
 esp_err_t i2c_set_relays(uint8_t states) {
     last_relay_request = states;  // Always track the request
     
-    if (!safety_ok) {
+    if (!get_is_safe()) {
         // Safety interlock active - refuse to energize relays
-        ESP_LOGW("I2C", "Main relay operation blocked by safety interlock");
-        return tca_write_word_8(TCA_REG_OUTPUT1, states & SAFETY_MASK);
+        if (states!=0) ESP_LOGW("I2C", "Main relay operation blocked by safety interlock");
+        return tca_write_word_8(TCA_REG_OUTPUT1, (states | SENSOR_EN_MASK) & SAFETY_MASK);
     }
     
-    return tca_write_word_8(TCA_REG_OUTPUT1, states);
+    return tca_write_word_8(TCA_REG_OUTPUT1, states | SENSOR_EN_MASK);
 }
 
 esp_err_t i2c_set_led1(uint8_t state) {
@@ -106,8 +95,8 @@ esp_err_t i2c_set_led1(uint8_t state) {
 
 esp_err_t i2c_stop() {
 	if (!i2c_initted) return ESP_OK;
-	i2c_set_relays(0);
-	i2c_set_led1(0);
+	tca_write_word_8(TCA_REG_OUTPUT0, 0);
+	tca_write_word_8(TCA_REG_OUTPUT1, 0);
 	return ESP_OK;
 }
 

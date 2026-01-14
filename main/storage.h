@@ -9,7 +9,8 @@
 // ============================================================================
 #define FLASH_SECTOR_SIZE 4096
 #define PARAMS_OFFSET 0
-#define LOG_START_OFFSET 4096  // Start after first sector (parameters)
+#define PARAMETER_NUM_SECTORS 4
+#define LOG_START_OFFSET FLASH_SECTOR_SIZE*PARAMETER_NUM_SECTORS  // Start after first sector (parameters)
 
 // ============================================================================
 // LOG ENTRY TYPE DEFINITIONS (Magic values 0xC0-0xCF)
@@ -40,7 +41,6 @@
 // [1]:     Payload size (0-255 bytes)
 // [2-N]:   Payload data
 typedef struct {
-    uint8_t type;           // Type/Magic byte (0xC0-0xCF range)
     uint8_t size;           // Payload size in bytes (0-255)
     uint8_t data[];         // Flexible array member for payload
 } __attribute__((packed)) log_entry_header_t;
@@ -51,7 +51,6 @@ typedef struct {
 // PARAMETER SYSTEM
 // ============================================================================
 
-#define PARAMETER_NUM_SECTORS 4
 
 #define PARAM_LIST \
     PARAM_DEF(BOOT_TIME,    i32, 0, "us") \
@@ -97,7 +96,8 @@ typedef struct {
     PARAM_DEF(JACK_I_DOWN, f32, 8.0, "A") \
     PARAM_DEF(V_SENS_K, f32, 0.00766666666, "V/mV") \
     PARAM_DEF(BUILD_VERSION, str, "undefined", "") \
-    PARAM_DEF(SAFETY_BREAK_US, u32, 200000, "") \
+    PARAM_DEF(SAFETY_BREAK_US, u32, 300000, "") \
+    PARAM_DEF(SAFETY_MAKE_US, u32, 1000000, "") \
 
 // Generate enum for parameter indices
 #define PARAM_DEF(name, type, default_val, unit) PARAM_##name,
@@ -163,11 +163,11 @@ esp_err_t commit_params(void);
 
 // Logging functions
 esp_err_t log_init(void);
-esp_err_t write_log(uint8_t type, const uint8_t* data, uint8_t size);
-uint32_t get_log_head(void);
-uint32_t get_log_tail(void);
-uint32_t get_log_offset(void);
-uint32_t get_log_size(void);
+esp_err_t log_write(uint8_t* buf, uint8_t len);
+uint32_t log_get_head(void);
+uint32_t log_get_tail(void);
+uint32_t log_get_offset(void);
+uint32_t log_get_size(void);
 
 esp_err_t factory_reset();
 

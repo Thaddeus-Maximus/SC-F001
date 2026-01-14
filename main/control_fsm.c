@@ -17,6 +17,7 @@
 #include "rtc.h"
 #include "sensors.h"
 #include "esp_log.h"
+#include <sys/param.h>
 
 #define TRANSITION_DELAY_US 1000000
 
@@ -47,7 +48,7 @@ int64_t override_times[8] = {-1};
 int64_t override_cooldown[8] = {-1};
 bool enabled = false;
 
-
+float this_move_dist = 0.0f;
 RTC_DATA_ATTR float remaining_distance = 0.0f;
 float fsm_get_remaining_distance(void)    { return remaining_distance; }
 void  fsm_set_remaining_distance(float x) { remaining_distance = x;}
@@ -159,8 +160,8 @@ int8_t fsm_get_current_progress(int8_t denominator) {
 
 
 #define JACK_TIME  get_param_value_t(PARAM_JACK_KT).f32  * get_param_value_t(PARAM_JACK_DIST ).f32
-#define DRIVE_TIME get_param_value_t(PARAM_DRIVE_KT).f32 * get_param_value_t(PARAM_DRIVE_DIST).f32
-#define DRIVE_DIST get_param_value_t(PARAM_DRIVE_KE).f32 * get_param_value_t(PARAM_DRIVE_DIST).f32
+#define DRIVE_TIME get_param_value_t(PARAM_DRIVE_KT).f32 * this_move_dist
+#define DRIVE_DIST get_param_value_t(PARAM_DRIVE_KE).f32 * this_move_dist
 
 void control_task(void *param) {
 	esp_task_wdt_add(NULL);
@@ -180,34 +181,44 @@ void control_task(void *param) {
             
             switch (cmd) {
                 case FSM_CMD_START:
+                	// Check if we have remaining distance before starting
+                	if (remaining_distance <= 0.0f) {
+						ESP_LOGI(TAG, "FAILED TO START; NO REMAINING DISTANCE");
+                		error = SC_ERR_LEASH_HIT;
+                		continue;
+                	}
+                	this_move_dist = MIN(get_param_value_t(PARAM_DRIVE_DIST).f32, remaining_distance);
+                case FSM_CMD_START_IGNORE_OVERTRAVEL:
+                	this_move_dist = get_param_value_t(PARAM_DRIVE_DIST).f32;
                     if (current_state == STATE_IDLE) {
-                    	// Check if we have remaining distance before starting
-                    	if (remaining_distance <= 0.0f) {
-                    		error = SC_ERR_LEASH_HIT;
-                    		continue;
-                    	}
                     	
-                    	if (get_battery_V() > get_param_value_t(PARAM_LOW_PROTECTION_V).f32) {
+                    	if (get_battery_V() < get_param_value_t(PARAM_LOW_PROTECTION_V).f32) {
+							ESP_LOGI(TAG, "FAILED TO START; INSUFFICIENT VOLTAGE");
 							error = SC_ERR_LOW_BATTERY;
 							continue;
 						}
-                    	if (get_safety_sensor()) {
+                    	if (!get_is_safe()) {
+							ESP_LOGI(TAG, "FAILED TO START; SAFETY NOT SET");
 							error = SC_ERR_SAFETY_TRIP;
 							continue;
 						}
                     	if (efuse_is_tripped(BRIDGE_DRIVE)) {
+							ESP_LOGI(TAG, "FAILED TO START; EFUSE 1 TRIP");
 							error = SC_ERR_EFUSE_TRIP_1;
 							continue;
 						}
                     	if (efuse_is_tripped(BRIDGE_JACK)) {
+							ESP_LOGI(TAG, "FAILED TO START; EFUSE 2 TRIP");
 							error = SC_ERR_EFUSE_TRIP_2;
 							continue;
 						}
                     	if (efuse_is_tripped(BRIDGE_AUX)) {
+							ESP_LOGI(TAG, "FAILED TO START; EFUSE 3 TRIP");
 							error = SC_ERR_EFUSE_TRIP_3;
 							continue;
 						}
 						
+						ESP_LOGI(TAG, "STARTING");
 						error = ESP_OK; // if everything is OK now, we're OK.
 						current_state = STATE_MOVE_START_DELAY;
 						set_timer(TRANSITION_DELAY_US);
@@ -337,7 +348,7 @@ void control_task(void *param) {
 			    }
 			    break;
             case STATE_MOVE_START_DELAY:
-            	if (!get_safety_sensor()) {
+            	if (!get_is_safe()) {
 					error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_IDLE;
 				}
@@ -348,7 +359,7 @@ void control_task(void *param) {
 				}
                 break;
             case STATE_JACK_UP_START:
-            	if (!get_safety_sensor()) {
+            	if (!get_is_safe()) {
 					error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
 				}
@@ -380,7 +391,7 @@ void control_task(void *param) {
 				}
                 break;
             case STATE_JACK_UP:
-            	if (!get_safety_sensor()) {
+            	if (!get_is_safe()) {
 					error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
 				}
@@ -399,7 +410,7 @@ void control_task(void *param) {
 				}
                 break;
             case STATE_DRIVE_START_DELAY:
-            	if (!get_safety_sensor()) {
+            	if (!get_is_safe()) {
 					error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
 				}
@@ -410,12 +421,10 @@ void control_task(void *param) {
 					set_sensor_counter(SENSOR_DRIVE, -DRIVE_DIST);
 					// Record starting encoder position AFTER setting it
 					move_start_encoder = get_sensor_counter(SENSOR_DRIVE);
-					ESP_LOGI(TAG, "STATE_DRIVE starting: encoder=%ld, remaining_distance=%.2f, DRIVE_DIST=%.2f", 
-					         (long)move_start_encoder, remaining_distance, DRIVE_DIST);
 				}
                 break;
             case STATE_DRIVE:
-            	if (!get_safety_sensor()) {
+            	if (!get_is_safe()) {
 					error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
 				}
@@ -425,41 +434,22 @@ void control_task(void *param) {
 					float ke = get_param_value_t(PARAM_DRIVE_KE).f32;
 					float distance_traveled = ticks_traveled / ke;
 					
-					ESP_LOGI(TAG, "STATE_DRIVE: current_encoder=%ld, move_start=%ld, ticks=%ld, ke=%.2f, dist_traveled=%.2f, remaining=%.2f",
-					         (long)current_encoder, (long)move_start_encoder, (long)ticks_traveled, 
-					         ke, distance_traveled, remaining_distance);
-					
-					// Check if we'll exceed remaining distance with a full move
-					bool will_exceed = distance_traveled >= remaining_distance;
-					
 					// Stop if timer expires OR encoder target reached OR we've used up remaining distance
-					if (timer_done() || current_encoder > 0 || will_exceed) {
-						ESP_LOGI(TAG, "Drive stopping: timer_done=%d, encoder>0=%d, will_exceed=%d",
-						         timer_done(), current_encoder > 0, will_exceed);
-						
+					if (timer_done() || current_encoder > 0) {
 						// Update remaining distance based on actual travel
-						float old_remaining = remaining_distance;
-						if (will_exceed) {
-							ESP_LOGI(TAG, "Move stopped early - reached remaining distance limit (%.2f)", remaining_distance);
-							remaining_distance = 0.0f;
-						} else {
-							remaining_distance -= distance_traveled;
-							if (remaining_distance < 0.0f) remaining_distance = 0.0f;
-						}
-						ESP_LOGI(TAG, "Drive complete: traveled %.2f, old_remaining %.2f, new_remaining %.2f", 
-						         distance_traveled, old_remaining, remaining_distance);
+						//if (current_encoder < 0)
+							remaining_distance -= this_move_dist;
+						//else
+						//	remaining_distance -= distance_traveled;
 						
 						current_state = STATE_DRIVE_END_DELAY;
 						set_timer(TRANSITION_DELAY_US);
 					}
 					
 					if (efuse_is_tripped(BRIDGE_DRIVE)) {
-						float old_remaining = remaining_distance;
 						// Update remaining distance even on fault
 						remaining_distance -= distance_traveled;
 						if (remaining_distance < 0.0f) remaining_distance = 0.0f;
-						ESP_LOGW(TAG, "Drive fault: traveled %.2f, old_remaining %.2f, new_remaining %.2f", 
-						         distance_traveled, old_remaining, remaining_distance);
 						
 						error = SC_ERR_EFUSE_TRIP_1;
 						current_state = STATE_UNDO_JACK_START;
@@ -467,7 +457,7 @@ void control_task(void *param) {
 				}
                 break;
             case STATE_DRIVE_END_DELAY:
-            	if (!get_safety_sensor()) {
+            	if (!get_is_safe()) {
 					error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
 				}
@@ -477,7 +467,7 @@ void control_task(void *param) {
 				}
 				break;
             case STATE_JACK_DOWN:
-            	if (!get_safety_sensor()) {
+            	if (!get_is_safe()) {
 					error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
 				}
@@ -547,7 +537,7 @@ void control_task(void *param) {
 				// no way out of this except a command
 				break;
 			case STATE_CALIBRATE_DRIVE_MOVE:
-				if (!get_safety_sensor() || timer_done()) {
+				if (!get_is_safe() || timer_done()) {
 					current_state = STATE_IDLE;
 					fsm_cal_t = current_time - timer_start;
 					fsm_cal_e = get_sensor_counter(SENSOR_DRIVE);

@@ -19,6 +19,7 @@ bool efuse_is_tripped(bridge_t bridge);    // Query if bridge is currently fault
 
 float get_bridge_A(bridge_t bridge);
 float get_battery_V();
+float get_bridge_heat(bridge_t bridge);
 
 void set_autozero(bridge_t bridge);
 

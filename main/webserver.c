@@ -99,9 +99,9 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
 // Cache the storage partition pointer to avoid repeated lookups
 static const esp_partition_t *cached_storage_partition = NULL;
 
+// In webserver.c - Replace the log_handler function
+
 static esp_err_t log_handler(httpd_req_t *req) {
-    //ESP_LOGI(TAG, "log_handler");
-    
     if (req == NULL) {
         ESP_LOGE(TAG, "Null request pointer");
         return ESP_FAIL;
@@ -112,7 +112,7 @@ static esp_err_t log_handler(httpd_req_t *req) {
     int32_t tail = -1;
     
     if (req->method == HTTP_GET) {
-        // give the whole log
+        // GET without parameters - return JSON + full log
     }
     else if (req->method == HTTP_POST) {
         int ret = httpd_req_recv(req, httpBuffer, sizeof(httpBuffer));
@@ -130,12 +130,9 @@ static esp_err_t log_handler(httpd_req_t *req) {
             return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Request too large");
         }
         
-        httpBuffer[ret] = '\0'; // Null-terminate the string
+        httpBuffer[ret] = '\0';
             
-        //ESP_LOGI(TAG, "LOG POST %.*s", ret, httpBuffer);
-        
         if(sscanf(httpBuffer, "%ld", (long*)&tail) != 1) {
-            // if malformed, just send the whole log.
             ESP_LOGW(TAG, "Malformed tail parameter, using default");
             tail = -1;
         }
@@ -145,10 +142,8 @@ static esp_err_t log_handler(httpd_req_t *req) {
         return httpd_resp_send_err(req, HTTPD_405_METHOD_NOT_ALLOWED, "Method not allowed");
     }
 
-    // Use cached partition pointer instead of looking it up each time
     const esp_partition_t *storage_partition = cached_storage_partition;
     if (storage_partition == NULL) {
-        // Fall back to lookup if cache is empty (shouldn't happen in normal operation)
         storage_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, 
                                                      ESP_PARTITION_SUBTYPE_ANY, 
                                                      "storage");
@@ -160,69 +155,102 @@ static esp_err_t log_handler(httpd_req_t *req) {
         cached_storage_partition = storage_partition;
     }
 
-    // Get head and tail atomically and store in local variables
-    // This releases the mutex before we do any partition operations
-    int32_t head = get_log_head();
-    int32_t log_start = get_log_offset();
+    int32_t head = log_get_head();
+    int32_t log_start = log_get_offset();
     
     if (tail < 0) {
-        tail = get_log_tail();
+        tail = log_get_tail();
     } else {
-        // Validate tail is within log area bounds
         if (tail < log_start || tail >= (int32_t)storage_partition->size) {
             ESP_LOGW(TAG, "Invalid tail pointer %ld, using current tail", (long)tail);
-            tail = get_log_tail();
+            tail = log_get_tail();
         }
     }
     
-    // Calculate total size to send
-    int32_t total_size;
+    // Calculate log data size
+    int32_t log_data_size;
     if (tail == head) {
-        // Empty log - just send pointers
-        total_size = 8;
+        log_data_size = 0;
     } else if (tail < head) {
-        // Normal case: tail before head
-        total_size = head - tail + 8;  // +8 for head/tail pointers
+        log_data_size = head - tail;
     } else {
-        // Wrapped case: tail after head
-        total_size = (storage_partition->size - tail) + (head - log_start) + 8;
+        log_data_size = (storage_partition->size - tail) + (head - log_start);
     }
 
-    ESP_LOGI(TAG, "Log request: tail=%ld, head=%ld, total_size=%ld", 
-             (long)tail, (long)head, (long)total_size);
+    // Generate JSON header (same as /get endpoint)
+    cJSON *json_response = comms_handle_get();
+    if (json_response == NULL) {
+        ESP_LOGE(TAG, "Failed to generate JSON response");
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
+                                    "Failed to generate response");
+    }
+    
+    char *json_str = cJSON_PrintUnformatted(json_response);
+    cJSON_Delete(json_response);
+    
+    if (json_str == NULL) {
+        ESP_LOGE(TAG, "Failed to serialize JSON");
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
+                                    "Failed to serialize response");
+    }
+    
+    uint32_t json_len = strlen(json_str);
+    
+    // Total size: 4 (json length) + json + 8 (head/tail) + log_data
+    uint32_t total_size = 4 + json_len + 8 + log_data_size;
+
+    ESP_LOGI(TAG, "Log request: tail=%ld, head=%ld, json_len=%lu, log_size=%ld, total=%lu", 
+             (long)tail, (long)head, (unsigned long)json_len, (long)log_data_size, 
+             (unsigned long)total_size);
 
     // Send HTTP headers
     char len_str[16];
-    int written = snprintf(len_str, sizeof(len_str), "%u", (unsigned)total_size);
-    if (written < 0 || written >= (int)sizeof(len_str)) {
-        ESP_LOGE(TAG, "Failed to format content length");
-        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
-                                    "Internal error formatting response");
-    }
+    snprintf(len_str, sizeof(len_str), "%u", (unsigned)total_size);
     
     esp_err_t err = httpd_resp_set_type(req, "application/octet-stream");
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set response type: %s", esp_err_to_name(err));
+        free(json_str);
         return err;
     }
     
-    err = httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"sc_storage.bin\"");
+    err = httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"sc_log.bin\"");
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set content disposition: %s", esp_err_to_name(err));
+        free(json_str);
         return err;
     }
     
     err = httpd_resp_set_hdr(req, "Content-Length", len_str);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set content length: %s", esp_err_to_name(err));
+        free(json_str);
         return err;
     }
 
-    // Send head/tail pointers in big-endian format
+    // Send JSON length (4 bytes, big-endian)
+    uint32_t json_len_be = htobe32(json_len);
+    memcpy(&httpBuffer[0], &json_len_be, 4);
+    err = httpd_resp_send_chunk(req, (const char *)httpBuffer, 4);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to send JSON length: %s", esp_err_to_name(err));
+        free(json_str);
+        return err;
+    }
+    
+    // Send JSON string
+    err = httpd_resp_send_chunk(req, json_str, json_len);
+    free(json_str);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to send JSON: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    // Send head/tail pointers (8 bytes, big-endian)
     int32_t htail = htobe32(tail);
     int32_t hhead = htobe32(head);
-    memcpy(&httpBuffer[0], &(htail), 4);
-    memcpy(&httpBuffer[4], &(hhead), 4);
+    memcpy(&httpBuffer[0], &htail, 4);
+    memcpy(&httpBuffer[4], &hhead, 4);
     
     err = httpd_resp_send_chunk(req, (const char *)httpBuffer, 8);
     if (err != ESP_OK) {
@@ -230,43 +258,58 @@ static esp_err_t log_handler(httpd_req_t *req) {
         return err;
     }
     
+    // Send log data (same as before)
     int32_t offset = tail;
     
-    // Only send data if there's something to send
-    if (tail != head) {
-        // Handle wrapped case: send from tail to end of partition first
-        if (tail > head) {
-            //ESP_LOGI(TAG, "Wrapped log: sending tail=%ld to partition_end=%lu", 
-            //         (long)tail, (unsigned long)storage_partition->size);
-            
-            while (offset < (int32_t)storage_partition->size) {
-                size_t to_read = MIN(sizeof(httpBuffer), storage_partition->size - offset);
-                err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
-                if (err != ESP_OK) {
-                    ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
-                             (long)offset, esp_err_to_name(err));
-                    return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
-                                                "Failed to read storage");
-                }
-                
-                err = httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read);
-                if (err != ESP_OK) {
-                    ESP_LOGE(TAG, "Failed to send chunk at offset %ld: %s", 
-                             (long)offset, esp_err_to_name(err));
-                    return err;
-                }
-                
-                offset += to_read;
+    if (tail == head) {
+        // Empty log, nothing more to send
+    }
+    else if (tail < head) {
+        // Normal case: tail before head
+        while (offset < head) {
+            size_t to_read = MIN(sizeof(httpBuffer), head - offset);
+            err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
+                         (long)offset, esp_err_to_name(err));
+                return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
+                                            "Failed to read storage");
             }
             
-            // Wrap to beginning of log area
-            offset = log_start;
-            //ESP_LOGI(TAG, "Wrapped to log start, offset=%ld", (long)offset);
+            err = httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to send chunk at offset %ld: %s", 
+                         (long)offset, esp_err_to_name(err));
+                return err;
+            }
+            
+            offset += to_read;
+        }
+    }
+    else {
+        // Wrapped case: tail after head, read from tail to end, then start to head
+        while (offset < (int32_t)storage_partition->size) {
+            size_t to_read = MIN(sizeof(httpBuffer), storage_partition->size - offset);
+            err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
+                         (long)offset, esp_err_to_name(err));
+                return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
+                                            "Failed to read storage");
+            }
+            
+            err = httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to send chunk at offset %ld: %s", 
+                         (long)offset, esp_err_to_name(err));
+                return err;
+            }
+            
+            offset += to_read;
         }
         
-        // Send from current offset to head
-        //ESP_LOGI(TAG, "Sending final section: offset=%ld to head=%ld", (long)offset, (long)head);
-        
+        // Now read from start to head
+        offset = log_start;
         while (offset < head) {
             size_t to_read = MIN(sizeof(httpBuffer), head - offset);
             err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
@@ -295,12 +338,9 @@ static esp_err_t log_handler(httpd_req_t *req) {
         return err;
     }
     
-    //ESP_LOGI(TAG, "Successfully sent log data");
-    
     err = httpd_resp_set_hdr(req, "Connection", "close");
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set connection header: %s", esp_err_to_name(err));
-        // Continue anyway
     }
     
     return err;

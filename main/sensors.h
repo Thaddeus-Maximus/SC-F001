@@ -16,17 +16,21 @@
 #define SENSOR_DEBOUNCE_US      500  // Reduced to 0.5 ms for responsiveness
 
 typedef enum {
-	SENSOR_SAFETY = 0,
-	SENSOR_DRIVE  = 1,
-	N_SENSORS     = 2
+	SENSOR_SAFETY = 0, // IO27
+	SENSOR_DRIVE  = 1, // IO14
+	SENSOR_AUX1   = 2, // IO16 on V4
+	SENSOR_AUX2   = 3, // IO19 on V4
+	N_SENSORS     = 4
 } sensor_t;
 
 void reset_sensor_counter(sensor_t i);
-void set_sensor_counter(sensor_t i, int32_t to);
-int32_t get_sensor_counter(sensor_t i);
+void set_sensor_counter(sensor_t i, int16_t to);
+int16_t get_sensor_counter(sensor_t i);
 
 bool get_sensor(sensor_t i);
-bool get_safety_sensor(void);
+bool get_is_safe(void);
+
+int8_t pack_sensors();
 
 esp_err_t sensors_init();
 esp_err_t sensors_stop();

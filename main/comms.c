@@ -8,6 +8,7 @@
 #include "power_mgmt.h"
 #include "rf_433.h"
 #include "rtc.h"
+#include "sensors.h"
 #include "storage.h"
 #include "version.h"
 #include <string.h>
@@ -76,6 +77,11 @@ cJSON* comms_handle_get(void) {
     if (!rtc_is_set()) {
         cJSON_AddItemToArray(msg_array, cJSON_CreateString("CLOCK NOT SET"));
     }
+    
+    if (!get_is_safe()) {
+        cJSON_AddItemToArray(msg_array, cJSON_CreateString("SAFETY SENSOR BREAK"));
+    }
+    
     
     cJSON_AddItemToObject(root, "msg", msg_array);
     
