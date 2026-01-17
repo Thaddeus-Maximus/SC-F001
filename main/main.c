@@ -1,5 +1,6 @@
 #include "esp_task_wdt.h"
 #include "i2c.h"
+#include "log_test.h"
 #include "storage.h"
 #include "uart_comms.h"
 #include "esp_err.h"
@@ -17,49 +18,25 @@
 
 #define TAG "MAIN"
 
-int64_t last_log_time = 0;
-#define LOGSIZE 40
-esp_err_t send_log() {
-	uint8_t entry[LOGSIZE] = {};
+int64_t last_bat_log_time = 0;
+esp_err_t send_bat_log() {
+	if(!rtc_is_set()) return ESP_OK;
+	
+	uint8_t entry[12] = {};
 	
 	
-    entry[0] = fsm_get_state();
     
     // Pack 64-bit timestamp into bytes 1-8
     uint64_t be_timestamp = rtc_get_ms();
-    memcpy(&entry[1], &be_timestamp, 8);
+    memcpy(&entry[0], &be_timestamp, 8);
     
     // Pack 32-bit voltages/currents into bytes 9-24
     float be_voltage = get_battery_V();
-    memcpy(&entry[9],  &be_voltage,  4);
-    float be_current1 = get_bridge_A(BRIDGE_DRIVE);
-    memcpy(&entry[13], &be_current1, 4);
-    float be_current2 = get_bridge_A(BRIDGE_JACK);
-    memcpy(&entry[17], &be_current2, 4);
-    float be_current3 = get_bridge_A(BRIDGE_AUX);
-    memcpy(&entry[21], &be_current3, 4);
+    memcpy(&entry[8],  &be_voltage,  4);
     
-    int16_t be_counter = get_sensor_counter(SENSOR_DRIVE);
-    memcpy(&entry[25], &be_counter, 2);
+    last_bat_log_time = esp_timer_get_time();
     
-    entry[27] = pack_sensors();
-    
-    
-    
-    
-    float heat1 = get_bridge_heat(BRIDGE_DRIVE);
-    memcpy(&entry[28], &heat1, 4);
-    float heat2 = get_bridge_heat(BRIDGE_JACK);
-    memcpy(&entry[32], &heat2, 4);
-    float heat3 = get_bridge_heat(BRIDGE_AUX);
-    memcpy(&entry[36], &heat3, 4);
-    
-    last_log_time = esp_timer_get_time();
-    
-    
-    log_write(entry, LOGSIZE);
-    
-    ESP_LOGI(TAG, "WROTE LOG; %lld / %ld/%ld; %5.2f %5.2f %5.2f", (long long)rtc_get_ms(), (unsigned long)log_get_tail(), (unsigned long)log_get_head(), heat1, heat2, heat3);
+    log_write(entry, 12, LOG_TYPE_BAT);
     
     return ESP_OK;
 }
@@ -126,15 +103,16 @@ void driveLEDs(led_state_t state) {
 
 RTC_DATA_ATTR bool first_boot = true;
 
-void app_main(void) {
-    esp_task_wdt_add(NULL);
+void app_main(void) {esp_task_wdt_add(NULL);
+
+	//run_all_log_tests();
     
     if (rtc_xtal_init() != ESP_OK) ESP_LOGE(TAG, "RTC FAILED");
     
     // Say hello; turn on the lights
     esp_sleep_wakeup_cause_t cause = rtc_wakeup_cause();
     if (i2c_init()      != ESP_OK) ESP_LOGE(TAG, "I2C FAILED");
-    i2c_set_relays(0);
+    i2c_set_relays((relay_port_t){.raw=0});
     driveLEDs(LED_STATE_BOOTING);
     
     ESP_LOGI(TAG, "Firmware: %s", FIRMWARE_STRING);
@@ -188,8 +166,6 @@ void app_main(void) {
         esp_restart();
     }
     
-    first_boot = false;
-    
     // Every boot we load parameters and monitor solar, no matter what
 	if (adc_init()      != ESP_OK) ESP_LOGE(TAG, "ADC FAILED");
     if (storage_init()  != ESP_OK) ESP_LOGE(TAG, "STORAGE FAILED");
@@ -197,8 +173,10 @@ void app_main(void) {
     if (solar_run_fsm() != ESP_OK) ESP_LOGE(TAG, "SOLAR FAILED");
     // TODO: Do a 12V check and enter deep sleep if there's a problem
     
+    send_bat_log();
     
-	send_log();
+    
+	//send_log();
 	
 	//write_dummy_log_1();
     
@@ -214,17 +192,19 @@ void app_main(void) {
     } else */if (cause == ESP_SLEEP_WAKEUP_EXT0) {
         ESP_LOGI("MAIN", "Woke from button press");
     } else {    	
-    	if (!rtc_alarm_tripped()) {
-	    	//enter_deep_sleep();
+    	if (!rtc_alarm_tripped() && !first_boot) {
+	    	rtc_enter_deep_sleep();
     	}
     }
     
+    first_boot = false;
+    
     /*** FULL BOOT ***/
-    //if (uart_init()    != ESP_OK) ESP_LOGE(TAG, "UART FAILED");
-    if (power_init()   != ESP_OK) ESP_LOGE(TAG, "POWER FAILED");
+    if (uart_init()    != ESP_OK) ESP_LOGE(TAG, "UART FAILED");
+    //if (power_init()   != ESP_OK) ESP_LOGE(TAG, "POWER FAILED");
     if (rf_433_init()  != ESP_OK) ESP_LOGE(TAG, "RF FAILED");
     if (fsm_init()     != ESP_OK) ESP_LOGE(TAG, "FSM FAILED");
-    if (sensors_init() != ESP_OK) ESP_LOGE(TAG, "SENSORS FAILED");
+    //if (sensors_init() != ESP_OK) ESP_LOGE(TAG, "SENSORS FAILED");
     if (webserver_init() != ESP_OK) ESP_LOGE(TAG, "WEBSERVER FAILED");
 
     /*** MAIN LOOP ***/
@@ -276,16 +256,16 @@ void app_main(void) {
 				}
 				
 				// when not actively moving we log at a low frequency
-				if (isRunning() || (esp_timer_get_time() > last_log_time + 3000000)) //DEEP_SLEEP_US))
-				  send_log();
+				if ((esp_timer_get_time() > last_bat_log_time + DEEP_SLEEP_US))
+				  send_bat_log();
 				
 				if(i2c_get_button_ms(0) > 2100)
         			fsm_request(FSM_CMD_START);
         		break;
-			case STATE_UNDO_JACK:
+			//case STATE_UNDO_JACK:
 			case STATE_UNDO_JACK_START:
 				// it's running the jack, but undoing
-				send_log();
+				//send_log();
         		driveLEDs(LED_STATE_CANCELLING);
 				if (i2c_get_button_tripped(0)) {
 					ESP_LOGI(TAG, "AAAAH STOP!!!");
@@ -294,31 +274,31 @@ void app_main(void) {
         		break;
         		
         	case STATE_CALIBRATE_JACK_DELAY:
-        		send_log();
+        		//send_log();
         		if (i2c_get_button_tripped(0))
 	        		fsm_request(FSM_CMD_CALIBRATE_JACK_START);
         		break;
         	case STATE_CALIBRATE_JACK_MOVE:
-        		send_log();
+        		//send_log();
         		if (i2c_get_button_tripped(0))
 	        		fsm_request(FSM_CMD_CALIBRATE_JACK_END);
         		break;
         		
         		
         	case STATE_CALIBRATE_DRIVE_DELAY:
-        		send_log();
+        		//send_log();
         		if (i2c_get_button_tripped(0))
 	        		fsm_request(FSM_CMD_CALIBRATE_DRIVE_START);
         		break;
         	case STATE_CALIBRATE_DRIVE_MOVE:
-        		send_log();
+        		//send_log();
         		if (i2c_get_button_tripped(0))
 	        		fsm_request(FSM_CMD_CALIBRATE_DRIVE_END);
         		break;
         		
 			default:
 				// it's running in every other case
-				send_log();
+				//send_log();
         		driveLEDs(LED_STATE_DRIVING);
 				if (i2c_get_button_tripped(0)) {
         			fsm_request(FSM_CMD_UNDO);

@@ -28,7 +28,7 @@
 // 0xCA-0xCF reserved for future use
 
 // Maximum payload size per log entry (255 max due to 1-byte size field)
-#define LOG_MAX_PAYLOAD 255
+#define LOG_MAX_PAYLOAD 200
 
 // Helper macro to check if a byte is a valid log type
 #define IS_VALID_LOG_TYPE(x) ((x) >= 0xC0 && (x) <= 0xCF)
@@ -75,10 +75,10 @@ typedef struct {
     PARAM_DEF(ADC_ALPHA_IAZ, f32, 0.005, "-") \
     PARAM_DEF(ADC_DB_IAZ, f32, 5.0, "A") \
     PARAM_DEF(EFUSE_INOM_1, f32, 40.0, "A") \
-    PARAM_DEF(EFUSE_INOM_2, f32, 6.0, "A") \
+    PARAM_DEF(EFUSE_INOM_2, f32, 14.0, "A") \
     PARAM_DEF(EFUSE_INOM_3, f32, 4.0, "A") \
     PARAM_DEF(EFUSE_HEAT_THRESH, f32, 60.0, "i/i^2-s") \
-    PARAM_DEF(EFUSE_KINST, f32, 5.0, "i/i") \
+    PARAM_DEF(EFUSE_KINST, f32, 2.0, "i/i") \
     PARAM_DEF(EFUSE_TAUCOOL, f32, 0.2, "i") \
     PARAM_DEF(EFUSE_TCOOL, u32, 5000000, "us") \
     PARAM_DEF(LOW_PROTECTION_V, f32, 10.0, "V") \
@@ -91,13 +91,14 @@ typedef struct {
     PARAM_DEF(WIFI_CHANNEL, u16, 6, "") \
     PARAM_DEF(WIFI_SSID, str, "sc.local", "") \
     PARAM_DEF(WIFI_PASS, str, "password", "") \
-    PARAM_DEF(EFUSE_INRUSH_US, u32, 300000, "us") \
-    PARAM_DEF(JACK_I_UP,   f32, 5.0, "A") \
-    PARAM_DEF(JACK_I_DOWN, f32, 8.0, "A") \
+    PARAM_DEF(EFUSE_INRUSH_US, u32, 250000, "us") \
+    PARAM_DEF(JACK_I_UP,   f32, 8.0, "A") \
+    PARAM_DEF(JACK_I_DOWN, f32, 15.0, "A") \
     PARAM_DEF(V_SENS_K, f32, 0.00766666666, "V/mV") \
     PARAM_DEF(BUILD_VERSION, str, "undefined", "") \
     PARAM_DEF(SAFETY_BREAK_US, u32, 300000, "") \
     PARAM_DEF(SAFETY_MAKE_US, u32, 1000000, "") \
+    PARAM_DEF(JACK_IS_DOWN, f32, 8.0, "A") \
 
 // Generate enum for parameter indices
 #define PARAM_DEF(name, type, default_val, unit) PARAM_##name,
@@ -163,7 +164,7 @@ esp_err_t commit_params(void);
 
 // Logging functions
 esp_err_t log_init(void);
-esp_err_t log_write(uint8_t* buf, uint8_t len);
+esp_err_t log_write(uint8_t* buf, uint8_t len, uint8_t type);
 uint32_t log_get_head(void);
 uint32_t log_get_tail(void);
 uint32_t log_get_offset(void);
@@ -176,4 +177,9 @@ esp_err_t write_dummy_log_1(void);
 esp_err_t write_dummy_log_2(void);
 esp_err_t write_dummy_log_3(void);
 
+esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type);
+esp_err_t log_erase_all_sectors(void);
+esp_err_t log_simulate_power_cycle(void);
+void log_read_reset(void);
+esp_err_t log_write_blocking_test(uint8_t* buf, uint8_t len, uint8_t type);
 #endif // STORAGE_H

@@ -61,7 +61,7 @@ char httpBuffer[4096];
 
 /* Handler to serve the HTML page */
 static esp_err_t root_get_handler(httpd_req_t *req) {
-    ESP_LOGI(TAG, "root_get_handler");
+    //ESP_LOGI(TAG, "root_get_handler");
     
     if (req == NULL) {
         ESP_LOGE(TAG, "Null request pointer");
@@ -199,9 +199,9 @@ static esp_err_t log_handler(httpd_req_t *req) {
     // Total size: 4 (json length) + json + 8 (head/tail) + log_data
     uint32_t total_size = 4 + json_len + 8 + log_data_size;
 
-    ESP_LOGI(TAG, "Log request: tail=%ld, head=%ld, json_len=%lu, log_size=%ld, total=%lu", 
-             (long)tail, (long)head, (unsigned long)json_len, (long)log_data_size, 
-             (unsigned long)total_size);
+    //ESP_LOGI(TAG, "Log request: tail=%ld, head=%ld, json_len=%lu, log_size=%ld, total=%lu", 
+    //         (long)tail, (long)head, (unsigned long)json_len, (long)log_data_size, 
+    //         (unsigned long)total_size);
 
     // Send HTTP headers
     char len_str[16];
@@ -368,7 +368,7 @@ static esp_err_t log_handler(httpd_req_t *req) {
  * Unified GET handler - returns complete system status
  */
 static esp_err_t get_handler(httpd_req_t *req) {
-    ESP_LOGI(TAG, "get_handler");
+    //ESP_LOGI(TAG, "get_handler");
     
     if (req == NULL) {
         ESP_LOGE(TAG, "Null request pointer");
@@ -692,7 +692,7 @@ static esp_err_t ota_post_handler(httpd_req_t *req) {
 
 
 static esp_err_t catchall_handler(httpd_req_t *req) {
-	ESP_LOGI(TAG, "catchall_handler; %s", req->uri);
+	//ESP_LOGI(TAG, "catchall_handler; %s", req->uri);
     const char *uri = req->uri;
     
     // Windows NCSI
@@ -868,6 +868,9 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
 static esp_err_t launchSoftAp(void) {
     esp_err_t err;
     
+    
+    ESP_LOGI(TAG, "AP LAUNCHING");
+    
     err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         // NVS partition was truncated and needs to be erased
@@ -880,10 +883,16 @@ static esp_err_t launchSoftAp(void) {
         // Retry init after erase
         err = nvs_flash_init();
     }
+    
+    
+    ESP_LOGI(TAG, "AP LAUNCHING...");
+    
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize NVS: %s", esp_err_to_name(err));
         return err;
     }
+    
+    ESP_LOGI(TAG, "HI THERE");
     
     err = esp_netif_init();
     if (err != ESP_OK) {
@@ -1031,6 +1040,8 @@ esp_err_t webserver_init(void) {
         ESP_LOGE(TAG, "Failed to launch SoftAP: %s", esp_err_to_name(err));
         return err;
     }
+    
+    ESP_LOGI(TAG, "AP LAUNCHED");
     
     err = startHttpServer();
     if (err != ESP_OK) {

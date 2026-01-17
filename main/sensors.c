@@ -58,10 +58,31 @@ static void IRAM_ATTR sensor_isr_handler(void* arg) {
     if (xHigherPriorityTaskWoken) portYIELD_FROM_ISR();
 }
 
-// Debounce task: Processes queue, updates state & count
-static void sensor_debounce_task(void* param) {
-    esp_task_wdt_add(NULL);
-    sensor_event_t evt;
+esp_err_t sensors_init() {
+	
+	 gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << sensor_pins[0]) | (1ULL << sensor_pins[1]),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_ANYEDGE,
+    };
+    ESP_ERROR_CHECK(gpio_config(&io_conf));
+
+    sensor_event_queue = xQueueCreate(16, sizeof(sensor_event_t));
+    if (!sensor_event_queue) {
+        ESP_LOGE(TAG, "Failed to create sensor queue");
+        return ESP_FAIL;
+    }
+
+    // Install ISR service
+    ESP_ERROR_CHECK(gpio_install_isr_service(0));
+
+    for (uint8_t i = 0; i < N_SENSORS; i++) {
+        ESP_ERROR_CHECK(gpio_isr_handler_add(sensor_pins[i], sensor_isr_handler, INT2VOIDP(sensor_pins[i])));
+    	sensor_stable_state[i] = !gpio_get_level(sensor_pins[i]);
+    }
+	
     //static uint64_t last_processed_time[N_SENSORS] = {0};
 
     // Initialize stable state
@@ -82,61 +103,65 @@ static void sensor_debounce_task(void* param) {
         safety_high_start_time = esp_timer_get_time();
     }
     
+    return ESP_OK;
+}
+
+void sensors_check() {
+	sensor_event_t evt;
+    
     uint8_t i = 0;
+    
+	if (xQueueReceive(sensor_event_queue, &evt, pdMS_TO_TICKS(10)) == pdTRUE) {
+        i = evt.sensor_id;
+        
+        ESP_LOGI("SENS", "EVENT %d", i);
+        
+        bool current_raw = !gpio_get_level(sensor_pins[i]);
 
-    while (1) {
-        if (xQueueReceive(sensor_event_queue, &evt, pdMS_TO_TICKS(10)) == pdTRUE) {
-            i = evt.sensor_id;
-            
-            ESP_LOGI("SENS", "EVENT %d", i);
-            
-            bool current_raw = !gpio_get_level(sensor_pins[i]);
-
-            sensor_stable_state[i] = current_raw;
-           
-            if (current_raw && !last_raw_state[i]){
-                ESP_LOGI("SENS", "FALLING");
-                sensor_count[i]++;
-            }
-            if (!current_raw && last_raw_state[i]){
-                ESP_LOGI("SENS", "RISING");
-                sensor_count[i]++;
-            }
-            
-            last_raw_state[i] = current_raw;
+        sensor_stable_state[i] = current_raw;
+       
+        if (current_raw && !last_raw_state[i]){
+            ESP_LOGI("SENS", "FALLING");
+            sensor_count[i]++;
+        }
+        if (!current_raw && last_raw_state[i]){
+            ESP_LOGI("SENS", "RISING");
+            sensor_count[i]++;
         }
         
-        // Handle safety sensor debouncing with asymmetric timing
-        bool safety_current = !gpio_get_level(sensor_pins[SENSOR_SAFETY]);
-        uint64_t now = esp_timer_get_time();
-        
-        if (safety_current) {
-            // Safety sensor is LOW (active)
-            if (safety_low_start_time == 0) {
-                // First time going low, start timing
-                safety_low_start_time = now;
-                safety_high_start_time = 0;
-                ESP_LOGI(TAG, "Safety sensor went LOW, starting make timer");
-            } else if (!is_safe && (now - safety_low_start_time >= SAFETY_MAKE_DEBOUNCE_US)) {
-                is_safe = true;
-                ESP_LOGW(TAG, "SAFETY MADE - Relays enabled");
-            }
-        } else {
-            // Safety sensor is HIGH (inactive)
-            if (safety_high_start_time == 0) {
-                // First time going high, start timing
-                safety_high_start_time = now;
-                safety_low_start_time = 0;
-                ESP_LOGI(TAG, "Safety sensor went HIGH, starting break timer");
-            } else if (is_safe && (now - safety_high_start_time >= SAFETY_BREAK_DEBOUNCE_US)) {
-                is_safe = false;
-                i2c_set_relays(0);
-                ESP_LOGI(TAG, "SAFETY BREAK - Relays disabled");
-            }
-        }
-        
-        esp_task_wdt_reset();
+        last_raw_state[i] = current_raw;
     }
+    
+    // Handle safety sensor debouncing with asymmetric timing
+    bool safety_current = !gpio_get_level(sensor_pins[SENSOR_SAFETY]);
+    uint64_t now = esp_timer_get_time();
+    
+    if (safety_current) {
+        // Safety sensor is LOW (active)
+        if (safety_low_start_time == 0) {
+            // First time going low, start timing
+            safety_low_start_time = now;
+            safety_high_start_time = 0;
+            ESP_LOGI(TAG, "Safety sensor went LOW, starting make timer");
+        } else if (!is_safe && (now - safety_low_start_time >= SAFETY_MAKE_DEBOUNCE_US)) {
+            is_safe = true;
+            ESP_LOGW(TAG, "SAFETY MADE - Relays enabled");
+        }
+    } else {
+        // Safety sensor is HIGH (inactive)
+        if (safety_high_start_time == 0) {
+            // First time going high, start timing
+            safety_high_start_time = now;
+            safety_low_start_time = 0;
+            ESP_LOGI(TAG, "Safety sensor went HIGH, starting break timer");
+        } else if (is_safe && (now - safety_high_start_time >= SAFETY_BREAK_DEBOUNCE_US)) {
+            is_safe = false;
+            i2c_set_relays((relay_port_t){.raw=0});
+            ESP_LOGI(TAG, "SAFETY BREAK - Relays disabled");
+        }
+    }
+    
+    esp_task_wdt_reset();
 }
 
 int8_t pack_sensors() {
@@ -148,7 +173,7 @@ int8_t pack_sensors() {
 	return ret;
 }
 
-esp_err_t sensors_init() {
+/*esp_err_t sensors_init() {
     gpio_config_t io_conf = {
         .pin_bit_mask = (1ULL << sensor_pins[0]) | (1ULL << sensor_pins[1]),
         .mode = GPIO_MODE_INPUT,
@@ -185,7 +210,7 @@ esp_err_t sensors_stop() {
     vQueueDelete(sensor_event_queue);
     
 	return ESP_OK;
-}
+}*/
 
 // Public API
 bool get_sensor(sensor_t i) {

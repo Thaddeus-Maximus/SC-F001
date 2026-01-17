@@ -155,10 +155,10 @@ static void rf_433_receiver_task(void* param) {
                             // Compare just the code (lower 32 bits)
                             if ((uint32_t)match == code && code!=0) {
                                 switch (i) {
-                                    case 0: pulseOverride(RELAY_A1); pulseOverride(RELAY_A3); break;
-                                    case 1: pulseOverride(RELAY_B1); pulseOverride(RELAY_A3); break;
-                                    case 2: pulseOverride(RELAY_A2); break;
-                                    case 3: pulseOverride(RELAY_B2); break;
+                                    case 0: pulseOverride(FSM_OVERRIDE_DRIVE_FWD); break;
+                                    case 1: pulseOverride(FSM_OVERRIDE_DRIVE_REV); break;
+                                    case 2: pulseOverride(FSM_OVERRIDE_JACK_UP);   break;
+                                    case 3: pulseOverride(FSM_OVERRIDE_JACK_DOWN); break;
                                     default: break;
                                 }
                             }
@@ -210,7 +210,7 @@ static void rf_433_receiver_task(void* param) {
 }
 
 esp_err_t rf_433_init() {    
-    xTaskCreate(rf_433_receiver_task, TAG, 4096, NULL, 10, NULL);
+    xTaskCreate(rf_433_receiver_task, TAG, 4096, NULL, 5, NULL);
     return ESP_OK;
 }
 

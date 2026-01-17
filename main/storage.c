@@ -29,8 +29,9 @@ static bool log_task_running = false;
 
 // Log queue entry structure
 typedef struct {
-    uint8_t data[LOG_MAX_PAYLOAD + 1];  // +1 for length byte
+    uint8_t data[LOG_MAX_PAYLOAD];  // +1 for length byte
     uint8_t len;
+    uint8_t type;
 } log_queue_entry_t;
 
 // ============================================================================
@@ -47,9 +48,6 @@ typedef struct {
 
 // Helper macro to check if a byte is a valid log type
 #define IS_VALID_LOG_TYPE(x) ((x) >= 0xC0 && (x) <= 0xCF)
-
-// Maximum payload size per log entry (255 max due to 1-byte size field)
-#define LOG_MAX_PAYLOAD 255
 
 // ============================================================================
 // PARAMETER TABLE GENERATION
@@ -498,32 +496,50 @@ static inline uint32_t log_sector_end(uint32_t x) {
 }
 
     
-// Helper function to check if a sector is erased (all 0xFF)
-static bool is_sector_erased(uint32_t sector_offset) {
-    uint8_t buf[256];
-    esp_err_t err = esp_partition_read(storage_partition, sector_offset, buf, 256);
+// Helper function to check if a sector is erased (starts with 0xFF)
+static bool is_sector_erased(uint32_t x) {
+    uint8_t buf; //[256];
+    esp_err_t err = esp_partition_read(storage_partition, LOG_START_OFFSET + x * FLASH_SECTOR_SIZE, &buf, 1);
     if (err != ESP_OK) return false;
+    if (buf == 0xFF) return true;
     
-    for (int i = 0; i < 256; i++) {
+    /*for (int i = 0; i < 256; i++) {
         if (buf[i] != 0xFF) return false;
-    }
+    }*/
+    return false;
+}
+
+static bool is_sector_full(uint32_t x) {
+    uint8_t buf; //[256];
+    esp_err_t err = esp_partition_read(storage_partition, LOG_START_OFFSET + (x+1) * FLASH_SECTOR_SIZE - 1, &buf, 1);
+    if (err != ESP_OK) return false;
+    if (buf == 0xFF) return false;
+    
+    /*for (int i = 0; i < 256; i++) {
+        if (buf[i] != 0xFF) return false;
+    }*/
     return true;
 }
 
+static inline void find_head_tail(int32_t num_sectors, int32_t *head, int32_t *tail) {
+    
+}
+
 // Helper function to check if a sector has data (contains non-0xFF, non-0x00 bytes)
-static bool sector_has_data(uint32_t sector_offset) {
-    uint8_t buf[256];
-    esp_err_t err = esp_partition_read(storage_partition, sector_offset, buf, 256);
+/*static bool sector_has_data(uint32_t sector_offset) {
+    uint8_t buf; //[256];
+    esp_err_t err = esp_partition_read(storage_partition, sector_offset, &buf, 256);
     if (err != ESP_OK) return false;
+    if (buf )
     
     for (int i = 0; i < 256; i++) {
         if (buf[i] != 0xFF && buf[i] != 0x00) return true;
     }
     return false;
-}
+}*/
 
 // Replace log_write with this non-blocking version:
-esp_err_t log_write(uint8_t* buf, uint8_t len) {
+esp_err_t log_write(uint8_t* buf, uint8_t len, uint8_t type) {
     if (!log_initialized || storage_partition == NULL) {
         ESP_LOGE(TAG, "Logging not initialized");
         return ESP_FAIL;
@@ -539,9 +555,15 @@ esp_err_t log_write(uint8_t* buf, uint8_t len) {
         return ESP_FAIL;
     }
     
+    if (type == 0xFF) {
+		ESP_LOGE(TAG, "Attempt to log with type=0xFF; not allowed");
+		return ESP_ERR_INVALID_ARG;
+	}
+    
     // Create queue entry
     log_queue_entry_t entry;
     entry.len = len;
+    entry.type = type;
     memcpy(entry.data, buf, len);
     
     // Try to send to queue (non-blocking)
@@ -554,7 +576,7 @@ esp_err_t log_write(uint8_t* buf, uint8_t len) {
 }
 
 // The actual blocking write function (called by the task)
-static esp_err_t log_write_blocking(uint8_t* buf, uint8_t len) {
+static esp_err_t log_write_blocking(uint8_t* buf, uint8_t len, uint8_t type) {
     if (!log_initialized || storage_partition == NULL) {
         ESP_LOGE(TAG, "Logging not initialized");
         return ESP_FAIL;
@@ -568,8 +590,8 @@ static esp_err_t log_write_blocking(uint8_t* buf, uint8_t len) {
     if (log_mutex) xSemaphoreTake(log_mutex, portMAX_DELAY);
     
     // check if we will overrun the sector
-    if (log_head_offset + len+1 >= log_sector_end(log_head_offset)) {
-        ESP_LOGI(TAG, "WILL OVERRUN (%ld >= %ld)", (long)log_head_offset + len+1, (long)log_sector_end(log_head_offset));
+    if (log_head_offset + len+2 >= log_sector_end(log_head_offset)) {
+        //ESP_LOGI(TAG, "WILL OVERRUN (%ld >= %ld)", (long)log_head_offset + len+2, (long)log_sector_end(log_head_offset));
         // zero the rest of sector
         char zeros[256] = {0};
         esp_partition_write(storage_partition, 
@@ -588,7 +610,7 @@ static esp_err_t log_write_blocking(uint8_t* buf, uint8_t len) {
         
         // Erase the next sector
         if (err == ESP_OK && check_byte != 0xFF) {
-            ESP_LOGI(TAG, "Erasing sector %lu for log", (unsigned long)log_head_offset);
+            //ESP_LOGI(TAG, "Erasing sector %lu for log", (unsigned long)log_head_offset);
             err = esp_partition_erase_range(storage_partition, 
                                              log_head_offset, 
                                              FLASH_SECTOR_SIZE);
@@ -606,13 +628,15 @@ static esp_err_t log_write_blocking(uint8_t* buf, uint8_t len) {
         if (log_tail_offset >= storage_partition->size)
             log_tail_offset = LOG_START_OFFSET;
         
-        ESP_LOGI(TAG, "Tail/Head are now %lu/%lu", 
+        ESP_LOGI(TAG, "Erased; Tail/Head are now %lu/%lu", 
                  (unsigned long)log_tail_offset, (unsigned long)log_head_offset);
     }
+    len++; // account for type bit
         
         
     esp_partition_write(storage_partition, log_head_offset, &len, 1);
-    esp_partition_write(storage_partition, log_head_offset+1, buf, len);
+    esp_partition_write(storage_partition, log_head_offset+1, buf, len-1);
+    esp_partition_write(storage_partition, log_head_offset+len, &type, 1);
     
     log_head_offset+=len+1;
     ESP_LOGI(TAG, "Wrote; Tail/Head are now %lu/%lu", 
@@ -629,17 +653,20 @@ static void log_writer_task(void *pvParameters) {
     ESP_LOGI(TAG, "Log writer task started");
     
     while (log_task_running) {
+		// Feed watchdog
+        //esp_task_wdt_reset();
         // Wait for log entry (with timeout to check running flag)
         if (xQueueReceive(log_queue, &entry, pdMS_TO_TICKS(100)) == pdTRUE) {
             // Write the log entry (blocking)
-            esp_err_t err = log_write_blocking(entry.data, entry.len);
+            esp_err_t err = log_write_blocking(entry.data, entry.len, entry.type);
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to write log entry: %s", esp_err_to_name(err));
             }
+            
+            //esp_task_wdt_reset();
         }
         
-        // Feed watchdog
-        esp_task_wdt_reset();
+        
     }
     
     ESP_LOGI(TAG, "Log writer task stopping");
@@ -664,28 +691,50 @@ esp_err_t log_init() {
     log_head_offset = LOG_START_OFFSET;
     log_tail_offset = LOG_START_OFFSET;
     
-    // ... [INCLUDE THE BISECTION ALGORITHM FROM EARLIER HERE] ...
-    // Binary search to find the first erased sector
-    int32_t left = 0;
-    int32_t right = num_sectors - 1;
-    int32_t head_sector = -1;
+    // Binary search for the first non-full sector
+    int32_t l = 0;
+    int32_t r = num_sectors - 1;
+    int32_t head_sector = 0;
+    int32_t tail_sector = 0;
     
-    while (left <= right) {
-        int32_t mid = left + (right - left) / 2;
-        uint32_t sector_offset = LOG_START_OFFSET + mid * FLASH_SECTOR_SIZE;
-        
-        esp_task_wdt_reset();
-        
-        bool erased = is_sector_erased(sector_offset);
-        bool prev_has_data = (mid > 0) ? sector_has_data(LOG_START_OFFSET + (mid-1) * FLASH_SECTOR_SIZE) : false;
-        
-        if (erased && (mid == 0 || prev_has_data)) {
-            head_sector = mid;
-            break;
-        } else if (erased) {
-            right = mid - 1;
+    while (l < r) {
+        int32_t m = (l + r) / 2;
+        if (is_sector_full(m)) {
+            l = m + 1;
         } else {
-            left = mid + 1;
+            r = m;
+        }
+    }
+    
+    int32_t first_non_full = l;
+    
+    // Determine head based on what the first non-full sector is
+    if (first_non_full >= num_sectors) {
+        // All sectors are full (wraparound case)
+        head_sector = 0;
+    } else if (is_sector_erased(first_non_full)) {
+        // First non-full is erased -> head is this erased sector
+        head_sector = first_non_full;
+    } else {
+        // First non-full is partial -> head is this partial sector
+        head_sector = first_non_full;
+    }
+    
+    // Binary search for tail: first full sector after head (with wraparound)
+    // Search from head+1 to head+num_sectors-1 (wrapping around)
+    l = 1;
+    r = num_sectors - 1;
+    
+    while (l <= r) {
+        int32_t m = (l + r) / 2;
+        int32_t sector = (head_sector + m) % num_sectors;
+        
+        if (is_sector_full(sector)) {
+            // Found a full sector, but need the FIRST one
+            tail_sector = sector;
+            r = m - 1;
+        } else {
+            l = m + 1;
         }
     }
     
@@ -737,31 +786,6 @@ esp_err_t log_init() {
         log_head_offset = cursor;
     }
     
-    // Find tail
-    int32_t tail_sector = -1;
-    
-    for (int32_t i = head_sector + 1; i < num_sectors; i++) {
-        uint32_t sector_offset = LOG_START_OFFSET + i * FLASH_SECTOR_SIZE;
-        esp_task_wdt_reset();
-        
-        if (sector_has_data(sector_offset)) {
-            tail_sector = i;
-            break;
-        }
-    }
-    
-    if (tail_sector == -1 && head_sector > 0) {
-        for (int32_t i = 0; i < head_sector; i++) {
-            uint32_t sector_offset = LOG_START_OFFSET + i * FLASH_SECTOR_SIZE;
-            esp_task_wdt_reset();
-            
-            if (sector_has_data(sector_offset)) {
-                tail_sector = i;
-                break;
-            }
-        }
-    }
-    
     if (tail_sector >= 0) {
         log_tail_offset = LOG_START_OFFSET + tail_sector * FLASH_SECTOR_SIZE;
     } else {
@@ -800,8 +824,10 @@ esp_err_t log_init() {
     }
     
     // Add the task to watchdog
-    esp_task_wdt_add(log_task_handle);
-    
+    //if (esp_task_wdt_add(log_task_handle) != ESP_OK) {
+	//    ESP_LOGW(TAG, "Log task already subscribed to watchdog or failed to add");
+	//}
+	
     ESP_LOGI(TAG, "Log writer task created successfully");
              
     if (log_mutex) xSemaphoreGive(log_mutex);
@@ -811,17 +837,17 @@ esp_err_t log_init() {
 // Update storage_deinit to stop the task
 void storage_deinit(void) {
     // Stop the log writer task
-    if (log_task_running) {
-        log_task_running = false;
-        
-        // Wait a bit for task to finish
-        vTaskDelay(pdMS_TO_TICKS(200));
-        
-        if (log_task_handle != NULL) {
-            esp_task_wdt_delete(log_task_handle);
-            log_task_handle = NULL;
-        }
-    }
+	if (log_task_running) {
+	    log_task_running = false;
+	    vTaskDelay(pdMS_TO_TICKS(200));
+	    
+	    if (log_task_handle != NULL) {
+	        // Don't try to delete from watchdog - task was never added
+	        // esp_task_wdt_delete(log_task_handle);  // <-- REMOVE THIS LINE
+	        vTaskDelay(pdMS_TO_TICKS(100));
+	        log_task_handle = NULL;
+	    }
+	}
     
     // Delete the queue
     if (log_queue != NULL) {
@@ -835,4 +861,325 @@ void storage_deinit(void) {
         vSemaphoreDelete(log_mutex);
         log_mutex = NULL;
     }
+}
+
+
+
+
+
+
+/*
+ * ADDITIONS TO storage.c
+ * 
+ * Add these functions to storage.c to support the test suite.
+ * These provide the ability to erase all log sectors, simulate power cycles,
+ * and read back log entries for verification.
+ */
+
+// Add these function declarations to storage.h:
+/*
+esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type);
+void log_read_reset(void);
+esp_err_t log_erase_all_sectors(void);
+esp_err_t log_simulate_power_cycle(void);
+*/
+
+// Add this static variable near the top of storage.c with other log static variables
+// (around line 118, after log_tail_offset and log_initialized):
+
+static uint32_t log_read_cursor = 0;
+
+
+// Add these functions to storage.c (after the existing log functions):
+
+/*
+ * ADDITIONS TO storage.c
+ * 
+ * Add these functions to storage.c to support the test suite.
+ * These provide the ability to erase all log sectors, simulate power cycles,
+ * and read back log entries for verification.
+ */
+
+// Add these function declarations to storage.h:
+/*
+esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type);
+void log_read_reset(void);
+esp_err_t log_erase_all_sectors(void);
+esp_err_t log_simulate_power_cycle(void);
+*/
+
+// Add this static variable near the top of storage.c with other log static variables
+// (around line 118, after log_tail_offset and log_initialized):
+/*
+static uint32_t log_read_cursor = 0;
+*/
+
+// Add these functions to storage.c (after the existing log functions):
+
+/**
+ * @brief Read a log entry from the current read cursor position
+ * 
+ * Reads a log entry from flash starting at the current read cursor and advances
+ * the cursor to the next entry. The read cursor is independent of tail - reading
+ * does NOT affect the tail pointer (which marks the boundary of valid data).
+ * 
+ * The tail is only moved by the log write system when sectors need to be erased
+ * during wraparound. Reading is completely non-destructive.
+ * 
+ * This is a test/debug function - the production logging system is write-only.
+ * 
+ * Log entry format in flash:
+ * [1 byte: length] [length-1 bytes: data] [1 byte: type]
+ * 
+ * @param len Pointer to store the entry length (data length, not including type byte)
+ * @param buf Buffer to store the entry data (must be at least LOG_MAX_PAYLOAD bytes)
+ * @param type Pointer to store the entry type
+ * @return ESP_OK on success, ESP_ERR_NOT_FOUND if no more entries, error code otherwise
+ */
+esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type) {
+    // NOTE: log_read_cursor must be declared as a file-scope static variable
+    // Add this declaration near the other log static variables in storage.c:
+    // static uint32_t log_read_cursor = 0;
+    
+    if (!log_initialized || storage_partition == NULL) {
+        ESP_LOGE(TAG, "Logging not initialized");
+        return ESP_ERR_INVALID_STATE;
+    }
+    
+    if (len == NULL || buf == NULL || type == NULL) {
+        ESP_LOGE(TAG, "NULL pointer passed to log_read");
+        return ESP_ERR_INVALID_ARG;
+    }
+    
+    if (log_mutex) xSemaphoreTake(log_mutex, portMAX_DELAY);
+    
+    // Initialize read cursor to tail on first read (when cursor is 0)
+    if (log_read_cursor == 0) {
+        log_read_cursor = log_tail_offset;
+    }
+    
+    // Check if we've caught up to head (no more entries to read)
+    if (log_read_cursor == log_head_offset) {
+        if (log_mutex) xSemaphoreGive(log_mutex);
+        return ESP_ERR_NOT_FOUND;
+    }
+    
+    // Read the length byte
+    uint8_t entry_len;
+    esp_err_t err = esp_partition_read(storage_partition, log_read_cursor, &entry_len, 1);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to read entry length at offset %lu", (unsigned long)log_read_cursor);
+        if (log_mutex) xSemaphoreGive(log_mutex);
+        return err;
+    }
+    
+    // Check for erased flash (0xFF) - means we've reached the end
+    if (entry_len == 0xFF) {
+        if (log_mutex) xSemaphoreGive(log_mutex);
+        return ESP_ERR_NOT_FOUND;
+    }
+    
+    // Check for sector padding (0x00) - skip to next sector
+    if (entry_len == 0x00) {
+        // Move to next sector
+        uint32_t next_sector = ((log_read_cursor / FLASH_SECTOR_SIZE) + 1) * FLASH_SECTOR_SIZE;
+        
+        // Handle wraparound
+        if (next_sector >= storage_partition->size) {
+            log_read_cursor = LOG_START_OFFSET;
+        } else {
+            log_read_cursor = next_sector;
+        }
+        
+        if (log_mutex) xSemaphoreGive(log_mutex);
+        return log_read(len, buf, type); // Recursive call to read from next sector
+    }
+    
+    // Validate length
+    if (entry_len > LOG_MAX_PAYLOAD + 1) { // +1 for type byte included in length
+        ESP_LOGE(TAG, "Invalid entry length %d at offset %lu", entry_len, (unsigned long)log_read_cursor);
+        if (log_mutex) xSemaphoreGive(log_mutex);
+        return ESP_ERR_INVALID_SIZE;
+    }
+    
+    // Read the data (length-1 bytes, since length includes the type byte)
+    uint8_t data_len = entry_len - 1;
+    err = esp_partition_read(storage_partition, log_read_cursor + 1, buf, data_len);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to read entry data at offset %lu", (unsigned long)(log_read_cursor + 1));
+        if (log_mutex) xSemaphoreGive(log_mutex);
+        return err;
+    }
+    
+    // Read the type byte
+    uint8_t entry_type;
+    err = esp_partition_read(storage_partition, log_read_cursor + entry_len, &entry_type, 1);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to read entry type at offset %lu", (unsigned long)(log_read_cursor + entry_len));
+        if (log_mutex) xSemaphoreGive(log_mutex);
+        return err;
+    }
+    
+    // Validate type
+    if (!IS_VALID_LOG_TYPE(entry_type)) {
+        ESP_LOGW(TAG, "Invalid log type 0x%02X at offset %lu", entry_type, (unsigned long)(log_read_cursor + entry_len));
+        // Continue anyway - might be valid data with unknown type
+    }
+    
+    // Set output parameters
+    *len = data_len;
+    *type = entry_type;
+    
+    // Advance read cursor (NOT tail - tail is only moved by writes during wraparound)
+    log_read_cursor += entry_len + 1; // +1 for the type byte after data
+    
+    // Handle wraparound
+    if (log_read_cursor >= storage_partition->size) {
+        log_read_cursor = LOG_START_OFFSET;
+    }
+    
+    if (log_mutex) xSemaphoreGive(log_mutex);
+    return ESP_OK;
+}
+
+/**
+ * @brief Reset the log read cursor to start reading from the beginning
+ * 
+ * Resets the internal read cursor so that the next call to log_read()
+ * will start reading from the tail (oldest valid entry).
+ * This is useful for tests that need to re-read the log.
+ * 
+ * IMPORTANT: This does NOT affect the tail pointer. The tail marks the
+ * boundary of valid data and is only moved by the write system.
+ */
+void log_read_reset(void) {
+    if (log_mutex) xSemaphoreTake(log_mutex, portMAX_DELAY);
+    log_read_cursor = 0;  // Reset to 0 so next read starts from tail
+    if (log_mutex) xSemaphoreGive(log_mutex);
+}
+
+/**
+ * @brief Erase all sectors in the log area
+ * 
+ * This function erases the entire log area of the flash partition,
+ * resetting it to a clean state. Useful for testing.
+ * 
+ * @return ESP_OK on success, error code otherwise
+ */
+esp_err_t log_erase_all_sectors(void) {
+    if (storage_partition == NULL) {
+        ESP_LOGE(TAG, "Storage partition not initialized");
+        return ESP_ERR_INVALID_STATE;
+    }
+    // Stop the log writer task
+	if (log_task_running) {
+	    log_task_running = false;
+	    vTaskDelay(pdMS_TO_TICKS(200));
+	    
+	    if (log_task_handle != NULL) {
+	        // Don't try to delete from watchdog - task was never added
+	        // esp_task_wdt_delete(log_task_handle);  // <-- REMOVE THIS LINE
+	        vTaskDelay(pdMS_TO_TICKS(100));
+	        log_task_handle = NULL;
+	    }
+	}
+	
+	// Clear the queue
+	if (log_queue != NULL) {
+	    xQueueReset(log_queue);
+	}
+    
+    if (log_mutex) xSemaphoreTake(log_mutex, portMAX_DELAY);
+    
+    uint32_t log_area_size = storage_partition->size - LOG_START_OFFSET;
+    
+    ESP_LOGI(TAG, "Erasing all log sectors (%lu bytes)...", (unsigned long)log_area_size);
+    
+    esp_err_t err = esp_partition_erase_range(storage_partition, 
+                                               LOG_START_OFFSET, 
+                                               log_area_size);
+    
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to erase log area: %s", esp_err_to_name(err));
+        if (log_mutex) xSemaphoreGive(log_mutex);
+        return err;
+    }
+    
+    ESP_LOGI(TAG, "All log sectors erased successfully");
+    
+    if (log_mutex) xSemaphoreGive(log_mutex);
+    
+    // Reinitialize 
+    log_initialized = false;
+    log_read_cursor = 0;
+    
+    err = log_init();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to reinitialize log after erase");
+        return err;
+    }
+    
+    return ESP_OK;
+}
+
+/**
+ * @brief Simulate a power cycle by re-running log initialization
+ * 
+ * This function simulates what happens when the device powers off and back on:
+ * - Clears the in-memory head/tail tracking (simulated by marking as uninitialized)
+ * - Re-runs log_init() to scan flash and recover head/tail positions
+ * 
+ * This is crucial for testing that the log system can correctly recover its
+ * state from flash after a power loss.
+ * 
+ * @return ESP_OK on success, error code otherwise
+ */
+esp_err_t log_simulate_power_cycle(void) {
+    ESP_LOGI(TAG, "Simulating power cycle...");
+    // Stop the log writer task
+	if (log_task_running) {
+	    log_task_running = false;
+	    vTaskDelay(pdMS_TO_TICKS(200));
+	    
+	    if (log_task_handle != NULL) {
+	        // Don't try to delete from watchdog - task was never added
+	        // esp_task_wdt_delete(log_task_handle);  // <-- REMOVE THIS LINE
+	        vTaskDelay(pdMS_TO_TICKS(100));
+	        log_task_handle = NULL;
+	    }
+	}
+    
+    // Clear the queue
+    if (log_queue != NULL) {
+        xQueueReset(log_queue);
+    }
+    
+    // Mark log as uninitialized (simulates losing RAM state)
+    log_initialized = false;
+    
+    // Reset read cursor (simulates losing RAM state)
+    log_read_cursor = 0;
+    
+    // Re-run log initialization to scan flash and recover state
+    esp_err_t err = log_init();
+    
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to reinitialize log after simulated power cycle");
+        return err;
+    }
+    
+    ESP_LOGI(TAG, "Power cycle simulation complete. Head=%lu, Tail=%lu", 
+             (unsigned long)log_head_offset, (unsigned long)log_tail_offset);
+    
+    return ESP_OK;
+}
+
+esp_err_t log_write_blocking_test(uint8_t* buf, uint8_t len, uint8_t type) {
+    // Check queue space - wait if nearly full
+    while (uxQueueSpacesAvailable(log_queue) < 2) {
+        vTaskDelay(pdMS_TO_TICKS(10));
+        esp_task_wdt_reset();
+    }
+    
+    return log_write(buf, len, type);
 }

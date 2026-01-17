@@ -33,6 +33,7 @@ bool get_is_safe(void);
 int8_t pack_sensors();
 
 esp_err_t sensors_init();
-esp_err_t sensors_stop();
+void sensors_check();
+//esp_err_t sensors_stop();
 
 #endif /* MAIN_SENSORS_H_ */

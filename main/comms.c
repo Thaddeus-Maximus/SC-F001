@@ -19,7 +19,7 @@ static const char *TAG = "COMMS";
  * Build a JSON object containing complete system status
  */
 cJSON* comms_handle_get(void) {
-    ESP_LOGI(TAG, "GET request");
+    //ESP_LOGI(TAG, "GET request");
     
     rtc_reset_shutdown_timer();
     
@@ -52,7 +52,6 @@ cJSON* comms_handle_get(void) {
         case STATE_IDLE:
             cJSON_AddItemToArray(msg_array, cJSON_CreateString("IDLE"));
             break;
-        case STATE_UNDO_JACK:
         case STATE_UNDO_JACK_START:
             cJSON_AddItemToArray(msg_array, cJSON_CreateString("CANCELLING MOVE"));
             break;
@@ -65,13 +64,13 @@ cJSON* comms_handle_get(void) {
     if (fsm_get_remaining_distance() <= 0) {
         cJSON_AddItemToArray(msg_array, cJSON_CreateString("DISTANCE LIMIT HIT"));
     }
-    if (efuse_is_tripped(BRIDGE_AUX)) {
+    if (efuse_get(BRIDGE_AUX)) {
         cJSON_AddItemToArray(msg_array, cJSON_CreateString("AUX EFUSE TRIP"));
     }
-    if (efuse_is_tripped(BRIDGE_JACK)) {
+    if (efuse_get(BRIDGE_JACK)) {
         cJSON_AddItemToArray(msg_array, cJSON_CreateString("JACK EFUSE TRIP"));
     }
-    if (efuse_is_tripped(BRIDGE_DRIVE)) {
+    if (efuse_get(BRIDGE_DRIVE)) {
         cJSON_AddItemToArray(msg_array, cJSON_CreateString("DRIVE EFUSE TRIP"));
     }
     if (!rtc_is_set()) {
@@ -135,7 +134,7 @@ cJSON* comms_handle_get(void) {
  * Process a POST request with JSON data
  */
 esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
-    ESP_LOGI(TAG, "POST request");
+    //ESP_LOGI(TAG, "POST request");
     
     if (root == NULL || response_json == NULL) {
         ESP_LOGE(TAG, "Invalid arguments to comms_handle_post");
@@ -171,7 +170,7 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
     cJSON *cmd = cJSON_GetObjectItem(root, "cmd");
     if (cJSON_IsString(cmd)) {
         const char *cmd_str = cmd->valuestring;
-        ESP_LOGI(TAG, "Executing command: %s", cmd_str);
+       // ESP_LOGI(TAG, "Executing command: %s", cmd_str);
         
         if (strcmp(cmd_str, "start") == 0) {
             fsm_request(FSM_CMD_START);
@@ -186,25 +185,23 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "fwd") == 0) {
-            pulseOverride(RELAY_A1);
-            pulseOverride(RELAY_A3);
+            pulseOverride(FSM_OVERRIDE_DRIVE_FWD);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "rev") == 0) {
-            pulseOverride(RELAY_B1);
-            pulseOverride(RELAY_A3);
+            pulseOverride(FSM_OVERRIDE_DRIVE_REV);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "up") == 0) {
-            pulseOverride(RELAY_A2);
+            pulseOverride(FSM_OVERRIDE_JACK_UP);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "down") == 0) {
-            pulseOverride(RELAY_B2);
+            pulseOverride(FSM_OVERRIDE_JACK_DOWN);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "aux") == 0) {
-            pulseOverride(RELAY_A3);
+            pulseOverride(FSM_OVERRIDE_AUX);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "reboot") == 0) {

@@ -34,7 +34,6 @@ typedef enum {
 	STATE_DRIVE,
 	STATE_DRIVE_END_DELAY,
 	STATE_JACK_DOWN,
-	STATE_UNDO_JACK,
 	STATE_UNDO_JACK_START,
 	
 	STATE_CALIBRATE_JACK_DELAY,
@@ -43,6 +42,7 @@ typedef enum {
 	STATE_CALIBRATE_DRIVE_DELAY,
 	STATE_CALIBRATE_DRIVE_MOVE
 } fsm_state_t;
+#define LOG_TYPE_BAT 100
 
 typedef enum {
 	RELAY_SENSORS = 0,
@@ -59,17 +59,31 @@ typedef enum {
 	BRIDGE_AUX   = 2,
 	BRIDGE_JACK  = 1,
 	BRIDGE_DRIVE = 0,
+	NUM_BRIDGES = 3,
 } bridge_t;
+
+typedef enum {
+	BRIDGE_FWD = 0b10,
+	BRIDGE_REV = 0b01,
+	BRIDGE_OFF = 0b00,
+	BRIDGE_ON  = 0b11
+} bridge_dir_t;
+
+typedef enum {
+	FSM_OVERRIDE_DRIVE_FWD,
+	FSM_OVERRIDE_DRIVE_REV,
+	FSM_OVERRIDE_JACK_UP,
+	FSM_OVERRIDE_JACK_DOWN,
+	FSM_OVERRIDE_AUX
+} fsm_override_t;
 
 #define N_RELAYS 8
 #define N_BRIDGES 3
 
-void pulseOverride(relay_t relay/*, int64_t pulse*/);
+void pulseOverride(fsm_override_t cmd);
 
 esp_err_t fsm_init();
 esp_err_t fsm_stop();
-
-bool isRunning();
 
 void fsm_set_cal_val(float v);
 int64_t fsm_get_cal_t();

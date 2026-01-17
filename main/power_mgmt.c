@@ -28,6 +28,8 @@
 #include "esp_timer.h"
 #include "driver/gpio.h"
 #include "control_fsm.h"
+#include "i2c.h"
+#include "sensors.h"
 #include "soc/rtc_io_reg.h"
 #include "power_mgmt.h"
 
@@ -43,31 +45,103 @@
 #define PIN_V_BATTERY ADC_CHANNEL_3   // GPIO39 / VN
 #define PIN_V_SENS_BAT PIN_V_BATTERY
 
+// map from relay number to bridge
+/*bridge_t bridge_map[] = {
+	-1,
+	BRIDGE_AUX,
+	BRIDGE_AUX,
+	BRIDGE_AUX,
+	BRIDGE_JACK,
+	BRIDGE_JACK,
+	BRIDGE_DRIVE,
+	BRIDGE_DRIVE };*/
 
 // update time
 #define UPDATE_MS 20
 #define UPDATE_S 0.02f
 
-int64_t now; // us
+extern int64_t fsm_now; // us
 
+// E-fuse data
 typedef struct {
     int64_t  az_enable_time; // Timestamp to enable autozeroing at (negative to disable)
     float    az_offset;      // Accumulated zero offset
     bool     az_initialized; // First valid zero established
+    
+    float raw_current;
 
 	bool ema_init;
 	float ema_current;
 	
 	float current; // with all the corrections applied
+	float current_spike;
 	
 	float heat;
-	bool tripped;
+	efuse_trip_t tripped;
 	int64_t trip_time;
 	
-	// Inrush tolerance tracking
-	int64_t inrush_start_time; // When instantaneous overcurrent first detected (0 = not in overcurrent)
+	int64_t on_us;
+	int64_t off_us;
 } isens_channel_t;
 static isens_channel_t isens[N_BRIDGES] = {0};
+
+
+/**** DRIVE RELAYS ****/
+bool relay_states[8] = {false};
+
+//int64_t bridge_transitions_on[NUM_BRIDGES]  = {-1}; // last time relay turned on  (used to ignore inrush)
+//int64_t bridge_transitions_off[NUM_BRIDGES] = {-1}; // last time relay turned off (used to enable autozero)
+
+relay_port_t last_relay_state;
+
+// actually write relay states, taking note of transitions, and debouncing transitions to on.
+#define BRIDGE_TRANSITION_LOGIC(BRIDGE_NAME) \
+	if (relay_state.bridges.BRIDGE_NAME == last_relay_state.bridges.BRIDGE_NAME) { \
+		/* no change; no need to do anything */ \
+		if(false) if (BRIDGE_##BRIDGE_NAME == BRIDGE_JACK) ESP_LOGI(TAG, "NO CHANGE"); \
+	} \
+	else if (last_relay_state.bridges.BRIDGE_NAME != BRIDGE_OFF && relay_state.bridges.BRIDGE_NAME == BRIDGE_OFF) { \
+		isens[BRIDGE_##BRIDGE_NAME].off_us = fsm_now; \
+		if(false) if (BRIDGE_##BRIDGE_NAME == BRIDGE_JACK) ESP_LOGI(TAG, "ON -> OFF"); \
+	} \
+	else if (last_relay_state.bridges.BRIDGE_NAME == BRIDGE_OFF && relay_state.bridges.BRIDGE_NAME != BRIDGE_OFF) { \
+		if (fsm_now > isens[BRIDGE_##BRIDGE_NAME].off_us + 2*get_param_value_t(PARAM_EFUSE_INRUSH_US).u32) { \
+			isens[BRIDGE_##BRIDGE_NAME].on_us = fsm_now; \
+		if(false) if (BRIDGE_##BRIDGE_NAME == BRIDGE_JACK) ESP_LOGI(TAG, "OFF -> ON"); \
+		} else { \
+			relay_state.bridges.BRIDGE_NAME = BRIDGE_OFF; \
+		if(false) if (BRIDGE_##BRIDGE_NAME == BRIDGE_JACK) ESP_LOGI(TAG, "NOT YET; -> OFF"); \
+		} \
+	} \
+	else { \
+		if(false) if (BRIDGE_##BRIDGE_NAME == BRIDGE_JACK) ESP_LOGE(TAG, "TOO FAST OF TRANSITION"); \
+		isens[BRIDGE_##BRIDGE_NAME].off_us = fsm_now; \
+		relay_state.bridges.BRIDGE_NAME = BRIDGE_OFF; \
+	}
+
+esp_err_t driveRelays(relay_port_t relay_state) {
+	// Four types of transitions.
+	// Not a transition: this does nothing
+	// Anything -> off: always allowed. Record the transition time
+	// off -> anything: has debouncing; set & record transition if fsm_now > bridge_transitions_off + debounce, otherwise keep bridge off.
+	// fwd/rev/on -> fwd/rev/on: not allowed. Actually go to 0. Record the transition time.
+	
+	BRIDGE_TRANSITION_LOGIC(DRIVE)
+	BRIDGE_TRANSITION_LOGIC(JACK)
+	BRIDGE_TRANSITION_LOGIC(AUX)
+	
+	relay_state.bridges.SENSORS = 1;
+	
+	if (!get_is_safe())
+		relay_state.bridges.DRIVE = 0;
+		
+	last_relay_state = relay_state;
+	
+	//ESP_LOGI(TAG, "RELAY STATE: %x", state);
+	return i2c_set_relays(relay_state);
+}
+
+/**** CURRENT / VOLTAGE MONITORING ****/
 
 // === ADC Handles ===
 static adc_oneshot_unit_handle_t adc1_handle = NULL;
@@ -141,13 +215,28 @@ esp_err_t process_battery_voltage(void)
     return ESP_OK;
 }
 
-void set_autozero(bridge_t bridge) {
+void disable_autozero(bridge_t bridge) {
 	// enable autozeroing for this bridge 1 second from now
-	isens[bridge].az_enable_time = now+1000000;
+	isens[bridge].az_enable_time = fsm_now+1000000;
 	//ESP_LOGI(TAG, "KILLING BRIDGE %d; %lld -> %lld", bridge, (long long int) now, (long long int) isens[bridge].az_enable_time);
 }
 
+bool get_bridge_overcurrent(bridge_t bridge, float threshold) {
+	if (bridge < 0 || bridge>=NUM_BRIDGES) return true; // I GUESS?
+	if (fsm_now < isens[bridge].on_us + get_param_value_t(PARAM_EFUSE_INRUSH_US).u32) return false;
+	if (isens[bridge].raw_current < threshold) return false;
+	return true;
+}
+bool get_bridge_spike(bridge_t bridge, float threshold) {
+	if (bridge < 0 || bridge>=NUM_BRIDGES) return true; // I GUESS?
+	if (fsm_now < isens[bridge].on_us + get_param_value_t(PARAM_EFUSE_INRUSH_US).u32) return false;
+	if (isens[bridge].current_spike < threshold) return false;
+	return true;
+}
+
 esp_err_t process_bridge_current(bridge_t bridge) {
+    if (bridge < 0 || bridge >= NUM_BRIDGES) return ESP_ERR_INVALID_ARG;
+    
 	int adc_raw = 0;
     int voltage_mv = 0;
     
@@ -158,7 +247,7 @@ esp_err_t process_bridge_current(bridge_t bridge) {
         case BRIDGE_DRIVE: pin = PIN_V_ISENS1; break;
         case BRIDGE_JACK:  pin = PIN_V_ISENS2; break;
         case BRIDGE_AUX:   pin = PIN_V_ISENS3; break;
-        default: return -42069; // lol
+        default: return ESP_ERR_INVALID_ARG;
     }
 
     if (adc_oneshot_read(adc1_handle, pin, &adc_raw) != ESP_OK) {
@@ -168,39 +257,41 @@ esp_err_t process_bridge_current(bridge_t bridge) {
         return 0;
     }
     
-    float raw_a = NAN;
+    float last_current = channel->raw_current;
+    channel->raw_current = NAN;
     
     switch (bridge) {
         case BRIDGE_JACK:
         case BRIDGE_AUX:
         	// ACS37042KLHBLT-030B3 is 30A capable and 44 mV/A
-            raw_a = (voltage_mv - 1650.0f) / 44.0f;
+            channel->raw_current = (voltage_mv - 1650.0f) / 44.0f;
             break;
         case BRIDGE_DRIVE:
         	// ACS37220LEZATR-100B3 is 100A capable and 13.2 mV/A
-            raw_a = -(voltage_mv - 1650.0f) / 13.2f;
+            channel->raw_current = -(voltage_mv - 1650.0f) / 13.2f;
             break;
+        default: break;
     }
     
     if (!channel->ema_init) {
-        channel->ema_current = (float)raw_a;
+        channel->ema_current = channel->raw_current;
         channel->ema_init = true;
     } else {
         float alpha = get_param_value_t(PARAM_ADC_ALPHA_ISENS).f32;
-		if (isnan(raw_a)) {
+		if (isnan(channel->raw_current)) {
 			//ESP_LOGI(TAG, "RAW BATTERY IS NAN");
 			channel->ema_current = NAN;
 		} else {
 			if (isnan(ema_battery) || isnan(alpha)) {
-				channel->ema_current = raw_a;
+				channel->ema_current = channel->raw_current;
 	        } else {
-		        channel->ema_current = alpha * raw_a + (1.0f - alpha) * channel->ema_current;
+		        channel->ema_current = alpha * channel->raw_current + (1.0f - alpha) * channel->ema_current;
 		    }
         }
     }
 
     // === AUTO-ZERO LEARNING PHASE ===
-    if (now > channel->az_enable_time) {
+    if (fsm_now > channel->az_enable_time) {
 		//ESP_LOGI(TAG, "AZING %d", bridge);
 		float db = get_param_value_t(PARAM_ADC_DB_IAZ).f32;
         if (isnan(db) || fabsf(channel->ema_current) <= db) {
@@ -210,7 +301,7 @@ esp_err_t process_bridge_current(bridge_t bridge) {
                 channel->az_initialized = true;
             } else {
                 float alpha = get_param_value_t(PARAM_ADC_ALPHA_IAZ).f32;
-				if (isnan(raw_a)) {
+				if (isnan(channel->raw_current)) {
 					//ESP_LOGI(TAG, "RAW BATTERY IS NAN");
 				} else {
 					if (isnan(ema_battery) || isnan(alpha)) {
@@ -225,7 +316,9 @@ esp_err_t process_bridge_current(bridge_t bridge) {
     }
     
     // Apply the offset
-    channel->current = channel->ema_current - channel->az_offset;
+    channel->current = channel->raw_current - channel->az_offset;
+    channel->raw_current = channel->raw_current - channel->az_offset;
+    channel->current_spike = channel->raw_current - last_current;
 
 
 	// PARAMETERS FOR E-FUSING ALGORITHM
@@ -245,31 +338,21 @@ esp_err_t process_bridge_current(bridge_t bridge) {
 		case BRIDGE_AUX:
 			I_nominal = get_param_value_t(PARAM_EFUSE_INOM_3).f32;
 			break;
-	}
-	
-	// Normalize the current as a fraction of rated current
+        default: break;
+    }
+
+        // Normalize the current as a fraction of rated current
     float I_norm = fabsf(channel->current / I_nominal);
 
-    // Instant trip on extreme overcurrent - but with inrush tolerance
-    if (I_norm >= get_param_value_t(PARAM_EFUSE_KINST).f32) {
-        // Start tracking if this is the first time we've seen overcurrent
-        if (channel->inrush_start_time == 0) {
-            channel->inrush_start_time = now;
-        }
-        
+    // Instant trip on extreme overcurrent
+    if (fsm_now > channel->on_us + get_param_value_t(PARAM_EFUSE_INRUSH_US).u32
+        && I_norm >= get_param_value_t(PARAM_EFUSE_KINST).f32) {
         // Check if overcurrent has persisted long enough
-        int64_t inrush_duration = now - channel->inrush_start_time;
-        if (inrush_duration >= get_param_value_t(PARAM_EFUSE_INRUSH_US).u32) {
-            channel->tripped = true;
-            channel->trip_time = now;
-            channel->inrush_start_time = 0; // Reset for next time
-			//ESP_LOGI(TAG, "FUSE TRIP: Inom: %+.5f HEAT:%+2.5f", I_norm, channel->heat);
-            return ESP_OK; // no more processing, if we're over, we're over
-        }
+        channel->tripped = true;
+        channel->trip_time = fsm_now;
+		//ESP_LOGI(TAG, "FUSE TRIP: Inom: %+.5f HEAT:%+2.5f", I_norm, channel->heat);
+        return ESP_OK; // no more processing, if we're over, we're over
         // Still in overcurrent but within inrush tolerance window - don't trip yet
-    } else {
-        // Current dropped below threshold - reset inrush timer
-        channel->inrush_start_time = 0;
     }
     
     // Accumulate heat
@@ -289,19 +372,20 @@ esp_err_t process_bridge_current(bridge_t bridge) {
     // Ergo, heat is measured in seconds
     if (channel->heat > get_param_value_t(PARAM_EFUSE_HEAT_THRESH).f32) {
 		channel->tripped = true;
-		channel->trip_time = now;
+		channel->trip_time = fsm_now;
 		
 	// If we're not overheated
 	// And enough time has passed
 	// Go ahead and reset the e-fuse
 	} else if (channel->tripped &&
-		(now - channel->trip_time) > get_param_value_t(PARAM_EFUSE_TCOOL).u32) {
+		(fsm_now - channel->trip_time) > get_param_value_t(PARAM_EFUSE_TCOOL).u32) {
 			channel->tripped = false;
 			// channel.heat = 0.0f // I think we should wait for the e-fuse to catch up
 	}
 	
-	//if (bridge == BRIDGE_JACK)
-		//ESP_LOGI(TAG, "FUSE: raw_a: %+.4f cur: %+.4f Inorm: %+.5f HEAT:%+2.5f", raw_a, channel->current, I_norm, channel->heat);
+	//if (bridge == BRIDGE_JACK) ESP_LOGI(TAG, "TIME: %lld", (long long) fsm_now);
+	
+	//if (bridge == BRIDGE_JACK) ESP_LOGI(TAG, "FUSE: trip [%d] %lld, raw_a: %+.4f cur: %+.4f Inorm: %+.5f HEAT:%+2.5f", channel->tripped, channel->trip_time, channel->raw_current, channel->current, I_norm, channel->heat);
 	
 	return ESP_OK;
 }
@@ -313,9 +397,13 @@ float get_bridge_A(bridge_t bridge)
     if (bridge >= N_BRIDGES) return NAN;
     return isens[bridge].current;
 }
+float get_bridge_raw_A(bridge_t bridge)
+{
+    if (bridge >= N_BRIDGES) return NAN;
+    return isens[bridge].raw_current;
+}
 
-
-float get_bridge_heat(bridge_t bridge) {
+float efuse_get_heat(bridge_t bridge) {
     if (bridge >= N_BRIDGES) return NAN;
     return isens[bridge].heat;	
 }
@@ -327,57 +415,14 @@ float get_battery_V(void)
     return get_raw_battery_voltage();
 }
 
-// === Public E-Fuse Controls ===
-/*void efuse_reset_all(void)
-{
-    for (uint8_t i = 0; i < N_BRIDGES; i++) {
-        isens[i].heat = 0.0f;
-        isens[i].tripped = false;
-    }
-}*/
-
-bool efuse_is_tripped(bridge_t bridge)
+efuse_trip_t efuse_get(bridge_t bridge)
 {
     if (bridge >= N_BRIDGES) return false;
     return isens[bridge].tripped;
 }
-
-// === Power Management Task ===
-void power_mgmt_task(void *param) {
-	esp_task_wdt_add(NULL);
-	
-
-
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-    const TickType_t xFrequency = pdMS_TO_TICKS(UPDATE_MS);
-
-    while (1) {
-	    vTaskDelayUntil(&xLastWakeTime, xFrequency);
-        now = esp_timer_get_time(); // us
-        
-        /*if (now - last_wake_time < period) {
-            uint32_t delay_us = (period - (now - last_wake_time)) / 1000;
-            if (delay_us > 0) vTaskDelay(pdMS_TO_TICKS(delay_us));
-            continue;
-        }
-        last_wake_time = now;*/
-
-        // Sample currents
-        for (uint8_t i = 0; i < N_BRIDGES; i++) {
-			process_bridge_current(i);
-        }
-        
-        process_battery_voltage();
-        esp_task_wdt_reset();
-    }
-}
-
-esp_err_t power_init() {
-    xTaskCreate(power_mgmt_task, "PWR", 4096, NULL, 5, NULL);
-
-	return ESP_OK;
-}
-
-esp_err_t power_stop() {
-	return ESP_OK;
+void efuse_set(bridge_t bridge, efuse_trip_t state)
+{
+    if (bridge >= N_BRIDGES) return;
+    isens[bridge].tripped = state;
+    isens[bridge].trip_time = fsm_now;
 }

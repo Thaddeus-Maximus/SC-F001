@@ -8,30 +8,6 @@
 #include "esp_rom_sys.h"
 #include "sensors.h"
 
-#define I2C_PORT I2C_NUM_0
-#define TCA_ADDR_READ  0x21
-#define TCA_ADDR_WRITE 0x21
-#define I2C_PULLUP GPIO_PULLUP_DISABLE
-#define I2C_FREQUENCY 400000
-
-// TCA9555 Registers
-#define TCA_REG_INPUT0    0x00
-#define TCA_REG_INPUT1    0x01
-#define TCA_REG_OUTPUT0   0x02
-#define TCA_REG_OUTPUT1   0x03
-#define TCA_REG_POLARITY0 0x04
-#define TCA_REG_POLARITY1 0x05
-#define TCA_REG_CONFIG0   0x06
-#define TCA_REG_CONFIG1   0x07
-
-// Debounce & Repeat Settings
-#define DEBOUNCE_MS        50
-#define REPEAT_MS         200
-#define REPEAT_START_MS   700
-
-#define SAFETY_MASK    0b00110001 // & permissible channels (jack and sensors)
-#define SENSOR_EN_MASK 0b00000001 // | need forced high
-
 // Static Variables
 static bool i2c_initted = false;
 //static bool safety_ok = false;  // Safety interlock
@@ -76,16 +52,8 @@ esp_err_t i2c_init(void) {
     return ESP_OK;
 }
 
-esp_err_t i2c_set_relays(uint8_t states) {
-    last_relay_request = states;  // Always track the request
-    
-    if (!get_is_safe()) {
-        // Safety interlock active - refuse to energize relays
-        if (states!=0) ESP_LOGW("I2C", "Main relay operation blocked by safety interlock");
-        return tca_write_word_8(TCA_REG_OUTPUT1, (states | SENSOR_EN_MASK) & SAFETY_MASK);
-    }
-    
-    return tca_write_word_8(TCA_REG_OUTPUT1, states | SENSOR_EN_MASK);
+esp_err_t i2c_set_relays(relay_port_t states) {
+    return tca_write_word_8(TCA_REG_OUTPUT1, states.raw);
 }
 
 esp_err_t i2c_set_led1(uint8_t state) {
