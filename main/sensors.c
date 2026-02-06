@@ -218,7 +218,8 @@ bool get_sensor(sensor_t i) {
 }
 
 bool get_is_safe(void) {
-    return is_safe;
+	return true;
+    //return is_safe;
 }
 
 int16_t get_sensor_counter(sensor_t i) {

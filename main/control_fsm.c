@@ -468,7 +468,7 @@ void control_task(void *param) {
 					
 				}
 				
-				if (get_bridge_overcurrent(BRIDGE_JACK, get_param_value_t(PARAM_JACK_I_DOWN).f32)) {
+				/*if (get_bridge_overcurrent(BRIDGE_JACK, get_param_value_t(PARAM_JACK_I_DOWN).f32)) {
 					
 					ESP_LOGI(TAG, "DOWN->IDLE BY OVERCURRENT");
 					// Current spike detected
@@ -486,6 +486,13 @@ void control_task(void *param) {
 					log = true;
 					break;
 					
+				}*/
+				
+				if (get_sensor(SENSOR_JACK)) {
+					ESP_LOGI(TAG, "DOWN->IDLE BY SENSOR");
+					current_state = STATE_IDLE;
+					log = true;
+					break;
 				}
 				
 				if (timer_done() ) {
@@ -586,11 +593,11 @@ void control_task(void *param) {
 							}
                             break;
                         case FSM_OVERRIDE_JACK_DOWN:
-                        	if (get_bridge_overcurrent(BRIDGE_JACK, get_param_value_t(PARAM_JACK_I_DOWN).f32) ||
+                        	/*if (get_bridge_overcurrent(BRIDGE_JACK, get_param_value_t(PARAM_JACK_I_DOWN).f32) ||
 			            	    get_bridge_spike(BRIDGE_JACK, get_param_value_t(PARAM_JACK_IS_DOWN).f32))
 			            	    efuse_set(BRIDGE_JACK, EFUSE_OVERCURRENT);
-                        
-                        	if (efuse_get(BRIDGE_JACK)) {
+                        	*/
+                        	if (get_sensor(SENSOR_JACK) || efuse_get(BRIDGE_JACK)) {
 								driveRelays((relay_port_t){.bridges = {
 									.DRIVE=BRIDGE_OFF,
 									.JACK=BRIDGE_OFF,
