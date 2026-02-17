@@ -4,11 +4,11 @@
 include(${CMAKE_CURRENT_LIST_DIR}/version.cmake)
 
 idf_component_register(
-    SRCS main.c log_test.c i2c.c rtc.c storage.c uart_comms.c control_fsm.c power_mgmt.c rf_433.c rtc.c sensors.c solar.c webserver.c simple_dns_server.c comms.c # list the source files of this component
+    SRCS main.c log_test.c i2c.c rtc.c storage.c uart_comms.c control_fsm.c power_mgmt.c rf_433.c rtc.c sensors.c solar.c webserver.c simple_dns_server.c comms.c bt_hid.c # list the source files of this component
     INCLUDE_DIRS "." "${CMAKE_BINARY_DIR}"
     PRIV_INCLUDE_DIRS   # optional, add here private include directories
     
-    REQUIRES driver esp_http_server esp_netif lwip json esp_timer esp_adc app_update esp_wifi nvs_flash mdns    # optional, list the public requirements (component names)
+    REQUIRES driver esp_http_server esp_netif lwip json esp_timer esp_adc app_update esp_wifi nvs_flash mdns bt esp_hid    # optional, list the public requirements (component names)
     # esp_https_server 
     PRIV_REQUIRES  # optional, list the private requirements
     #EMBED_TXTFILES servercert.pem prvtkey.pem

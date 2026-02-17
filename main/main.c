@@ -12,6 +12,7 @@
 #include "sensors.h"
 #include "solar.h"
 #include "rf_433.h"
+#include "bt_hid.h"
 #include "webserver.h"
 #include "version.h"
 #include <string.h>
@@ -203,6 +204,7 @@ void app_main(void) {esp_task_wdt_add(NULL);
     if (uart_init()    != ESP_OK) ESP_LOGE(TAG, "UART FAILED");
     //if (power_init()   != ESP_OK) ESP_LOGE(TAG, "POWER FAILED");
     if (rf_433_init()  != ESP_OK) ESP_LOGE(TAG, "RF FAILED");
+    if (bt_hid_init()  != ESP_OK) ESP_LOGE(TAG, "BT HID FAILED");
     if (fsm_init()     != ESP_OK) ESP_LOGE(TAG, "FSM FAILED");
     //if (sensors_init() != ESP_OK) ESP_LOGE(TAG, "SENSORS FAILED");
     if (webserver_init() != ESP_OK) ESP_LOGE(TAG, "WEBSERVER FAILED");
