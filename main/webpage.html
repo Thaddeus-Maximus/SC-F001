@@ -23,13 +23,14 @@ black: #2f2f2f
         font-family: "Noto Sans", "Verdana", sans-serif;
         }
         input, button { width: 100%; }
-        input, button { border: 1px solid #ba965b; border-radius: 5px; background-color: #efede9; text-align: right; box-sizing: border-box; }
-        input[type="text"], input[type="number"] { font-family: monospace; }
-        
-        input[readonly] { background-color: #e4e4e4; }
+        input, button {  background-color: #efede9; text-align: right; box-sizing: border-box; border: 1px; border-radius: 5px; margin: 5px;}
+        input[type="text"], input[type="number"],input[type="time"] { font-family: monospace;border: 1px solid #ba965b; border-radius: 5px; }
         
         
-        button { text-align: center; }
+        input[readonly] { background-color: #e4e4e4; border-radius: 5px;}
+        
+        
+        button { text-align: center; border: 1px solid #ba965b; border-radius: 5px;  }
         .changed, #commit_btn { background-color: #2a493d !important; color: #ffffff !important;  }
         #cancel_btn { background-color: #723 !important; color: #ffffff !important;  }
         #commit_btn, #cancel_btn { width: 45%; margin-top: 10px; padding: 10px; cursor: pointer; border: none; font-weight: bold; }
@@ -170,7 +171,7 @@ black: #2f2f2f
             <td colspan="3"><input readonly="" id="msg"/></td>
         </tr>
         <tr>
-            <td colspan="3"><input type="datetime-local" id="UX_TIME" step="1" onchange="markChanged(this)"/>
+            <td colspan="3"><input type="datetime-local" id="UX_TIME" step="1" readonly=""/>
             <button id="now_btn" onclick="setTimeToNow()">Sync Time</button></td>
         </tr>
         <tr>
@@ -333,7 +334,6 @@ black: #2f2f2f
         let paramTableCreated = false; // Track if param table has been created
         let pollInterval = null; // Store interval ID for polling
         let modalResolve = null;
-        let modalDismissed = false; // Track if out-of-distance modal was dismissed
         
         const ge = (id) => document.getElementById(id);
         
@@ -835,11 +835,6 @@ black: #2f2f2f
                 remainingDistInput.value = data.remaining_dist.toFixed(1);
             }
             
-            // Check if we should show the "out of distance" modal
-            if (!modalDismissed && (data.remaining_dist === undefined || data.remaining_dist === null || data.remaining_dist <= 0)) {
-                showOutOfDistanceModal();
-            }
-            
             
         }
         
@@ -873,6 +868,7 @@ black: #2f2f2f
                 // duh
                 document.querySelectorAll('input').forEach(input => {
 			        input.addEventListener('click', function() {
+			        if (this.readOnly != true)
 			            this.select();
 			        });
 			    });
@@ -1054,7 +1050,7 @@ black: #2f2f2f
                     
                     // Show dialog and instruct user to press button
                     await modalAlert(
-                        `Button ${i+1}/4: ${buttonNames[i]}\n\nPress the ${buttonNames[i]} button on your remote now.\n\nPress OK when done (or just press OK to leave unprogrammed).`,
+                        `Button ${i+1}/4: ${buttonNames[i]}\n\nPress the ${buttonNames[i]} button on your remote once now.\n\nPress OK when done (or just press OK to leave unprogrammed).`,
                         'Program Button'
                     );
                     
@@ -1286,34 +1282,6 @@ black: #2f2f2f
           } catch (error) {
             await modalAlert(`Error downloading log file: ${error.message}`);
           }
-        }
-        
-        async function showOutOfDistanceModal() {
-            const distance = await modalPrompt(
-                'Remaining distance is 0 or less. Would you like to add more distance?',
-                'Add Distance (feet)'
-            );
-            
-            if (distance === null || distance === '') {
-                // User clicked cancel or entered nothing - mark as dismissed
-                modalDismissed = true;
-                return;
-            }
-            
-            const dist = parseFloat(distance);
-            if (isNaN(dist) || dist <= 0) {
-                await modalAlert('Invalid distance. Modal dismissed.');
-                modalDismissed = true;
-                return;
-            }
-            
-            // Set the remaining distance input and commit
-            const remainingDistInput = ge('UX_REM_DIST');
-            if (remainingDistInput) {
-                remainingDistInput.value = dist.toFixed(1);
-                markChanged(remainingDistInput);
-                await commitParams();
-            }
         }
         
         // Start automatic polling
