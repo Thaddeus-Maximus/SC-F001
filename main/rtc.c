@@ -25,8 +25,9 @@
 #include "i2c.h"
 #include "rtc_wdt.h"
 
-//#include "esp32/rtc_clk.h"  // For RTC_SLOW_FREQ_32K_XTAL enum and rtc_clk_slow_freq_set()
+// External 32kHz crystal enabled via CONFIG_RTC_CLK_SRC_EXT_CRYS in sdkconfig.defaults
 #include "driver/rtc_io.h"  // For RTC I/O handling (optional but recommended for pin configuration)
+#include "soc/rtc.h"         // For rtc_clk_slow_src_get()
 #include "solar.h"
 #include "storage.h"
 
@@ -56,15 +57,16 @@ esp_err_t rtc_xtal_init(void) {
     rtc_gpio_set_direction(GPIO_NUM_32, RTC_GPIO_MODE_DISABLED);
     rtc_gpio_set_direction(GPIO_NUM_33, RTC_GPIO_MODE_DISABLED);
 
-    // Select 32 kHz XTAL as slow clock source (wait for stabilization)
-    //rtc_clk_slow_freq_set(RTC_SLOW_FREQ_32K_XTAL);
-    // Optional: Brief delay for crystal stabilization (typically <1 ms)
-    //vTaskDelay(pdMS_TO_TICKS(1));
+    // 32kHz crystal selected as slow clock source via CONFIG_RTC_CLK_SRC_EXT_CRYS.
+    // Verify at runtime that the clock source is actually the external crystal.
+    soc_rtc_slow_clk_src_t slow_src = rtc_clk_slow_src_get();
+    if (slow_src == SOC_RTC_SLOW_CLK_SRC_XTAL32K) {
+        ESP_LOGI("RTC", "Slow clock: external 32kHz crystal");
+    } else {
+        ESP_LOGW("RTC", "Slow clock source is %d — expected XTAL32K (%d). Check sdkconfig.",
+                 (int)slow_src, (int)SOC_RTC_SLOW_CLK_SRC_XTAL32K);
+    }
 
-    //ESP_LOGI("RTC", "Configured with external 32 kHz oscillator (freq: %d Hz)", rtc_clk_slow_freq_get_hz());
-
-    // Existing log can now be data-driven
-    
     return ESP_OK;
 }
 

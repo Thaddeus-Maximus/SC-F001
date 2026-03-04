@@ -1,5 +1,5 @@
 # TODO
-- [ ] Seamless crashing
+- [test] Seamless crashing
 		- crashes need to not cause RTC to lose time
 		- the remaining_distance needs to be unaffected
 		- the equivalent of a try-catch block on the whole program
@@ -8,8 +8,8 @@
 		- needs to support both opening a log.bin and streaming from http://ip-address-or-hostname/log
 		- needs to have a CLI table output
 		- needs to have a GUI output (matplotlib)
-- [ ] Refactor; make sure everything adheres to naming conventions
-- [ ] Renaming wifi (should reboot the wifi/web comms to take effect)
-- [ ] Make sure external RTC crystal is actually in use
-- [ ] Warn if time is de-synced from client by more than 5 minutes
+- [test] Refactor; make sure everything adheres to naming conventions
+- [test] Renaming wifi (should reboot the wifi/web comms to take effect)
+- [x] Make sure external RTC crystal is actually in use
+- [x] Warn if time is de-synced from client by more than 5 minutes
 - [ ] Bluetooth pairing

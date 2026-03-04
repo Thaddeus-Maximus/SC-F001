@@ -81,7 +81,7 @@ typedef enum {
 #define N_RELAYS 8
 #define N_BRIDGES 3
 
-void pulseOverride(fsm_override_t cmd);
+void pulse_override(fsm_override_t cmd);
 
 esp_err_t fsm_init();
 esp_err_t fsm_stop();

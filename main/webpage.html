@@ -493,9 +493,9 @@ black: #2f2f2f
                 'Time Not Set',
                 'The device clock needs to be synchronized.',
                 [
-                    { 
-                        text: 'Sync Time', 
-                        value: true, 
+                    {
+                        text: 'Sync Time',
+                        value: true,
                         primary: true,
                         callback: async () => {
                             // Simulate clicking Set Time then Save Changes
@@ -506,7 +506,33 @@ black: #2f2f2f
                 ]
             );
         }
-        
+
+        let warnedOfDesync = false;
+
+        function showDesyncModal(driftMinutes) {
+            if (warnedOfDesync) return;
+            warnedOfDesync = true;
+            showModal(
+                'Clock De-Synced',
+                `The device clock is off by ${driftMinutes} minute${driftMinutes !== 1 ? 's' : ''}. Sync it now?`,
+                [
+                    {
+                        text: 'Sync Time',
+                        value: true,
+                        primary: true,
+                        callback: async () => {
+                            setTimeToNow();
+                            await commitParams();
+                        }
+                    },
+                    {
+                        text: 'Dismiss',
+                        value: false
+                    }
+                ]
+            );
+        }
+
         const warnedOfEOT = false;
         
         function showEOTModal() {
@@ -779,8 +805,18 @@ black: #2f2f2f
         }
         
         function updateUI() {
-        	if (!data.rtc_set)
+        	if (!data.rtc_set) {
         		showRTCSyncModal();
+        	} else if (data.time !== undefined) {
+        		// The device stores "local time as UTC" (same encoding commitParams uses).
+        		// Compare against that same encoding, not raw Date.now(), to avoid
+        		// a false timezone offset appearing as drift.
+        		const n = new Date();
+        		const localAsUtc = Math.floor(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate(),
+        		                                       n.getHours(), n.getMinutes(), n.getSeconds()) / 1000);
+        		const driftS = Math.abs(localAsUtc - data.time);
+        		if (driftS > 300) showDesyncModal(Math.round(driftS / 60));
+        	}
         
             // Update message
             if (data.msg !== undefined) {

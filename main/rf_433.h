@@ -11,7 +11,7 @@
 
 #define NUM_RF_BUTTONS 8
 
-int64_t recieveKeycode();
+int64_t receive_keycode(void);
 
 esp_err_t rf_433_init();
 esp_err_t rf_433_stop();

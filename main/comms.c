@@ -146,6 +146,8 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
     bool cmd_executed = false;
     bool sleep_requested = false;
     bool reboot_requested = false;
+    bool wifi_params_changed = false;
+    bool wifi_restart_requested = false;
     const char *error_msg = NULL;
     int params_updated = 0;
     int params_failed = 0;
@@ -154,7 +156,7 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
     cJSON *time = cJSON_GetObjectItem(root, "time");
     if (cJSON_IsNumber(time)) {
         int64_t new_time = (int64_t)cJSON_GetNumberValue(time);
-        ESP_LOGI(TAG, "Setting time to %lld", new_time);
+        ESP_LOGI(TAG, "Setting time to %lld", (long long)new_time);
         rtc_set_s(new_time);
     }
     
@@ -185,23 +187,23 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "fwd") == 0) {
-            pulseOverride(FSM_OVERRIDE_DRIVE_FWD);
+            pulse_override(FSM_OVERRIDE_DRIVE_FWD);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "rev") == 0) {
-            pulseOverride(FSM_OVERRIDE_DRIVE_REV);
+            pulse_override(FSM_OVERRIDE_DRIVE_REV);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "up") == 0) {
-            pulseOverride(FSM_OVERRIDE_JACK_UP);
+            pulse_override(FSM_OVERRIDE_JACK_UP);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "down") == 0) {
-            pulseOverride(FSM_OVERRIDE_JACK_DOWN);
+            pulse_override(FSM_OVERRIDE_JACK_DOWN);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "aux") == 0) {
-            pulseOverride(FSM_OVERRIDE_AUX);
+            pulse_override(FSM_OVERRIDE_AUX);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "reboot") == 0) {
@@ -340,6 +342,12 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
                 params_failed++;
                 continue;
             }
+
+            if (param_idx == PARAM_WIFI_SSID ||
+                param_idx == PARAM_WIFI_PASS ||
+                param_idx == PARAM_WIFI_CHANNEL) {
+                wifi_params_changed = true;
+            }
             
             cJSON *value_json = cJSON_GetObjectItem(parameters, key);
             
@@ -418,6 +426,10 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
         if (params_updated > 0) {
             rtc_schedule_next_alarm();
             commit_params();
+            if (wifi_params_changed) {
+                ESP_LOGI(TAG, "WiFi params changed — restarting WiFi AP");
+                wifi_restart_requested = true;
+            }
         }
     }
     
@@ -428,6 +440,14 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
         return ESP_FAIL;
     }
     
+    if (wifi_restart_requested) {
+        cJSON_AddStringToObject(response, "status", "ok");
+        cJSON_AddStringToObject(response, "message", "Restarting WiFi AP...");
+        cJSON_AddBoolToObject(response, "wifi_restart", true);
+        *response_json = response;
+        return ESP_OK;
+    }
+
     if (reboot_requested) {
         cJSON_AddStringToObject(response, "status", "ok");
         cJSON_AddStringToObject(response, "message", "Rebooting...");

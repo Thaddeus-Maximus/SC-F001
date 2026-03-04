@@ -1,0 +1,7 @@
+# SC-F001 project-level sdkconfig overrides.
+# These are applied during "idf.py reconfigure" and take precedence over IDF defaults.
+# Do NOT override settings that are managed by idf.py menuconfig interactively.
+
+# Use external 32kHz crystal for the RTC slow clock (GPIO32/33 on the PCB).
+# This gives accurate timekeeping across deep sleep instead of the +/-5% internal RC.
+CONFIG_RTC_CLK_SRC_EXT_CRYS=y

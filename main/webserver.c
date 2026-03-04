@@ -37,6 +37,7 @@
 #include "version.h"
 
 #include "webpage.h"
+#include "webserver.h"
 
 #include "esp_partition.h"
 
@@ -55,9 +56,9 @@ extern const uint8_t prvtkey_pem_start[] asm("_binary_prvtkey_pem_start");
 extern const uint8_t prvtkey_pem_end[] asm("_binary_prvtkey_pem_end");
 */
 
-static httpd_handle_t httpServerInstance = NULL;
+static httpd_handle_t http_server_instance = NULL;
 
-char httpBuffer[4096];
+char http_buffer[4096];
 
 /* Handler to serve the HTML page */
 static esp_err_t root_get_handler(httpd_req_t *req) {
@@ -115,7 +116,7 @@ static esp_err_t log_handler(httpd_req_t *req) {
         // GET without parameters - return JSON + full log
     }
     else if (req->method == HTTP_POST) {
-        int ret = httpd_req_recv(req, httpBuffer, sizeof(httpBuffer));
+        int ret = httpd_req_recv(req, http_buffer, sizeof(http_buffer));
         if (ret <= 0) {
             if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
                 ESP_LOGW(TAG, "Socket timeout during receive");
@@ -125,14 +126,14 @@ static esp_err_t log_handler(httpd_req_t *req) {
             return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to receive data");
         }
         
-        if (ret >= (int)sizeof(httpBuffer)) {
+        if (ret >= (int)sizeof(http_buffer)) {
             ESP_LOGE(TAG, "POST data exceeds buffer size");
             return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Request too large");
         }
         
-        httpBuffer[ret] = '\0';
+        http_buffer[ret] = '\0';
             
-        if(sscanf(httpBuffer, "%ld", (long*)&tail) != 1) {
+        if(sscanf(http_buffer, "%ld", (long*)&tail) != 1) {
             ESP_LOGW(TAG, "Malformed tail parameter, using default");
             tail = -1;
         }
@@ -230,8 +231,8 @@ static esp_err_t log_handler(httpd_req_t *req) {
 
     // Send JSON length (4 bytes, big-endian)
     uint32_t json_len_be = htobe32(json_len);
-    memcpy(&httpBuffer[0], &json_len_be, 4);
-    err = httpd_resp_send_chunk(req, (const char *)httpBuffer, 4);
+    memcpy(&http_buffer[0], &json_len_be, 4);
+    err = httpd_resp_send_chunk(req, (const char *)http_buffer, 4);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to send JSON length: %s", esp_err_to_name(err));
         free(json_str);
@@ -249,10 +250,10 @@ static esp_err_t log_handler(httpd_req_t *req) {
     // Send head/tail pointers (8 bytes, big-endian)
     int32_t htail = htobe32(tail);
     int32_t hhead = htobe32(head);
-    memcpy(&httpBuffer[0], &htail, 4);
-    memcpy(&httpBuffer[4], &hhead, 4);
+    memcpy(&http_buffer[0], &htail, 4);
+    memcpy(&http_buffer[4], &hhead, 4);
     
-    err = httpd_resp_send_chunk(req, (const char *)httpBuffer, 8);
+    err = httpd_resp_send_chunk(req, (const char *)http_buffer, 8);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to send head/tail chunk: %s", esp_err_to_name(err));
         return err;
@@ -267,8 +268,8 @@ static esp_err_t log_handler(httpd_req_t *req) {
     else if (tail < head) {
         // Normal case: tail before head
         while (offset < head) {
-            size_t to_read = MIN(sizeof(httpBuffer), head - offset);
-            err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
+            size_t to_read = MIN(sizeof(http_buffer), head - offset);
+            err = esp_partition_read(storage_partition, offset, http_buffer, to_read);
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
                          (long)offset, esp_err_to_name(err));
@@ -276,7 +277,7 @@ static esp_err_t log_handler(httpd_req_t *req) {
                                             "Failed to read storage");
             }
             
-            err = httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read);
+            err = httpd_resp_send_chunk(req, (const char *)http_buffer, to_read);
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to send chunk at offset %ld: %s", 
                          (long)offset, esp_err_to_name(err));
@@ -289,8 +290,8 @@ static esp_err_t log_handler(httpd_req_t *req) {
     else {
         // Wrapped case: tail after head, read from tail to end, then start to head
         while (offset < (int32_t)storage_partition->size) {
-            size_t to_read = MIN(sizeof(httpBuffer), storage_partition->size - offset);
-            err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
+            size_t to_read = MIN(sizeof(http_buffer), storage_partition->size - offset);
+            err = esp_partition_read(storage_partition, offset, http_buffer, to_read);
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
                          (long)offset, esp_err_to_name(err));
@@ -298,7 +299,7 @@ static esp_err_t log_handler(httpd_req_t *req) {
                                             "Failed to read storage");
             }
             
-            err = httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read);
+            err = httpd_resp_send_chunk(req, (const char *)http_buffer, to_read);
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to send chunk at offset %ld: %s", 
                          (long)offset, esp_err_to_name(err));
@@ -311,8 +312,8 @@ static esp_err_t log_handler(httpd_req_t *req) {
         // Now read from start to head
         offset = log_start;
         while (offset < head) {
-            size_t to_read = MIN(sizeof(httpBuffer), head - offset);
-            err = esp_partition_read(storage_partition, offset, httpBuffer, to_read);
+            size_t to_read = MIN(sizeof(http_buffer), head - offset);
+            err = esp_partition_read(storage_partition, offset, http_buffer, to_read);
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
                          (long)offset, esp_err_to_name(err));
@@ -320,7 +321,7 @@ static esp_err_t log_handler(httpd_req_t *req) {
                                             "Failed to read storage");
             }
             
-            err = httpd_resp_send_chunk(req, (const char *)httpBuffer, to_read);
+            err = httpd_resp_send_chunk(req, (const char *)http_buffer, to_read);
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to send chunk at offset %ld: %s", 
                          (long)offset, esp_err_to_name(err));
@@ -443,7 +444,7 @@ static esp_err_t post_handler(httpd_req_t *req) {
     }
     
     // Receive POST data
-    int ret = httpd_req_recv(req, httpBuffer, sizeof(httpBuffer));
+    int ret = httpd_req_recv(req, http_buffer, sizeof(http_buffer));
     if (ret <= 0) {
         if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
             ESP_LOGW(TAG, "Socket timeout during receive");
@@ -453,17 +454,17 @@ static esp_err_t post_handler(httpd_req_t *req) {
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Failed to receive data");
     }
     
-    if (ret >= (int)sizeof(httpBuffer)) {
+    if (ret >= (int)sizeof(http_buffer)) {
         ESP_LOGE(TAG, "POST data exceeds buffer size");
         return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Request too large");
     }
     
-    httpBuffer[ret] = '\0';
+    http_buffer[ret] = '\0';
     
-    ESP_LOGI(TAG, "POST: %.*s", ret, httpBuffer);
+    ESP_LOGI(TAG, "POST: %.*s", ret, http_buffer);
     
     // Parse JSON
-    cJSON *root = cJSON_Parse(httpBuffer);
+    cJSON *root = cJSON_Parse(http_buffer);
     if (root == NULL) {
         const char *error_ptr = cJSON_GetErrorPtr();
         if (error_ptr != NULL) {
@@ -484,10 +485,12 @@ static esp_err_t post_handler(httpd_req_t *req) {
     }
     
     // Check for special response flags
-    cJSON *reboot_flag = cJSON_GetObjectItem(response, "reboot");
-    cJSON *sleep_flag = cJSON_GetObjectItem(response, "sleep");
-    bool should_reboot = cJSON_IsTrue(reboot_flag);
-    bool should_sleep = cJSON_IsTrue(sleep_flag);
+    cJSON *reboot_flag       = cJSON_GetObjectItem(response, "reboot");
+    cJSON *sleep_flag        = cJSON_GetObjectItem(response, "sleep");
+    cJSON *wifi_restart_flag = cJSON_GetObjectItem(response, "wifi_restart");
+    bool should_reboot        = cJSON_IsTrue(reboot_flag);
+    bool should_sleep         = cJSON_IsTrue(sleep_flag);
+    bool should_restart_wifi  = cJSON_IsTrue(wifi_restart_flag);
     
     // Convert response to string
     char *json_str = cJSON_PrintUnformatted(response);
@@ -518,7 +521,13 @@ static esp_err_t post_handler(httpd_req_t *req) {
         esp_restart();
         return ESP_OK;  // Never reached
     }
-    
+
+    if (should_restart_wifi) {
+        vTaskDelay(pdMS_TO_TICKS(500));  // Let the TCP response flush
+        webserver_restart_wifi();
+        return ESP_OK;
+    }
+
     if (should_sleep) {
         ESP_LOGI(TAG, "Sleeping in 2 seconds...");
         vTaskDelay(pdMS_TO_TICKS(2000));
@@ -578,7 +587,7 @@ static esp_err_t ota_post_handler(httpd_req_t *req) {
     const int MAX_TIMEOUTS = 3;
 
     while (remaining > 0) {
-        recv_len = httpd_req_recv(req, httpBuffer, MIN(remaining, sizeof(httpBuffer)));
+        recv_len = httpd_req_recv(req, http_buffer, MIN(remaining, sizeof(http_buffer)));
         
         if (recv_len < 0) {
             if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
@@ -618,7 +627,7 @@ static esp_err_t ota_post_handler(httpd_req_t *req) {
         // Reset timeout counter on successful receive
         timeout_count = 0;
 
-        err = esp_ota_write(update_handle, (const void *)httpBuffer, recv_len);
+        err = esp_ota_write(update_handle, (const void *)http_buffer, recv_len);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "esp_ota_write failed (%s)", esp_err_to_name(err));
             esp_ota_abort(update_handle);
@@ -786,7 +795,7 @@ httpd_uri_t uris[] = {{
 
 bool server_running = false;
 
-static esp_err_t startHttpServer(void) {
+static esp_err_t start_http_server(void) {
 	if (server_running) return ESP_OK;
 	ESP_LOGI(TAG, "STARTING HTTP");
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -795,7 +804,7 @@ static esp_err_t startHttpServer(void) {
     config.lru_purge_enable = true;
     config.uri_match_fn = httpd_uri_match_wildcard; // enable wildcarding
     
-    esp_err_t err = httpd_start(&httpServerInstance, &config);
+    esp_err_t err = httpd_start(&http_server_instance, &config);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start HTTP server: %s", esp_err_to_name(err));
         return err;
@@ -805,7 +814,7 @@ static esp_err_t startHttpServer(void) {
     
     // Register URI handlers
     for (uint8_t i = 0; i < (sizeof(uris)/sizeof(httpd_uri_t)); i++) {
-        err = httpd_register_uri_handler(httpServerInstance, &uris[i]);
+        err = httpd_register_uri_handler(http_server_instance, &uris[i]);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Failed to register URI handler for %s: %s", 
                      uris[i].uri, esp_err_to_name(err));
@@ -820,21 +829,21 @@ static esp_err_t startHttpServer(void) {
     return ESP_OK;
 }
 
-static esp_err_t stopHttpServer(void) {
+static esp_err_t stop_http_server(void) {
 	if (!server_running) return ESP_OK;
 	ESP_LOGI(TAG, "STOPPING HTTP");
-    if (httpServerInstance == NULL) {
+    if (http_server_instance == NULL) {
         ESP_LOGW(TAG, "HTTP server not running");
         return ESP_ERR_INVALID_STATE;
     }
     
-    esp_err_t err = httpd_stop(httpServerInstance);
+    esp_err_t err = httpd_stop(http_server_instance);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to stop HTTP server: %s", esp_err_to_name(err));
         return err;
     }
     
-    httpServerInstance = NULL;
+    http_server_instance = NULL;
     ESP_LOGI(TAG, "HTTP server stopped");
     server_running = false;
     return ESP_OK;
@@ -854,18 +863,18 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
         rtc_reset_shutdown_timer();
         n_connected ++;
         if (n_connected > 0)
-        	startHttpServer();
+        	start_http_server();
         
     } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
         wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
         ESP_LOGI(TAG, "Station disconnected, AID=%d", event->aid);
         n_connected --;
         if (n_connected <= 0)
-        	stopHttpServer();
+        	stop_http_server();
     }
 }
 
-static esp_err_t launchSoftAp(void) {
+static esp_err_t launch_soft_ap(void) {
     esp_err_t err;
     
     
@@ -1031,11 +1040,46 @@ static esp_err_t launchSoftAp(void) {
     return ESP_OK;
 }
 
+esp_err_t webserver_restart_wifi(void) {
+    ESP_LOGI(TAG, "Restarting WiFi AP with updated params...");
+
+    stop_http_server();
+    esp_wifi_stop();
+
+    wifi_config_t wifi_config = {
+        .ap = {
+            .channel       = get_param_value_t(PARAM_WIFI_CHANNEL).u16,
+            .max_connection = 4,
+            .authmode      = WIFI_AUTH_WPA2_PSK,
+        },
+    };
+
+    char *ssid_str = get_param_string(PARAM_WIFI_SSID);
+    char *pass_str = get_param_string(PARAM_WIFI_PASS);
+    memcpy(wifi_config.ap.ssid,     ssid_str, MIN(strlen(ssid_str), sizeof(wifi_config.ap.ssid)));
+    memcpy(wifi_config.ap.password, pass_str, MIN(strlen(pass_str), sizeof(wifi_config.ap.password)));
+    wifi_config.ap.ssid_len = strlen(ssid_str);
+    if (strlen(pass_str) < 8) {
+        wifi_config.ap.password[0] = '\0';
+        wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+    }
+    if (wifi_config.ap.channel < 1 || wifi_config.ap.channel > 11)
+        wifi_config.ap.channel = 6;
+
+    esp_wifi_set_config(WIFI_IF_AP, &wifi_config);
+    esp_wifi_start();
+    start_http_server();
+
+    ESP_LOGI(TAG, "WiFi AP restarted. New SSID: %s, Channel: %d",
+             wifi_config.ap.ssid, wifi_config.ap.channel);
+    return ESP_OK;
+}
+
 esp_err_t webserver_init(void) {
     ESP_LOGI(TAG, "Initializing webserver...");
     
     // Initialize comms module
-    esp_err_t err = launchSoftAp();
+    esp_err_t err = launch_soft_ap();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to launch SoftAP: %s", esp_err_to_name(err));
         return err;
@@ -1043,7 +1087,7 @@ esp_err_t webserver_init(void) {
     
     ESP_LOGI(TAG, "AP LAUNCHED");
     
-    err = startHttpServer();
+    err = start_http_server();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start HTTP server: %s", esp_err_to_name(err));
         return err;

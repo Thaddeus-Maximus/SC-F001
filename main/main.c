@@ -57,7 +57,7 @@ typedef enum {
 	LED_STATE_BOOTING
 } led_state_t;
 
-void driveLEDs(led_state_t state) {
+void drive_leds(led_state_t state) {
 	uint8_t patterns[5][12] = {
 		{1,3,7,6,4,0},
 		{0b101,0b001},
@@ -116,7 +116,7 @@ void app_main(void) {esp_task_wdt_add(NULL);
     esp_sleep_wakeup_cause_t cause = rtc_wakeup_cause();
     if (i2c_init()      != ESP_OK) ESP_LOGE(TAG, "I2C FAILED");
     i2c_set_relays((relay_port_t){.raw=0});
-    driveLEDs(LED_STATE_BOOTING);
+    drive_leds(LED_STATE_BOOTING);
     
     ESP_LOGI(TAG, "Firmware: %s", FIRMWARE_STRING);
     ESP_LOGI(TAG, "Version: %s", FIRMWARE_VERSION);
@@ -248,13 +248,13 @@ void app_main(void) {esp_task_wdt_add(NULL);
 			case STATE_IDLE:
         		// LED cue for user
         		if (i2c_get_button_ms(0) > 1600){
-        			driveLEDs(LED_STATE_START4);
+        			drive_leds(LED_STATE_START4);
 				} else if (i2c_get_button_ms(0) > 1100){
-        			driveLEDs(LED_STATE_START3);
+        			drive_leds(LED_STATE_START3);
 				} else if (i2c_get_button_ms(0) > 600){
-        			driveLEDs(LED_STATE_START2);
+        			drive_leds(LED_STATE_START2);
         		} else if (i2c_get_button_ms(0) > 100){
-        			driveLEDs(LED_STATE_START1);
+        			drive_leds(LED_STATE_START1);
         		} else {
 					/*if (
 						rtc_is_set() &&
@@ -263,9 +263,9 @@ void app_main(void) {esp_task_wdt_add(NULL);
 						!efuse_is_tripped(BRIDGE_DRIVE) &&
 						fsm_get_error() == ESP_OK
 					) {
-        				driveLEDs(LED_STATE_AWAKE);
+        				drive_leds(LED_STATE_AWAKE);
         			} else {
-        				driveLEDs(LED_STATE_ERROR);
+        				drive_leds(LED_STATE_ERROR);
         			}*/
         			
         			int8_t state = 0b001;
@@ -285,7 +285,7 @@ void app_main(void) {esp_task_wdt_add(NULL);
 			case STATE_UNDO_JACK_START:
 				// it's running the jack, but undoing
 				//send_log();
-        		driveLEDs(LED_STATE_CANCELLING);
+        		drive_leds(LED_STATE_CANCELLING);
 				if (i2c_get_button_tripped(0)) {
 					ESP_LOGI(TAG, "AAAAH STOP!!!");
         			fsm_request(FSM_CMD_STOP);
@@ -318,7 +318,7 @@ void app_main(void) {esp_task_wdt_add(NULL);
 			default:
 				// it's running in every other case
 				//send_log();
-        		driveLEDs(LED_STATE_DRIVING);
+        		drive_leds(LED_STATE_DRIVING);
 				if (i2c_get_button_tripped(0)) {
         			fsm_request(FSM_CMD_UNDO);
 				}

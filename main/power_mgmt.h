@@ -42,6 +42,6 @@ esp_err_t power_init();
 esp_err_t power_stop();
 
 
-esp_err_t driveRelays(relay_port_t relay_state);
+esp_err_t drive_relays(relay_port_t relay_state);
 
 #endif /* MAIN_POWER_MGMT_H_ */

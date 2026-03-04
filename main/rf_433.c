@@ -155,10 +155,10 @@ static void rf_433_receiver_task(void* param) {
                             // Compare just the code (lower 32 bits)
                             if ((uint32_t)match == code && code!=0) {
                                 switch (i) {
-                                    case 0: pulseOverride(FSM_OVERRIDE_DRIVE_FWD); break;
-                                    case 1: pulseOverride(FSM_OVERRIDE_DRIVE_REV); break;
-                                    case 2: pulseOverride(FSM_OVERRIDE_JACK_UP);   break;
-                                    case 3: pulseOverride(FSM_OVERRIDE_JACK_DOWN); break;
+                                    case 0: pulse_override(FSM_OVERRIDE_DRIVE_FWD); break;
+                                    case 1: pulse_override(FSM_OVERRIDE_DRIVE_REV); break;
+                                    case 2: pulse_override(FSM_OVERRIDE_JACK_UP);   break;
+                                    case 3: pulse_override(FSM_OVERRIDE_JACK_DOWN); break;
                                     default: break;
                                 }
                             }

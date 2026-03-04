@@ -13,7 +13,7 @@
  *       seconds, picks the HID device with best RSSI, opens it.
  *     - While connected: sleeps 500 ms between checks.
  *     - Every BT_HID_REPEAT_MS the held-button state is sampled and
- *       pulseOverride() is called if a mapped key is down.
+ *       pulse_override() is called if a mapped key is down.
  *
  *   hidh_callback  (runs in esp_hidh event task)
  *     - OPEN:  saves BDA to NVS, marks connected.
@@ -415,20 +415,20 @@ static void bt_hid_scan_task(void *pvParameters)
      * Main loop: scan → connect → wait → repeat if disconnected.
      * ------------------------------------------------------------------ */
     while (1) {
-        /* ---- While connected: check held key and call pulseOverride() ---- */
+        /* ---- While connected: check held key and call pulse_override() ---- */
         taskENTER_CRITICAL(&s_mux);
         remote_conn_state_t conn     = s_remote.conn_state;
         uint16_t            held_key = s_remote.held_key;
         taskEXIT_CRITICAL(&s_mux);
 
         if (conn == REMOTE_CONNECTED) {
-            /* Fire pulseOverride every BT_HID_REPEAT_MS while a key is held. */
+            /* Fire pulse_override every BT_HID_REPEAT_MS while a key is held. */
             if (xTaskGetTickCount() - repeat_tick >= pdMS_TO_TICKS(BT_HID_REPEAT_MS)) {
                 repeat_tick = xTaskGetTickCount();
 
                 fsm_override_t override_cmd;
                 if (held_key != USAGE_NONE && usage_to_override(held_key, &override_cmd)) {
-                    pulseOverride(override_cmd);
+                    pulse_override(override_cmd);
                 }
             }
 

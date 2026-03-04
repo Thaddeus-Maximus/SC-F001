@@ -69,7 +69,7 @@ static inline void set_timer(uint64_t us) {
 }
 static inline bool timer_done() { return fsm_now >= timer_end; }
 
-void pulseOverride(fsm_override_t cmd) {
+void pulse_override(fsm_override_t cmd) {
     if (current_state == STATE_IDLE) {
         override_cmd = cmd;
         override_time = fsm_now + get_param_value_t(PARAM_RF_PULSE_LENGTH).u32;
@@ -548,13 +548,13 @@ void control_task(void *param) {
 					switch(override_cmd) {
 						case FSM_OVERRIDE_DRIVE_FWD:
 	                        if (efuse_get(BRIDGE_DRIVE)){
-				            	driveRelays((relay_port_t){.bridges = {
+				            	drive_relays((relay_port_t){.bridges = {
 									.DRIVE=BRIDGE_OFF,
 									.JACK=BRIDGE_OFF,
 									.AUX=BRIDGE_OFF
 								}});
 							} else {
-								driveRelays((relay_port_t){.bridges = {
+								drive_relays((relay_port_t){.bridges = {
 									.DRIVE=BRIDGE_FWD,
 									.JACK=BRIDGE_OFF,
 									.AUX=BRIDGE_FWD
@@ -564,13 +564,13 @@ void control_task(void *param) {
 
                         case FSM_OVERRIDE_DRIVE_REV:
 	                        if (efuse_get(BRIDGE_DRIVE)){
-				            	driveRelays((relay_port_t){.bridges = {
+				            	drive_relays((relay_port_t){.bridges = {
 									.DRIVE=BRIDGE_OFF,
 									.JACK=BRIDGE_OFF,
 									.AUX=BRIDGE_OFF
 								}});
 							} else {
-								driveRelays((relay_port_t){.bridges = {
+								drive_relays((relay_port_t){.bridges = {
 									.DRIVE=BRIDGE_REV,
 									.JACK=BRIDGE_OFF,
 									.AUX=BRIDGE_OFF
@@ -579,13 +579,13 @@ void control_task(void *param) {
                             break;
                         case FSM_OVERRIDE_JACK_UP:
 			            	if (efuse_get(BRIDGE_JACK)){
-				            	driveRelays((relay_port_t){.bridges = {
+				            	drive_relays((relay_port_t){.bridges = {
 									.DRIVE=BRIDGE_OFF,
 									.JACK=BRIDGE_OFF,
 									.AUX=BRIDGE_OFF
 								}});
 							} else {
-								driveRelays((relay_port_t){.bridges = {
+								drive_relays((relay_port_t){.bridges = {
 									.DRIVE=BRIDGE_OFF,
 									.JACK=BRIDGE_FWD,
 									.AUX=BRIDGE_OFF
@@ -598,13 +598,13 @@ void control_task(void *param) {
 			            	    efuse_set(BRIDGE_JACK, EFUSE_OVERCURRENT);
                         	*/
                         	if (get_sensor(SENSOR_JACK) || efuse_get(BRIDGE_JACK)) {
-								driveRelays((relay_port_t){.bridges = {
+								drive_relays((relay_port_t){.bridges = {
 									.DRIVE=BRIDGE_OFF,
 									.JACK=BRIDGE_OFF,
 									.AUX=BRIDGE_OFF
 								}});
 							} else {
-								driveRelays((relay_port_t){.bridges = {
+								drive_relays((relay_port_t){.bridges = {
 									.DRIVE=BRIDGE_OFF,
 									.JACK=BRIDGE_REV,
 									.AUX=BRIDGE_OFF
@@ -613,13 +613,13 @@ void control_task(void *param) {
                             break;
                         case FSM_OVERRIDE_AUX:
 	                        if (efuse_get(BRIDGE_AUX)){
-				            	driveRelays((relay_port_t){.bridges = {
+				            	drive_relays((relay_port_t){.bridges = {
 									.DRIVE=BRIDGE_OFF,
 									.JACK=BRIDGE_OFF,
 									.AUX=BRIDGE_OFF
 								}});
 							} else {
-								driveRelays((relay_port_t){.bridges = {
+								drive_relays((relay_port_t){.bridges = {
 									.DRIVE=BRIDGE_OFF,
 									.JACK=BRIDGE_OFF,
 									.AUX=BRIDGE_FWD
@@ -627,7 +627,7 @@ void control_task(void *param) {
 							}
                             break;
                         default: // should never hit here but just in case...
-			            	driveRelays((relay_port_t){.bridges = {
+			            	drive_relays((relay_port_t){.bridges = {
 								.DRIVE=BRIDGE_OFF,
 								.JACK=BRIDGE_OFF,
 								.AUX=BRIDGE_OFF
@@ -637,7 +637,7 @@ void control_task(void *param) {
 		            rtc_reset_shutdown_timer();
 		            log = true;
         		} else {
-	            	driveRelays((relay_port_t){.bridges = {
+	            	drive_relays((relay_port_t){.bridges = {
 						.DRIVE=BRIDGE_OFF,
 						.JACK=BRIDGE_OFF,
 						.AUX=BRIDGE_OFF
@@ -648,7 +648,7 @@ void control_task(void *param) {
             case STATE_JACK_UP_START:
             case STATE_JACK_UP:
             	// jack up and fluff
-            	driveRelays((relay_port_t){.bridges = {
+            	drive_relays((relay_port_t){.bridges = {
 					.DRIVE=BRIDGE_OFF,
 					.JACK=BRIDGE_FWD,
 					.AUX=BRIDGE_FWD
@@ -659,7 +659,7 @@ void control_task(void *param) {
             case STATE_CALIBRATE_DRIVE_MOVE:
             case STATE_DRIVE:
             	// drive and fluff
-            	driveRelays((relay_port_t){.bridges = {
+            	drive_relays((relay_port_t){.bridges = {
 					.DRIVE=BRIDGE_FWD,
 					.JACK=BRIDGE_OFF,
 					.AUX=BRIDGE_FWD
@@ -668,7 +668,7 @@ void control_task(void *param) {
                 log = true;
                 break;
             case STATE_JACK_DOWN:
-            	driveRelays((relay_port_t){.bridges = {
+            	drive_relays((relay_port_t){.bridges = {
 					.DRIVE=BRIDGE_OFF,
 					.JACK=BRIDGE_REV,
 					.AUX=BRIDGE_OFF
@@ -680,7 +680,7 @@ void control_task(void *param) {
             case STATE_DRIVE_START_DELAY:
             case STATE_DRIVE_END_DELAY:
             	// only fluffer
-            	driveRelays((relay_port_t){.bridges = {
+            	drive_relays((relay_port_t){.bridges = {
 					.DRIVE=BRIDGE_OFF,
 					.JACK=BRIDGE_OFF,
 					.AUX=BRIDGE_FWD
@@ -691,7 +691,7 @@ void control_task(void *param) {
             case STATE_CALIBRATE_JACK_DELAY:
             default:
             	// invalid state; turn all relays off
-            	driveRelays((relay_port_t){.bridges = {
+            	drive_relays((relay_port_t){.bridges = {
 					.DRIVE=BRIDGE_OFF,
 					.JACK=BRIDGE_OFF,
 					.AUX=BRIDGE_OFF

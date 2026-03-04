@@ -119,7 +119,7 @@ relay_port_t last_relay_state;
 		relay_state.bridges.BRIDGE_NAME = BRIDGE_OFF; \
 	}
 
-esp_err_t driveRelays(relay_port_t relay_state) {
+esp_err_t drive_relays(relay_port_t relay_state) {
 	// Four types of transitions.
 	// Not a transition: this does nothing
 	// Anything -> off: always allowed. Record the transition time
