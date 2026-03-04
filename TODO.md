@@ -1,0 +1,11 @@
+# TODO
+- [ ] Seamless crashing
+		- crashes need to not cause RTC to lose time
+		- the remaining_distance needs to be unaffected
+		- the equivalent of a try-catch block on the whole program
+		- this should also make a log
+- [ ] Logtool: python tool that shows logs
+		- needs to support both opening a log.bin and streaming from http://ip-address-or-hostname/log
+		- needs to have a CLI table output
+		- needs to have a GUI output (matplotlib)
+- [ ] Refactor; make sure everything adheres to naming conventions
