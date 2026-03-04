@@ -100,6 +100,9 @@ void rtc_set_s(int64_t tv_sec)
     rtc_backup_s = tv_sec;
     solar_reset_fsm();
     rtc_schedule_next_alarm();
+
+    uint64_t ts_ms = (uint64_t)tv_sec * 1000ULL;
+    log_write((uint8_t*)&ts_ms, sizeof(ts_ms), LOG_TYPE_TIME_SET);
 }
 
 void rtc_save_time(void)

@@ -1,0 +1,4 @@
+Streaming from http://sc.local/log (Ctrl-C to stop)
+
+Time  State  Bat(V)  Drive(A)  Jack(A)  Aux(A)  Counter  Stable  Raw  DrHeat  JkHeat  AxHeat
+----  -----  ------  --------  -------  ------  -------  ------  ---  ------  ------  ------

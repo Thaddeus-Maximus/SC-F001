@@ -174,8 +174,19 @@ void app_main(void) {esp_task_wdt_add(NULL);
     if (storage_init()  != ESP_OK) ESP_LOGE(TAG, "STORAGE FAILED");
     if (log_init()      != ESP_OK) ESP_LOGE(TAG, "LOG FAILED");
 
-    // Write a crash log entry if we rebooted unexpectedly
     esp_reset_reason_t reset_reason = esp_reset_reason();
+    esp_sleep_wakeup_cause_t wake_cause = esp_sleep_get_wakeup_cause();
+
+    // Log every boot: boot_info = wake_cause[7:4] | reset_reason[3:0]
+    {
+        uint8_t boot_entry[9] = {};
+        uint64_t ts = rtc_get_ms();
+        memcpy(&boot_entry[0], &ts, 8);
+        boot_entry[8] = ((uint8_t)wake_cause << 4) | ((uint8_t)reset_reason & 0x0F);
+        log_write(boot_entry, sizeof(boot_entry), LOG_TYPE_BOOT);
+    }
+
+    // Write a crash log entry if we rebooted unexpectedly
     if (reset_reason == ESP_RST_PANIC    ||
         reset_reason == ESP_RST_INT_WDT  ||
         reset_reason == ESP_RST_TASK_WDT ||

@@ -42,8 +42,12 @@ typedef enum {
 	STATE_CALIBRATE_DRIVE_DELAY,
 	STATE_CALIBRATE_DRIVE_MOVE
 } fsm_state_t;
-#define LOG_TYPE_BAT   100
-#define LOG_TYPE_CRASH 101
+#define LOG_TYPE_BAT      100
+#define LOG_TYPE_CRASH    101
+#define LOG_TYPE_BOOT     102  // Every boot: [ts_ms u64][boot_info u8]
+                               //   boot_info bits[3:0] = esp_reset_reason_t
+                               //   boot_info bits[7:4] = esp_sleep_wakeup_cause_t (non-zero only when reset=DEEPSLEEP)
+#define LOG_TYPE_TIME_SET 103  // Time sync:  [ts_ms u64]
 
 typedef enum {
 	RELAY_SENSORS = 0,

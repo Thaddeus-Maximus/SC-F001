@@ -4,10 +4,10 @@
 		- the remaining_distance needs to be unaffected
 		- the equivalent of a try-catch block on the whole program
 		- this should also make a log
-- [ ] Logtool: python tool that shows logs
-		- needs to support both opening a log.bin and streaming from http://ip-address-or-hostname/log
-		- needs to have a CLI table output
-		- needs to have a GUI output (matplotlib)
+- [x] Logtool: python tool that shows logs
+		-[x] needs to support both opening a log.bin and streaming from http://ip-address-or-hostname/log
+		-[x] needs to have a CLI table output
+		-[test] needs to have a GUI output (matplotlib)
 - [test] Refactor; make sure everything adheres to naming conventions
 - [test] Renaming wifi (should reboot the wifi/web comms to take effect)
 - [x] Make sure external RTC crystal is actually in use
