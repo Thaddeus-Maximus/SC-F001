@@ -42,7 +42,8 @@ typedef enum {
 	STATE_CALIBRATE_DRIVE_DELAY,
 	STATE_CALIBRATE_DRIVE_MOVE
 } fsm_state_t;
-#define LOG_TYPE_BAT 100
+#define LOG_TYPE_BAT   100
+#define LOG_TYPE_CRASH 101
 
 typedef enum {
 	RELAY_SENSORS = 0,

@@ -1,4 +1,5 @@
 #include "esp_task_wdt.h"
+#include "esp_system.h"
 #include "i2c.h"
 #include "log_test.h"
 #include "storage.h"
@@ -109,7 +110,8 @@ void app_main(void) {esp_task_wdt_add(NULL);
 	//run_all_log_tests();
     
     if (rtc_xtal_init() != ESP_OK) ESP_LOGE(TAG, "RTC FAILED");
-    
+    rtc_restore_time();  // Restore time from RTC backup if we crashed
+
     // Say hello; turn on the lights
     esp_sleep_wakeup_cause_t cause = rtc_wakeup_cause();
     if (i2c_init()      != ESP_OK) ESP_LOGE(TAG, "I2C FAILED");
@@ -171,9 +173,24 @@ void app_main(void) {esp_task_wdt_add(NULL);
 	if (adc_init()      != ESP_OK) ESP_LOGE(TAG, "ADC FAILED");
     if (storage_init()  != ESP_OK) ESP_LOGE(TAG, "STORAGE FAILED");
     if (log_init()      != ESP_OK) ESP_LOGE(TAG, "LOG FAILED");
+
+    // Write a crash log entry if we rebooted unexpectedly
+    esp_reset_reason_t reset_reason = esp_reset_reason();
+    if (reset_reason == ESP_RST_PANIC    ||
+        reset_reason == ESP_RST_INT_WDT  ||
+        reset_reason == ESP_RST_TASK_WDT ||
+        reset_reason == ESP_RST_WDT) {
+        ESP_LOGW(TAG, "Crash detected! Reset reason: %d", reset_reason);
+        uint8_t crash_entry[9] = {};
+        uint64_t ts = rtc_get_ms();
+        memcpy(&crash_entry[0], &ts, 8);
+        crash_entry[8] = (uint8_t)reset_reason;
+        log_write(crash_entry, sizeof(crash_entry), LOG_TYPE_CRASH);
+    }
+
     if (solar_run_fsm() != ESP_OK) ESP_LOGE(TAG, "SOLAR FAILED");
     // TODO: Do a 12V check and enter deep sleep if there's a problem
-    
+
     send_bat_log();
     
     
@@ -315,9 +332,10 @@ void app_main(void) {esp_task_wdt_add(NULL);
         	fsm_request(FSM_CMD_START);
         	rtc_schedule_next_alarm();
         }
-        	
+
         solar_run_fsm();
-        
+        rtc_save_time();   // Keep RTC backup fresh so crashes don't lose time
+
         rtc_check_shutdown_timer();
         esp_task_wdt_reset();
 	}

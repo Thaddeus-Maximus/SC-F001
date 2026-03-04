@@ -43,6 +43,9 @@ int64_t rtc_get_s (void);
 int64_t rtc_get_ms(void);
 void rtc_set_s(int64_t);
 
+void rtc_save_time(void);    // Snapshot current time to RTC memory (call periodically)
+void rtc_restore_time(void); // Restore time from RTC backup after a crash reboot
+
 void    rtc_schedule_next_alarm(void);
 int64_t rtc_get_next_alarm_s();
 

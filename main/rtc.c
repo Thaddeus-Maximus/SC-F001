@@ -34,9 +34,10 @@
 
 uint64_t last_activity_tick = 0;
 
-// RTC_DATA_ATTR keeps this var in RTC memory; persists across sleeps (but not across boots)
+// RTC_DATA_ATTR keeps these in RTC memory; persists across deep sleep AND software resets (panics, WDT)
 RTC_DATA_ATTR int64_t next_alarm_time_s = -1;
 RTC_DATA_ATTR bool rtc_set = false;
+RTC_DATA_ATTR int64_t rtc_backup_s = 0;  // Crash-safe time snapshot
 bool rtc_is_set() {
 	return rtc_set;
 }
@@ -94,8 +95,23 @@ void rtc_set_s(int64_t tv_sec)
 {
 	rtc_set = true;
     settimeofday(&(struct timeval){.tv_sec = tv_sec, .tv_usec=0}, NULL);
+    rtc_backup_s = tv_sec;
     solar_reset_fsm();
     rtc_schedule_next_alarm();
+}
+
+void rtc_save_time(void)
+{
+    if (rtc_set)
+        rtc_backup_s = rtc_get_s();
+}
+
+void rtc_restore_time(void)
+{
+    if (rtc_set && rtc_backup_s > 0) {
+        settimeofday(&(struct timeval){.tv_sec = rtc_backup_s, .tv_usec = 0}, NULL);
+        ESP_LOGI("RTC", "Time restored from crash backup: %lld", (long long)rtc_backup_s);
+    }
 }
 
 int64_t rtc_get_ms(void)
