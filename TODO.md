@@ -9,3 +9,5 @@
 		- needs to have a CLI table output
 		- needs to have a GUI output (matplotlib)
 - [ ] Refactor; make sure everything adheres to naming conventions
+- [ ] Bluetooth pairing
+- [ ] Renaming wifi (should reboot the wifi/web comms to take effect)
