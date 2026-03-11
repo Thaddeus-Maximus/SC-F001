@@ -27,5 +27,7 @@
 #define BT_HID_REPEAT_MS 50
 
 esp_err_t bt_hid_init(void);
+void bt_hid_stop(void);    // Suspend BT scan task (soft idle)
+void bt_hid_resume(void);  // Resume BT scan task (wake from soft idle)
 
 #endif /* BT_HID_H */

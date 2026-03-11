@@ -98,10 +98,10 @@ static void cmd_post(char *json_data) {
     }
     
     if (should_sleep) {
-        printf("\nEntering deep sleep in 2 seconds...\n");
+        printf("\nEntering soft idle in 2 seconds...\n");
         fflush(stdout);
         vTaskDelay(pdMS_TO_TICKS(2000));
-        rtc_enter_deep_sleep();
+        soft_idle_enter();
     }
 }
 
@@ -111,6 +111,7 @@ static void cmd_help(void) {
     printf("\nCommands:\n");
     printf("  GET                  - Get complete system status (JSON)\n");
     printf("  POST: {json}         - Send command or update parameters (JSON)\n");
+    printf("  RTCDEBUG             - Dump RTC timekeeping state (time, backup, sleep entry, clock source)\n");
     printf("  HELP                 - Show this help\n");
     printf("\nPOST JSON Format:\n");
     printf("{\n");
@@ -185,6 +186,9 @@ static void process_command(char *cmd) {
     }
     else if (strcmp(command, "HELP") == 0) {
         cmd_help();
+    }
+    else if (strcmp(command, "RTCDEBUG") == 0) {
+        rtc_print_debug();
     }
     else {
         printf("ERROR: Unknown command '%s'\n", command);

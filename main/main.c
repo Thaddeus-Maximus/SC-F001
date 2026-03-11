@@ -103,31 +103,29 @@ void drive_leds(led_state_t state) {
 	}
 }
 
-RTC_DATA_ATTR bool first_boot = true;
-
 void app_main(void) {esp_task_wdt_add(NULL);
 
 	//run_all_log_tests();
-    
-    if (rtc_xtal_init() != ESP_OK) ESP_LOGE(TAG, "RTC FAILED");
-    rtc_restore_time();  // Restore time from RTC backup if we crashed
 
-    // Say hello; turn on the lights
-    esp_sleep_wakeup_cause_t cause = rtc_wakeup_cause();
-    if (i2c_init()      != ESP_OK) ESP_LOGE(TAG, "I2C FAILED");
-    i2c_set_relays((relay_port_t){.raw=0});
-    drive_leds(LED_STATE_BOOTING);
-    
     ESP_LOGI(TAG, "Firmware: %s", FIRMWARE_STRING);
     ESP_LOGI(TAG, "Version: %s", FIRMWARE_VERSION);
     ESP_LOGI(TAG, "Branch: %s", FIRMWARE_BRANCH);
     ESP_LOGI(TAG, "Built: %s", BUILD_DATE);
+
+    if (rtc_xtal_init() != ESP_OK) ESP_LOGE(TAG, "RTC FAILED");
+    rtc_restore_time();  // Recover time from RTC domain if we crashed
+
+    // Say hello; turn on the lights
+    rtc_wakeup_cause();  // log wakeup cause (informational only)
+    if (i2c_init()      != ESP_OK) ESP_LOGE(TAG, "I2C FAILED");
+    i2c_set_relays((relay_port_t){.raw=0});
+    drive_leds(LED_STATE_BOOTING);
     
     
-    // Check for factory reset condition: Cold boot + button held
-    // This is a cold boot (power-on or hard reset)
-    // Check if button is being held (pin is LOW)
-    if (first_boot && gpio_get_level(GPIO_NUM_13) == 0) {
+    // Check for factory reset condition: Cold boot (power-on/ext-reset) + button held
+    esp_reset_reason_t boot_reset_reason = esp_reset_reason();
+    if ((boot_reset_reason == ESP_RST_POWERON || boot_reset_reason == ESP_RST_EXT)
+        && gpio_get_level(GPIO_NUM_13) == 0) {
         ESP_LOGW(TAG, "FACTORY RESET TRIGGERED - Button held on cold boot");
         
         // Flash LED pattern to indicate factory reset
@@ -209,26 +207,7 @@ void app_main(void) {esp_task_wdt_add(NULL);
 	
 	//write_dummy_log_1();
     
-    // Check wake reasons
-    // If button held, we stay #woke
-    // If not it must've been the RTC - check alarms
-    // If there's an alarm or the button was held, do a full boot
-    // Full boot will handle things from there
-    
-    // only truly wake up if we saw it on EXT0, or from alarm
-    /*if (!rtc_is_set()) {
-		//ESP_LOGI("MAIN", "RTC is not set. Can't sleep til then.");
-    } else */if (cause == ESP_SLEEP_WAKEUP_EXT0) {
-        ESP_LOGI("MAIN", "Woke from button press");
-    } else {    	
-    	if (!rtc_alarm_tripped() && !first_boot) {
-	    	rtc_enter_deep_sleep();
-    	}
-    }
-    
-    first_boot = false;
-    
-    /*** FULL BOOT ***/
+    /*** FULL BOOT — always, every boot ***/
     if (uart_init()    != ESP_OK) ESP_LOGE(TAG, "UART FAILED");
     //if (power_init()   != ESP_OK) ESP_LOGE(TAG, "POWER FAILED");
     if (rf_433_init()  != ESP_OK) ESP_LOGE(TAG, "RF FAILED");
@@ -252,8 +231,10 @@ void app_main(void) {esp_task_wdt_add(NULL);
         
         i2c_poll_buttons();
         
-        if (i2c_get_button_state(0))
+        if (i2c_get_button_state(0)) {
         	rtc_reset_shutdown_timer();
+        	soft_idle_exit();
+        }
         	
         switch (fsm_get_state()) {
 			case STATE_IDLE:
@@ -285,8 +266,8 @@ void app_main(void) {esp_task_wdt_add(NULL);
         			i2c_set_led1(state);
 				}
 				
-				// when not actively moving we log at a low frequency
-				if ((esp_timer_get_time() > last_bat_log_time + DEEP_SLEEP_US))
+				// when not actively moving we log at a low frequency (every 120s)
+				if ((esp_timer_get_time() > last_bat_log_time + 120000000ULL))
 				  send_bat_log();
 				
 				if(i2c_get_button_ms(0) > 2100)
@@ -340,13 +321,17 @@ void app_main(void) {esp_task_wdt_add(NULL);
         
         
         if (rtc_alarm_tripped()) {
+        	bool was_idle = soft_idle_is_active();
+        	soft_idle_exit();
+        	if (was_idle) {
+        		// Give WiFi softAP time to come up before movement begins
+        		vTaskDelay(pdMS_TO_TICKS(500));
+        	}
         	fsm_request(FSM_CMD_START);
         	rtc_schedule_next_alarm();
         }
 
         solar_run_fsm();
-        rtc_save_time();   // Keep RTC backup fresh so crashes don't lose time
-
         rtc_check_shutdown_timer();
         esp_task_wdt_reset();
 	}

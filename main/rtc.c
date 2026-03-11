@@ -8,6 +8,7 @@
  */
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
 
@@ -15,58 +16,55 @@
 #include "rtc.h"
 #include "control_fsm.h"
 #include "esp_sleep.h"
-#include "i2c.h" // for lcd_off()
+#include "esp_timer.h"
+#include "i2c.h"
 #include "driver/gpio.h"
 #include "rtc_wdt.h"
-#include "esp_sleep.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "i2c.h"
 #include "rtc_wdt.h"
-
-// External 32kHz crystal enabled via CONFIG_RTC_CLK_SRC_EXT_CRYS in sdkconfig.defaults
-#include "driver/rtc_io.h"  // For RTC I/O handling (optional but recommended for pin configuration)
-#include "soc/rtc.h"         // For rtc_clk_slow_src_get()
+#include "soc/rtc.h"
 #include "solar.h"
 #include "storage.h"
+#include "webserver.h"
+#include "bt_hid.h"
 
 #define PIN_BTN_INTERRUPT GPIO_NUM_13
 
+// Return microseconds from the RTC hardware timer.
+// Used ONLY in rtc_restore_time() for crash-recovery (survives panics/WDT via RTC domain).
+// RC oscillator drift (~150 kHz, ±5%) is negligible over a <30s crash restart (~1.5s worst case).
+static uint64_t rtc_hw_time_us(void)
+{
+    uint32_t cal   = rtc_clk_cal(RTC_CAL_RTC_MUX, 20);
+    uint64_t ticks = rtc_time_get();
+    return (ticks * (uint64_t)cal) >> 19;
+}
+
 uint64_t last_activity_tick = 0;
 
-// RTC_DATA_ATTR keeps these in RTC memory; persists across deep sleep AND software resets (panics, WDT)
-RTC_DATA_ATTR int64_t next_alarm_time_s = -1;
-RTC_DATA_ATTR bool rtc_set = false;
-RTC_DATA_ATTR int64_t rtc_backup_s = 0;  // Crash-safe time snapshot
+// RTC_DATA_ATTR keeps these in RTC memory; persists across software resets (panics, WDT)
+RTC_DATA_ATTR int64_t  next_alarm_time_s = -1;
+RTC_DATA_ATTR bool     rtc_set           = false;
+RTC_DATA_ATTR int64_t  sync_unix_us      = 0;   // Unix time in µs at last rtc_set_s() call
+RTC_DATA_ATTR uint64_t sync_rtc_us       = 0;   // rtc_hw_time_us() at last rtc_set_s() call (for crash recovery)
+
+// esp_timer value at last rtc_set_s() call.  NOT RTC_DATA_ATTR — resets on every boot;
+// rtc_restore_time() reinitialises it from the RTC hardware counter on crash recovery.
+static uint64_t sync_esp_us = 0;
+
+static bool in_soft_idle = false;
+
 bool rtc_is_set() {
 	return rtc_set;
 }
 
 esp_err_t rtc_xtal_init(void) {
-    /* ---- Wake sources ---- */
-    esp_sleep_enable_ext0_wakeup(PIN_BTN_INTERRUPT, 0);
+    // 32kHz crystal no longer used — time tracking via esp_timer (40MHz APB crystal).
+    // Just configure the button GPIO; no sleep wakeup sources needed.
     gpio_set_direction(PIN_BTN_INTERRUPT, GPIO_MODE_INPUT);
     gpio_set_pull_mode(PIN_BTN_INTERRUPT, GPIO_PULLUP_ONLY);
-    esp_sleep_enable_ext0_wakeup(PIN_BTN_INTERRUPT, 0);
-
-    /* ---- Enable External 32 kHz Oscillator ---- */
-    // Configure RTC I/O pins for crystal (hold in reset initially if needed)
-    rtc_gpio_init(GPIO_NUM_32);
-    rtc_gpio_init(GPIO_NUM_33);
-    rtc_gpio_set_direction(GPIO_NUM_32, RTC_GPIO_MODE_DISABLED);
-    rtc_gpio_set_direction(GPIO_NUM_33, RTC_GPIO_MODE_DISABLED);
-
-    // 32kHz crystal selected as slow clock source via CONFIG_RTC_CLK_SRC_EXT_CRYS.
-    // Verify at runtime that the clock source is actually the external crystal.
-    soc_rtc_slow_clk_src_t slow_src = rtc_clk_slow_src_get();
-    if (slow_src == SOC_RTC_SLOW_CLK_SRC_XTAL32K) {
-        ESP_LOGI("RTC", "Slow clock: external 32kHz crystal");
-    } else {
-        ESP_LOGW("RTC", "Slow clock source is %d — expected XTAL32K (%d). Check sdkconfig.",
-                 (int)slow_src, (int)SOC_RTC_SLOW_CLK_SRC_XTAL32K);
-    }
-
     return ESP_OK;
 }
 
@@ -76,54 +74,84 @@ void rtc_reset_shutdown_timer(void)
     rtc_wdt_feed();
 }
 
-void rtc_enter_deep_sleep(void)
+void soft_idle_enter(void)
 {
-	//close_current_log();
-	fsm_request(FSM_CMD_STOP);
-    i2c_stop();
-    esp_sleep_enable_timer_wakeup(DEEP_SLEEP_US);
-    esp_deep_sleep_start();
+    if (in_soft_idle) return;
+    in_soft_idle = true;
+    ESP_LOGI("RTC", "Entering soft idle (WiFi/BT off, LEDs off)");
+    webserver_stop();
+    bt_hid_stop();
+    i2c_set_led1(0);
+}
+
+bool soft_idle_is_active(void) { return in_soft_idle; }
+
+void soft_idle_exit(void)
+{
+    if (!in_soft_idle) return;
+    in_soft_idle = false;
+    ESP_LOGI("RTC", "Exiting soft idle");
+    webserver_restart_wifi();
+    bt_hid_resume();
+    rtc_reset_shutdown_timer();
 }
 
 int64_t rtc_get_s(void)
 {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (int64_t)tv.tv_sec;
+    if (!rtc_set) return 0;
+    return (int64_t)(sync_unix_us / 1000000LL)
+           + (int64_t)((esp_timer_get_time() - sync_esp_us) / 1000000LL);
 }
 
 
 void rtc_set_s(int64_t tv_sec)
 {
-	rtc_set = true;
-    settimeofday(&(struct timeval){.tv_sec = tv_sec, .tv_usec=0}, NULL);
-    rtc_backup_s = tv_sec;
+    sync_unix_us = tv_sec * 1000000LL;
+    sync_rtc_us  = rtc_hw_time_us();  // kept for crash recovery in rtc_restore_time()
+    sync_esp_us  = (uint64_t)esp_timer_get_time();
+    rtc_set      = true;
+    // Keep stdlib (gmtime_r etc.) in sync
+    settimeofday(&(struct timeval){.tv_sec = tv_sec, .tv_usec = 0}, NULL);
     solar_reset_fsm();
     rtc_schedule_next_alarm();
 
     uint64_t ts_ms = (uint64_t)tv_sec * 1000ULL;
     log_write((uint8_t*)&ts_ms, sizeof(ts_ms), LOG_TYPE_TIME_SET);
+
+    // Parseable marker used by logtool/rtc_test.py to compare device vs host time
+    ESP_LOGI("RTC", "TIME unix=%lld src=SYNC uptime=%llds",
+             (long long)tv_sec,
+             (long long)(esp_timer_get_time() / 1000000ULL));
 }
 
 void rtc_save_time(void)
 {
-    if (rtc_set)
-        rtc_backup_s = rtc_get_s();
+    // No-op: time is always derivable from sync_unix_us + rtc_hw_time_us() delta,
+    // both of which survive deep sleep and crashes via RTC_DATA_ATTR / RTC hardware.
 }
 
 void rtc_restore_time(void)
 {
-    if (rtc_set && rtc_backup_s > 0) {
-        settimeofday(&(struct timeval){.tv_sec = rtc_backup_s, .tv_usec = 0}, NULL);
-        ESP_LOGI("RTC", "Time restored from crash backup: %lld", (long long)rtc_backup_s);
-    }
+    if (!rtc_set) return;
+    // Recover time via RTC hardware counter (survives panics/WDT resets via RTC domain).
+    // RC drift during a <30s crash restart is ~1.5s worst case — acceptable.
+    int64_t t = (sync_unix_us + (int64_t)(rtc_hw_time_us() - sync_rtc_us)) / 1000000LL;
+    // Anchor esp_timer tracking to recovered time — APB timer resets on every boot.
+    sync_unix_us = t * 1000000LL;
+    sync_esp_us  = (uint64_t)esp_timer_get_time();
+    // Re-sync the stdlib clock (gettimeofday) for gmtime_r() etc.
+    settimeofday(&(struct timeval){.tv_sec = t, .tv_usec = 0}, NULL);
+
+    ESP_LOGI("RTC", "TIME unix=%lld src=CRASH uptime=%llds",
+             (long long)t,
+             (long long)(esp_timer_get_time() / 1000000ULL));
 }
 
 int64_t rtc_get_ms(void)
 {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (int64_t)tv.tv_sec * 1000ULL + tv.tv_usec / 1000ULL;
+    if (!rtc_set) return 0;
+    return sync_unix_us / 1000LL
+           + (int64_t)((esp_timer_get_time() - sync_esp_us) / 1000LL);
 }
 
 int64_t rtc_get_s_in_day(void)
@@ -147,10 +175,9 @@ esp_sleep_wakeup_cause_t rtc_wakeup_cause(void)
 /* -------------------------------------------------------------------------- */
 void rtc_check_shutdown_timer(void)
 {
-	
     TickType_t elapsed = xTaskGetTickCount() - last_activity_tick;
     if (elapsed * portTICK_PERIOD_MS >= POWER_INACTIVITY_TIMEOUT_MS)
-        rtc_enter_deep_sleep();
+        soft_idle_enter();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -252,4 +279,76 @@ bool rtc_alarm_tripped() {
         return false;
     }
     return rtc_get_s() > next_alarm_time_s;
+}
+
+static const char *reset_reason_str(esp_reset_reason_t r) {
+    switch (r) {
+        case ESP_RST_POWERON:   return "POWER_ON";
+        case ESP_RST_EXT:       return "EXT_PIN";
+        case ESP_RST_SW:        return "SOFTWARE";
+        case ESP_RST_PANIC:     return "PANIC";
+        case ESP_RST_INT_WDT:   return "INT_WDT";
+        case ESP_RST_TASK_WDT:  return "TASK_WDT";
+        case ESP_RST_WDT:       return "OTHER_WDT";
+        case ESP_RST_DEEPSLEEP: return "DEEP_SLEEP";
+        case ESP_RST_BROWNOUT:  return "BROWNOUT";
+        case ESP_RST_SDIO:      return "SDIO";
+        default:                return "UNKNOWN";
+    }
+}
+
+static const char *wakeup_cause_str(esp_sleep_wakeup_cause_t c) {
+    switch (c) {
+        case ESP_SLEEP_WAKEUP_UNDEFINED: return "UNDEFINED (normal boot/reset)";
+        case ESP_SLEEP_WAKEUP_EXT0:      return "EXT0 (button)";
+        case ESP_SLEEP_WAKEUP_TIMER:     return "TIMER";
+        default:                         return "OTHER";
+    }
+}
+
+void rtc_print_debug(void)
+{
+    int64_t now_s   = rtc_get_s();
+    int64_t uptime  = (int64_t)(esp_timer_get_time() / 1000000ULL);
+
+    // Human-readable timestamps
+    char now_str[32]   = "N/A";
+    char sync_str[32]  = "N/A";
+    char alarm_str[32] = "N/A";
+
+    if (rtc_set) {
+        time_t t;
+        struct tm tm;
+        t = (time_t)now_s;                      gmtime_r(&t, &tm);
+        strftime(now_str,  sizeof(now_str),  "%Y-%m-%d %H:%M:%S", &tm);
+        t = (time_t)(sync_unix_us / 1000000LL); gmtime_r(&t, &tm);
+        strftime(sync_str, sizeof(sync_str), "%Y-%m-%d %H:%M:%S", &tm);
+        if (next_alarm_time_s > 0) {
+            t = (time_t)next_alarm_time_s; gmtime_r(&t, &tm);
+            strftime(alarm_str, sizeof(alarm_str), "%Y-%m-%d %H:%M:%S", &tm);
+        }
+    }
+
+    esp_reset_reason_t       reset = esp_reset_reason();
+    esp_sleep_wakeup_cause_t wake  = esp_sleep_get_wakeup_cause();
+
+    printf("\n=== RTC DEBUG ===\n");
+    printf("  reset_reason:      %s (%d)\n",  reset_reason_str(reset), (int)reset);
+    printf("  wakeup_cause:      %s (%d)\n",  wakeup_cause_str(wake),  (int)wake);
+    printf("  time_source:       esp_timer (40MHz APB crystal, ~20ppm)\n");
+    printf("  32kHz_xtal:        NOT USED (deep sleep disabled)\n");
+    printf("\n");
+    uint64_t esp_us_now  = (uint64_t)esp_timer_get_time();
+    uint64_t elapsed_s   = rtc_set ? (esp_us_now - sync_esp_us) / 1000000ULL : 0;
+
+    printf("  rtc_set:           %s\n",       rtc_set ? "true" : "false");
+    printf("  current_time:      %lld  (%s UTC)\n", (long long)now_s, now_str);
+    printf("  sync_time:         %lld  (%s UTC)\n", (long long)(sync_unix_us / 1000000LL), sync_str);
+    printf("  elapsed_since_sync:%llus\n",    (unsigned long long)elapsed_s);
+    printf("  next_alarm_s:      %lld  (%s UTC)\n", (long long)next_alarm_time_s, alarm_str);
+    printf("\n");
+    printf("  uptime:            %llds\n",    (long long)uptime);
+    printf("  esp_timer_us:      %llu\n",     (unsigned long long)esp_us_now);
+    printf("  soft_idle:         %s\n",       in_soft_idle ? "YES" : "no");
+    printf("=================\n\n");
 }

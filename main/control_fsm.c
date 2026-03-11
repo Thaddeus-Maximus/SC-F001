@@ -70,7 +70,9 @@ static inline void set_timer(uint64_t us) {
 static inline bool timer_done() { return fsm_now >= timer_end; }
 
 void pulse_override(fsm_override_t cmd) {
+    if (soft_idle_is_active()) return;
     if (current_state == STATE_IDLE) {
+        rtc_reset_shutdown_timer();
         override_cmd = cmd;
         override_time = fsm_now + get_param_value_t(PARAM_RF_PULSE_LENGTH).u32;
     }
@@ -84,8 +86,13 @@ int64_t fsm_get_cal_e(){return fsm_cal_e;}
 
 void fsm_request(fsm_cmd_t cmd)
 {
-	if (fsm_cmd_queue != NULL)
-	    xQueueSend(fsm_cmd_queue, &cmd, 0);  // Safe from any context
+    // STOP always goes through (safety). All other commands are blocked during soft idle —
+    // the device must be woken by physical button or alarm before remote/RF movement is allowed.
+    if (cmd != FSM_CMD_STOP && soft_idle_is_active()) return;
+
+    rtc_reset_shutdown_timer();  // any accepted command extends the wake period
+    if (fsm_cmd_queue != NULL)
+        xQueueSend(fsm_cmd_queue, &cmd, 0);  // safe from any context
 }
 
 int8_t fsm_get_current_progress(int8_t denominator) {

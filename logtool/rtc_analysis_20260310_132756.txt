@@ -1,0 +1,45 @@
+Raw serial log : logtool/rtc_raw_20260310_132756.txt
+Analysis log   : logtool/rtc_analysis_20260310_132756.txt
+
+[1] Opening COM3 at 115200 baud and resetting board...
+    EN pulsed.  Waiting for boot...  Boot complete.
+
+
+[SYNC] Setting device RTC to host time 1773167278 (2026-03-10 18:27:58 UTC)...
+       OK
+
+[BASE] Baseline RTCDEBUG:
+       device_time  : 1773167278  (2026-03-10 18:27:58 UTC)
+       host_time    : 1773167279  (2026-03-10 18:27:59 UTC)
+       slow_clk_src : NOT XTAL32K — check crystal!
+       crystal_ok   : True
+
+
+  [sleep] Sending sleep command...
+  [wait]  135s until wakeup  (cycle 1/1, ETA 13:28:02 + 135s) 135s 130s 125s 120s 115s 110s 105s 100s 95s 90s 85s 80s 75s 70s 65s 60s 55s 50s 45s 40s 35s 30s 25s 20s 15s 10s 5s
+  [wake]  Reconnecting to COM3...
+    Prompt not seen — forcing board reset...
+[POST] Post-sleep RTCDEBUG:
+       device_time  : 3  (1970-01-01 00:00:03 UTC)
+       host_time    : 1773167436  (2026-03-10 18:30:36 UTC)
+       slow_clk_src : NOT XTAL32K — check crystal!
+       sleep_add    : 0s
+       reset_reason : POWER_ON
+
+
+  Cycle  Host time (UTC)      Device time (UTC)    CycDrift  CumDrift    Rate s/hr  XTAL    Notes
+  -----  -------------------  -------------------  --------  --------  ----------  ------  -----
+      1  2026-03-10 18:30:36  1970-01-01 00:00:03  -1773167432s  -1773167432s  -40658616275.2  OK      
+
+=== RESULT ===
+  host elapsed  : 157s
+  device elapsed: -1773167275s
+  drift         : -1773167432s
+
+  [FAIL] Clock accuracy  (-1773167432s (tolerance +/-5s))
+  [FAIL] reset_reason == DEEP_SLEEP  (POWER_ON)
+  [FAIL] sleep_add == 120s  (0s)
+  [PASS] 32kHz crystal running  (NOT XTAL32K — check crystal!)
+  [FAIL] rtc_set == true  (false)
+
+Overall: FAIL

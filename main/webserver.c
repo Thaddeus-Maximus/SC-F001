@@ -529,10 +529,10 @@ static esp_err_t post_handler(httpd_req_t *req) {
     }
 
     if (should_sleep) {
-        ESP_LOGI(TAG, "Sleeping in 2 seconds...");
+        ESP_LOGI(TAG, "Entering soft idle in 2 seconds...");
         vTaskDelay(pdMS_TO_TICKS(2000));
-        rtc_enter_deep_sleep();
-        return ESP_OK;  // Never reached
+        soft_idle_enter();
+        return ESP_OK;
     }
     
     err = httpd_resp_set_hdr(req, "Connection", "close");
@@ -794,6 +794,7 @@ httpd_uri_t uris[] = {{
 **********************************************************/
 
 bool server_running = false;
+static bool s_wifi_running = false;
 
 static esp_err_t start_http_server(void) {
 	if (server_running) return ESP_OK;
@@ -999,6 +1000,7 @@ static esp_err_t launch_soft_ap(void) {
         ESP_LOGE(TAG, "Failed to start WiFi: %s", esp_err_to_name(err));
         return err;
     }
+    s_wifi_running = true;
 
     // Start DNS server with your specific hostname
     err = simple_dns_server_start("192.168.4.1");
@@ -1040,11 +1042,23 @@ static esp_err_t launch_soft_ap(void) {
     return ESP_OK;
 }
 
+esp_err_t webserver_stop(void) {
+    stop_http_server();
+    if (s_wifi_running) {
+        esp_wifi_stop();
+        s_wifi_running = false;
+    }
+    return ESP_OK;
+}
+
 esp_err_t webserver_restart_wifi(void) {
     ESP_LOGI(TAG, "Restarting WiFi AP with updated params...");
 
     stop_http_server();
-    esp_wifi_stop();
+    if (s_wifi_running) {
+        esp_wifi_stop();
+        s_wifi_running = false;
+    }
 
     wifi_config_t wifi_config = {
         .ap = {
@@ -1068,6 +1082,7 @@ esp_err_t webserver_restart_wifi(void) {
 
     esp_wifi_set_config(WIFI_IF_AP, &wifi_config);
     esp_wifi_start();
+    s_wifi_running = true;
     start_http_server();
 
     ESP_LOGI(TAG, "WiFi AP restarted. New SSID: %s, Channel: %d",

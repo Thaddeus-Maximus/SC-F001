@@ -1,0 +1,369 @@
+[13:34:45.721 RX] ets Jul 29 2019 12:21:46
+[13:34:45.721 RX] 
+[13:34:45.721 RX] rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+[13:34:45.721 RX] configsip: 0, SPIWP:0xee
+[13:34:45.721 RX] clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+[13:34:45.721 RX] mode:DIO, clock div:2
+[13:34:45.721 RX] load:0x3fff0030,len:7176
+[13:34:45.721 RX] load:0x40078000,len:160
+[13:34:45.771 RX] 92
+[13:34:45.771 RX] ho 0 tail 12 room 4
+[13:34:45.771 RX] load:0x40080400,len:4
+[13:34:45.771 RX] load:0x40080404,len:3912
+[13:34:45.771 RX] entry 0x40080640
+[13:34:45.771 RX] I (31) boot: ESP-IDF v5.3.1-dirty 2nd stage bootloader
+[13:34:45.771 RX] I (31) boot: compile time Mar  4 2026 13:08:05
+[13:34:45.771 RX] I (31) boot: Multicore bootload
+[13:34:45.822 RX] er
+[13:34:45.822 RX] I (36) boot: chip revision: v3.1
+[13:34:45.822 RX] I (40) boot.esp32: SPI Speed      : 40MHz
+[13:34:45.822 RX] I (44) boot.esp32: SPI Mode       : DIO
+[13:34:45.822 RX] I (49) boot.esp32: SPI Flash Size : 8MB
+[13:34:45.822 RX] I (53) boot: Enabling RNG early entrop
+[13:34:45.872 RX] y source...
+[13:34:45.872 RX] I (59) boot: Partition Table:
+[13:34:45.872 RX] I (62) boot: ## Label            Usage          Type ST Offset   Length
+[13:34:45.872 RX] I (70) boot:  0 nvs              WiFi data        01 02 00009000 00004000
+[13:34:45.872 RX] I (77) boot:  1 otad
+[13:34:45.923 RX] ata          OTA data         01 00 0000d000 00002000
+[13:34:45.923 RX] I (84) boot:  2 phy_init         RF data          01 01 0000f000 00001000
+[13:34:45.923 RX] I (92) boot:  3 ota_0            OTA app          00 10 00010000 00180000
+[13:34:45.923 RX] I (99) boot:  4 ot
+[13:34:45.973 RX] a_1            OTA app          00 11 00190000 00180000
+[13:34:45.973 RX] I (107) boot:  5 storage          Unknown data     01 40 00310000 00020000
+[13:34:45.973 RX] I (114) boot: End of partition table
+[13:34:45.973 RX] I (119) esp_image: segment 0: paddr=00010020 vaddr=3
+[13:34:46.024 RX] f400020 size=409d0h (264656) map
+[13:34:46.024 RX] I (218) esp_image: segment 1: paddr=000509f8 vaddr=3ff80063 size=00008h (     8) load
+[13:34:46.024 RX] I (218) esp_image: segment 2: paddr=00050a08 vaddr=3ffbdb60 size=0648ch ( 25740) load
+[13:34:46.024 RX] I (233) esp_ima
+[13:34:46.286 RX] ge: segment 3: paddr=00056e9c vaddr=40080000 size=0917ch ( 37244) load
+[13:34:46.286 RX] I (248) esp_image: segment 4: paddr=00060020 vaddr=400d0020 size=ffbf0h (1047536) map
+[13:34:46.286 RX] I (607) esp_image: segment 5: paddr=0015fc18 vaddr=4008
+[13:34:46.336 RX] 917c size=11f50h ( 73552) load
+[13:34:46.337 RX] I (636) esp_image: segment 6: paddr=00171b70 vaddr=400c0000 size=00064h (   100) load
+[13:34:46.337 RX] I (637) esp_image: segment 7: paddr=00171bdc vaddr=50000000 size=0004ch (    76) load
+[13:34:46.337 RX] I (656) boot: Loa
+[13:34:46.517 RX] ded app from partition at offset 0x10000
+[13:34:46.517 RX] I (656) boot: Disabling RNG early entropy source...
+[13:34:46.517 RX] I (668) cpu_start: Multicore app
+[13:34:46.517 RX] W (830) clk: 32 kHz XTAL not found, switching to internal 150 kHz oscillator
+[13:34:46.517 RX] I (83
+[13:34:46.568 RX] 8) cpu_start: Pro cpu start user code
+[13:34:46.568 RX] I (838) cpu_start: cpu freq: 160000000 Hz
+[13:34:46.568 RX] I (838) app_init: Application information:
+[13:34:46.568 RX] I (843) app_init: Project name:     SC-F001
+[13:34:46.568 RX] I (848) app_init: App version:      e2451
+[13:34:46.618 RX] fc-dirty
+[13:34:46.618 RX] I (853) app_init: Compile time:     Mar  5 2026 16:20:24
+[13:34:46.618 RX] I (859) app_init: ELF file SHA256:  3aee52b89...
+[13:34:46.618 RX] I (865) app_init: ESP-IDF:          v5.3.1-dirty
+[13:34:46.618 RX] I (870) efuse_init: Min chip rev:     v0.0[
+[13:34:46.668 RX] 0m
+[13:34:46.668 RX] I (875) efuse_init: Max chip rev:     v3.99 
+[13:34:46.668 RX] I (880) efuse_init: Chip rev:         v3.1
+[13:34:46.668 RX] I (885) heap_init: Initializing. RAM available for dynamic allocation:
+[13:34:46.668 RX] I (892) heap_init: At 3FFAFF10 len 000000F0 (0 KiB
+[13:34:46.718 RX] ): DRAM
+[13:34:46.718 RX] I (898) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+[13:34:46.718 RX] I (904) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+[13:34:46.718 RX] I (910) heap_init: At 3FFCDD48 len 000122B8 (72 KiB): DRAM
+[13:34:46.718 RX] I (916) heap_init: At 3F
+[13:34:46.769 RX] FE0440 len 00003AE0 (14 KiB): D/IRAM
+[13:34:46.769 RX] I (922) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+[13:34:46.769 RX] I (929) heap_init: At 4009B0CC len 00004F34 (19 KiB): IRAM
+[13:34:46.769 RX] I (937) spi_flash: detected chip: generic
+[13:34:46.769 RX] I (940) 
+[13:34:46.819 RX] spi_flash: flash io: dio
+[13:34:46.819 RX] W (944) i2c: This driver is an old driver, please migrate your application code to adapt `driver/i2c_master.h`
+[13:34:46.819 RX] I (955) coexist: coex firmware version: 4482466
+[13:34:46.819 RX] I (960) main_task: Started on CPU0[
+[13:34:46.869 RX] 0m
+[13:34:46.869 RX] I (970) main_task: Calling app_main()
+[13:34:46.869 RX] W (970) RTC: Slow clock source is 0 — expected XTAL32K (1). Check sdkconfig.
+[13:34:46.869 RX] I (970) RTC: Wakeup: normal boot
+[13:34:46.869 RX] I (980) MAIN: Firmware: V_e2451fc-dirty (2026-03-05 22:20:2
+[13:34:46.920 RX] 2)
+[13:34:46.920 RX] I (980) MAIN: Version: e2451fc-dirty
+[13:34:46.920 RX] I (990) MAIN: Branch: main
+[13:34:46.920 RX] I (990) MAIN: Built: 2026-03-05 22:20:22
+[13:34:46.920 RX] I (990) STORAGE: Initializing storage system...
+[13:34:46.920 RX] I (1000) STORAGE: Storage partition foun
+[13:34:46.970 RX] d: size=131072 bytes
+[13:34:46.970 RX] I (1010) STORAGE: Log init: scanning 28 sectors with bisection
+[13:34:46.970 RX] I (1030) STORAGE: Log system initialized (bisection). Head: 131072, Tail: 16384
+[13:34:46.970 RX] I (1030) STORAGE: Log writer task started
+[13:34:46.970 RX] I 
+[13:34:47.021 RX] (1030) STORAGE: Log wr
+[13:34:47.021 RX] 
+[13:34:47.021 RX] ========================================
+[13:34:47.021 RX]   UART JSON Interface Ready
+[13:34:47.021 RX] ========================================
+[13:34:47.021 RX] Type 'HELP' for available commands
+[13:34:47.021 RX] Type 'GET' to see system status
+[13:34:47.021 RX] 
+[13:34:47.021 RX] > I (1050) UART: UART interface started
+[13:34:47.072 RX] 
+[13:34:47.072 RX] I (1050) gpio: GPIO[25]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+[13:34:47.072 RX] I (1060) RF: RF receiver task started on core 0
+[13:34:47.072 RX] I (1070) BTDM_INIT: BT controller compile version [b022216]
+[13:34:47.072 RX] I (
+[13:34:47.123 RX] 1070) BTDM_INIT: Bluetooth MAC: 94:54:c5:38:c4:3a
+[13:34:47.123 RX] I (1080) phy_init: phy_version 4830,54550f7,Jun 20 2024,14:22:08
+[13:34:47.123 RX] E (1090) phy_init: esp_phy_load_cal_data_from_nvs: NVS has not been initialized. Call nvs_flash_init before starting 
+[13:34:47.174 RX] WiFi/BT.
+[13:34:47.174 RX] W (1100) phy_init: failed to load RF calibration data (0x1101), falling back to full calibration
+[13:34:47.174 RX] W (1170) phy_init: saving new calibration data because of checksum failure, mode(2)
+[13:34:47.174 RX] E (1410) BT_OSI: config_new: N
+[13:34:47.224 RX] VS not initialized. Call nvs_flash_init before initializing bluetooth.
+[13:34:47.224 RX] W (1410) BT_BTC: btc_config_init unable to load config file; starting unconfigured.
+[13:34:47.224 RX] 
+[13:34:47.224 RX] E (1420) BT_OSI: config_save: NVS not initialized. Call nvs_flash_init befo
+[13:34:47.225 TX] POST: {"time": 1773167687}
+[13:34:47.250 RX] alizing bluetooth.
+[13:34:47.250 RX] E (1540) BT_OSI: config_save, err_code: 0x2
+[13:34:47.250 RX] 
+[13:34:47.250 RX] E (1540) BT_OSI: config_save: NVS not initialized. Call nvs_flash_init before initializing bluetooth.
+[13:34:47.250 RX] E (1550) BT_OSI: config_save, err_code: 0x2
+[13:34:47.250 RX] 
+[13:34:47.250 RX] [
+[13:34:47.301 RX] 0;32mI (1560) BT_HID: Scanning for HID devices (3s)...
+[13:34:47.301 RX] I (1560) BT_HID: BLE HID host initialised
+[13:34:47.301 RX] POST: {"time": 1773167687}[13:34:47.301 RX] 
+[13:34:47.301 RX] 
+[13:34:47.301 RX] I (1570) gpio: GPIO[14]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 
+[13:34:47.301 RX] [0
+[13:34:47.351 RX] ;32mI (1570) COMMS: Setting time to 1773167687
+[13:34:47.351 RX] I (1580) ALARM: SET FOR 1773168516 (in 829 s)
+[13:34:47.351 RX] I (1580) gpio: GPIO[27]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 
+[13:34:47.351 RX] {
+[13:34:47.351 RX] 	"status":	"ok",
+[13:34:47.351 RX] 	"params_updated"
+[13:34:47.402 RX] :	0,
+[13:34:47.402 RX] 	"params_failed":	0,
+[13:34:47.402 RX] 	"cmd_executed":	false
+[13:34:47.402 RX] }
+[13:34:47.402 RX] I (1590) STORAGE: Wrote; Tail/Head are now 16384/131093
+[13:34:47.402 RX] 
+[13:34:47.402 RX] > 
+[13:34:47.402 RX] 
+[13:34:47.402 RX] 
+[13:34:47.402 RX] > I (1570) WEBSERVER: Initializing webserver...
+[13:34:47.402 RX] I (1620) WEBSERVER: AP LAUNCHING
+[13:34:47.402 RX] I (1640) WE
+[13:34:47.452 RX] BSERVER: AP LAUNCHING...
+[13:34:47.452 RX] I (1640) WEBSERVER: HI THERE
+[13:34:47.452 RX] I (1660) wifi:wifi driver task: 3ffe2808, prio:23, stack:6656, core=0
+[13:34:47.452 RX] I (1670) wifi:wifi firmware version: ccaebfa
+[13:34:47.452 RX] I (1670) wifi:wifi certification version: v7.0
+[13:34:47.452 RX] I (1670) wifi:config
+[13:34:47.502 RX]  NVS flash: enabled
+[13:34:47.502 RX] I (1670) wifi:config nano formating: disabled
+[13:34:47.502 RX] I (1670) wifi:Init data frame dynamic rx buffer num: 32
+[13:34:47.502 RX] I (1680) wifi:Init static rx mgmt buffer num: 5
+[13:34:47.502 RX] I (1680) wifi:Init management short buffer num: 32
+[13:34:47.502 RX] I (1680) wifi:Init dynamic tx 
+[13:34:47.553 RX] buffer num: 32
+[13:34:47.553 RX] I (1690) wifi:Init static rx buffer size: 1600
+[13:34:47.553 RX] I (1690) wifi:Init static rx buffer num: 10
+[13:34:47.553 RX] I (1700) wifi:Init dynamic rx buffer num: 32
+[13:34:47.553 RX] I (1700) wifi_init: rx ba win: 6
+[13:34:47.553 RX] I (1700) wifi_init: accept mbox: 6
+[13:34:47.553 RX] I 
+[13:34:47.603 RX] (1710) wifi_init: tcpip mbox: 32
+[13:34:47.603 RX] I (1710) wifi_init: udp mbox: 6
+[13:34:47.603 RX] I (1720) wifi_init: tcp mbox: 6
+[13:34:47.603 RX] I (1720) wifi_init: tcp tx win: 5760
+[13:34:47.603 RX] I (1720) wifi_init: tcp rx win: 5760
+[13:34:47.603 RX] I (1730) wifi_init: tcp m
+[13:34:47.604 TX] RTCDEBUG
+[13:34:47.645 RX] RTCDEBUG[13:34:47.645 RX] 
+[13:34:47.645 RX] 
+[13:34:47.645 RX] === RTC DEBUG ===
+[13:34:47.645 RX]   reset_reason:      POWER_ON (1)
+[13:34:47.645 RX]   wakeup_cause:      UNDEFINED (normal boot/reset) (0)
+[13:34:47.645 RX]   slow_clk_src:      NOT XTAL32K — check crystal! (0)
+[13:34:47.645 RX] 
+[13:34:47.645 RX]   rtc_set:           true
+[13:34:47.645 RX]   current_time:      1773167687  (2026-03-10 18
+[13:34:47.695 RX] :34:47 UTC)
+[13:34:47.695 RX]   rtc_backup_s:      1773167687  (2026-03-10 18:34:47 UTC)
+[13:34:47.695 RX]   rtc_sleep_entry_s: 0  (N/A UTC)
+[13:34:47.695 RX]   next_alarm_s:      1773168516  (2026-03-10 18:48:36 UTC)
+[13:34:47.695 RX] 
+[13:34:47.695 RX]   uptime:            1s
+[13:34:47.695 RX]   clock_offset:      1773167686s  (current - uptime; stable =
+[13:34:47.959 RX]  good)
+[13:34:47.959 RX]   sleep_add:         0s  (added to entry_s on this boot, 0 if no sleep)
+[13:34:47.960 RX] =================
+[13:34:47.960 RX] 
+[13:34:47.960 RX] 
+[13:34:47.960 RX] > 
+[13:34:47.960 RX] 
+[13:34:47.960 RX] 
+[13:34:47.960 RX] > 
+[13:34:48.234 TX] POST: {"cmd":"sleep"}
+[13:37:03.247 RX] i_flash: detected chip: generic
+[13:37:03.247 RX] I (939) spi_flash:                                                               Log writer task started
+[13:37:03.247 RX] I (1040) STORAGE: Log writer task created successfully
+[13:37:03.247 RX] I (1040) STORAGE: Wrote; Tai
+[13:37:03.512 RX] l/Head are now 16384/131083
+[13:37:03.512 RX] I (1050) STORAGE: Wrote; Tail/Head are now 16384/131097
+[13:37:06.400 TX] 
+[13:37:09.530 TX] 
+[13:37:12.664 TX] 
+[13:37:15.803 TX] 
+[13:37:18.937 TX] 
+[13:37:22.069 TX] 
+[13:37:25.204 TX] 
+[13:37:28.333 TX] 
+[13:37:31.471 TX] 
+[13:37:34.955 TX] 
+[13:37:35.109 RX] I (607) esp_image: segment 5: paddr=0015fc18 vaddr=4008917c size=11f50h ( 73552) load
+[13:37:35.109 RX] I (636) esp_image: segment 6: paddr=00171b70 vaddr=400c0000 size=00064h (   100) load
+[13:37:35.109 RX] I (637) esp_image: segment 7: paddr=00171bdc vaddr=50
+[13:37:35.292 RX] 000000 size=0004ch (    76) load
+[13:37:35.292 RX] I (656) boot: Loaded app from partition at offset 0x10000
+[13:37:35.292 RX] I (656) boot: Disabling RNG early entropy source...
+[13:37:35.292 RX] I (668) cpu_start: Multicore app
+[13:37:35.292 RX] W (830) clk: 32 kHz XTAL not fou
+[13:37:35.342 RX] nd, switching to internal 150 kHz oscillator
+[13:37:35.342 RX] I (838) cpu_start: Pro cpu start user code
+[13:37:35.342 RX] I (838) cpu_start: cpu freq: 160000000 Hz
+[13:37:35.342 RX] I (839) app_init: Application information:
+[13:37:35.342 RX] I (843) app_init: Project name:    
+[13:37:35.392 RX]  SC-F001
+[13:37:35.392 RX] I (848) app_init: App version:      e2451fc-dirty
+[13:37:35.392 RX] I (853) app_init: Compile time:     Mar  5 2026 16:20:24
+[13:37:35.392 RX] I (859) app_init: ELF file SHA256:  3aee52b89...
+[13:37:35.392 RX] I (865) app_init: ESP-IDF:          v5.3.1-
+[13:37:35.442 RX] dirty
+[13:37:35.442 RX] I (870) efuse_init: Min chip rev:     v0.0
+[13:37:35.442 RX] I (875) efuse_init: Max chip rev:     v3.99 
+[13:37:35.442 RX] I (880) efuse_init: Chip rev:         v3.1
+[13:37:35.442 RX] I (885) heap_init: Initializing. RAM available for dynamic allocation:
+[13:37:35.492 RX] [0m
+[13:37:35.492 RX] I (892) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+[13:37:35.493 RX] I (898) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+[13:37:35.493 RX] I (904) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+[13:37:35.493 RX] I (910) heap_init: At 3FFCDD48 le
+[13:37:35.544 RX] n 000122B8 (72 KiB): DRAM
+[13:37:35.544 RX] I (916) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+[13:37:35.544 RX] I (922) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+[13:37:35.544 RX] I (929) heap_init: At 4009B0CC len 00004F34 (19 KiB): IRAM
+[13:37:35.544 RX] 
+[13:37:35.594 RX] I (937) spi_flash: detected chip: generic
+[13:37:35.594 RX] I (940) spi_flash: flash io: dio
+[13:37:35.594 RX] W (944) i2c: This driver is an old driver, please migrate your application code to adapt `driver/i2c_master.h`
+[13:37:35.594 RX] I (955) coexist: coex firmware ver
+[13:37:35.644 RX] sion: 4482466
+[13:37:35.644 RX] I (960) main_task: Started on CPU0
+[13:37:35.644 RX] I (970) main_task: Calling app_main()
+[13:37:35.644 RX] W (970) RTC: Slow clock source is 0 — expected XTAL32K (1). Check sdkconfig.
+[13:37:35.644 RX] I (970) RTC: Wakeup: normal boot
+[13:37:35.644 RX] [0;
+[13:37:35.695 RX] 32mI (980) MAIN: Firmware: V_e2451fc-dirty (2026-03-05 22:20:22)
+[13:37:35.695 RX] I (980) MAIN: Version: e2451fc-dirty
+[13:37:35.695 RX] I (990) MAIN: Branch: main
+[13:37:35.695 RX] I (990) MAIN: Built: 2026-03-05 22:20:22
+[13:37:35.695 RX] I (990) STORAGE: Initializing storage 
+[13:37:35.745 RX] system...
+[13:37:35.745 RX] I (1000) STORAGE: Storage partition found: size=131072 bytes
+[13:37:35.745 RX] I (1010) STORAGE: Log init: scanning 28 sectors with bisection
+[13:37:35.745 RX] I (1030) STORAGE: Log system initialized (bisection). Head: 131072, Tail: 16384
+[13:37:35.745 RX] 
+[13:37:35.796 RX] [0;32mI (1030) STORAGE: Log writer task started
+[13:37:35.796 RX] I (1030) STORAGE: Log writ
+[13:37:35.796 RX] 
+[13:37:35.796 RX] ========================================
+[13:37:35.796 RX]   UART JSON Interface Ready
+[13:37:35.796 RX] ========================================
+[13:37:35.796 RX] Type 'HELP' for available commands
+[13:37:35.796 RX] Type 'GET' to see
+[13:37:35.846 RX]  system status
+[13:37:35.846 RX] 
+[13:37:35.846 RX] > I (1050) UART: UART interface started
+[13:37:35.846 RX] I (1050) gpio: GPIO[25]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+[13:37:35.846 RX] I (1060) RF: RF receiver task started on core 0
+[13:37:35.846 RX] [13:37:35.846 RX] 
+[13:37:35.846 RX] 
+[13:37:35.846 RX] > 
+[13:37:35.846 RX] 
+[13:37:35.846 RX] 
+[13:37:35.846 RX] > [0
+[13:37:35.897 RX] ;32mI (1070) BTDM_INIT: BT controller compile version [b022216]
+[13:37:35.897 RX] I (1080) BTDM_INIT: Bluetooth MAC: 94:54:c5:38:c4:3a
+[13:37:35.897 RX] I (1080) phy_init: phy_version 4830,54550f7,Jun 20 2024,14:22:08
+[13:37:35.898 RX] E (1090) phy_init: esp_phy_load_cal_da
+[13:37:35.949 RX] ta_from_nvs: NVS has not been initialized. Call nvs_flash_init before starting WiFi/BT.
+[13:37:35.949 RX] W (1100) phy_init: failed to load RF calibration data (0x1101), falling back to full calibration
+[13:37:35.949 RX] W (1170) phy_init: saving new calibration data 
+[13:37:35.999 RX] because of checksum failure, mode(2)
+[13:37:35.999 RX] E (1410) BT_OSI: config_new: NVS not initialized. Call nvs_flash_init before initializing bluetooth.
+[13:37:35.999 RX] W (1410) BT_BTC: btc_config_init unable to load config file; starting unconfigured.
+[13:37:35.999 RX] 
+[13:37:35.999 RX] [0
+[13:37:36.049 RX] ;31mE (1420) BT_OSI: config_save: NVS not initialized. Call nvs_flash_init before initializing bluetooth.
+[13:37:36.049 RX] E (1430) BT_OSI: config_save, err_code: 0x2
+[13:37:36.049 RX] 
+[13:37:36.049 RX] E (1490) BT_APPL: bta_gattc_co_cache_addr_init, Line = 436, nvs flash open fail,
+[13:37:36.050 TX] RTCDEBUG
+[13:37:36.074 RX] in: 0| Pullup: 1| Pulldown: 0| Intr:3 
+[13:37:36.074 RX] I (1570) WEBSERVER: Initializing webserver...
+[13:37:36.074 RX] I (1580) gpio: GPIO[27]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 
+[13:37:36.074 RX] I (1590) WEBSERVER: AP LAUNCHING
+[13:37:36.074 RX] R
+[13:37:36.124 RX] TCDEBUG[13:37:36.124 RX] 
+[13:37:36.124 RX] 
+[13:37:36.124 RX] === RTC DEBUG ===
+[13:37:36.124 RX]   reset_reason:      POWER_ON (1)
+[13:37:36.124 RX]   wakeup_cause:      UNDEFINED (normal boot/reset) (0)
+[13:37:36.124 RX]   slow_cl_src:      NOT XTAL32K — check crystal! (0)
+[13:37:36.124 RX] 
+[13:37:36.124 RX]   rtc_set:           false
+[13:37:36.124 RX]   current_time:      0  (N/A UTC)
+[13:37:36.124 RX]   rtc_backup_
+[13:37:36.175 RX] s:      0  (N/A UTC)
+[13:37:36.175 RX]   rtc_sleep_entry_s: 0  (N/A UTC)
+[13:37:36.175 RX]   next_alarm_s:      -1  (N/A UTC)
+[13:37:36.175 RX] 
+[13:37:36.175 RX]   uptime:            0s
+[13:37:36.175 RX]   clock_offset:      0s  (current - uptime; stable = good)
+[13:37:36.175 RX]   sleep_add:         0s  (added to entry_s on this boot, 0 if no sleep)
+[13:37:36.175 RX] ===
+[13:37:36.227 RX] ==============
+[13:37:36.227 RX] 
+[13:37:36.227 RX] 
+[13:37:36.227 RX] > 
+[13:37:36.227 RX] 
+[13:37:36.227 RX] 
+[13:37:36.227 RX] > I (1650) WEBSERVER: AP LAUNCHING...
+[13:37:36.227 RX] I (1650) WEBSERVER: HI THERE
+[13:37:36.227 RX] I (1670) wifi:wifi driver task: 3ffe2808, prio:23, stack:6656, core=0
+[13:37:36.227 RX] I (1680) wifi:wifi firmware version: ccaebfa
+[13:37:36.227 RX] I (1680) wifi:wifi c
+[13:37:36.277 RX] ertification version: v7.0
+[13:37:36.277 RX] I (1680) wifi:config NVS flash: enabled
+[13:37:36.277 RX] I (1680) wifi:config nano formating: disabled
+[13:37:36.277 RX] I (1680) wifi:Init data frame dynamic rx buffer num: 32
+[13:37:36.277 RX] I (1690) wifi:Init static rx mgmt buffer num: 5
+[13:37:36.277 RX] I (1690) wifi:Init management shor
+[13:37:36.327 RX] t buffer num: 32
+[13:37:36.327 RX] I (1700) wifi:Init dynamic tx buffer num: 32
+[13:37:36.327 RX] I (1700) wifi:Init static rx buffer size: 1600
+[13:37:36.327 RX] I (1700) wifi:Init static rx buffer num: 10
+[13:37:36.327 RX] I (1710) wifi:Init dynamic rx buffer num: 32
+[13:37:36.327 RX] I (1720) wifi_init: rx ba win: 6
+[13:37:36.327 RX] I
+[13:37:36.378 RX]  (1720) wifi_init: accept mbox: 6
+[13:37:36.378 RX] I (1720) wifi_init: tcpip mbox: 32
+[13:37:36.378 RX] I (1720) wifi_init: udp mbox: 6
+[13:37:36.378 RX] I (1730) wifi_init: tcp mbox: 6
+[13:37:36.378 RX] I (1730) wifi_init: tcp tx win: 5760
+[13:37:36.378 RX] I (1740) wifi_init: tcp rx
+[13:37:36.428 RX]  win: 5760
+[13:37:36.428 RX] I (1740) wifi_init: tcp mss: 1440
+[13:37:36.428 RX] I (1750) wifi:mode : softAP (94:54:c5:38:c4:39)
+[13:37:36.428 RX] I (1760) wifi:Total power save buffer number: 16
+[13:37:36.428 RX] I (1760) wifi:Init max length of beacon: 752/752
+[13:37:36.428 RX] I (1760) wifi:Init max length of beacon: 752/

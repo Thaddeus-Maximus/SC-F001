@@ -60,7 +60,7 @@
 // ---------------------------------------------------------------------------
 
 #define TAG                     "BT_HID"
-#define BT_HID_SCAN_DURATION_S  5
+#define BT_HID_SCAN_DURATION_S  3   /* ceiling only — scan stops early on first HID hit */
 #define BT_HID_RECONNECT_MS     2000
 #define BT_HID_BOND_TIMEOUT_MS  5000   /* wait for saved device before scanning */
 #define BT_HID_CONNECT_WAIT_MS  5000   /* wait after open() before next loop */
@@ -103,8 +103,13 @@ static portMUX_TYPE      s_mux     = portMUX_INITIALIZER_UNLOCKED;
 static SemaphoreHandle_t s_scan_sem = NULL;
 
 /* Set once we have a saved BDA from NVS (direct reconnect path). */
-static bool          s_has_saved_bda  = false;
-static esp_bd_addr_t s_saved_bda      = {0};
+static bool                 s_has_saved_bda   = false;
+static esp_bd_addr_t        s_saved_bda       = {0};
+static esp_ble_addr_type_t  s_saved_addr_type = BLE_ADDR_TYPE_RANDOM;
+
+/* Address type used for the most recent esp_hidh_dev_open() call.
+ * Set immediately before open so the OPEN callback can persist it. */
+static esp_ble_addr_type_t  s_connect_addr_type = BLE_ADDR_TYPE_RANDOM;
 
 // ---------------------------------------------------------------------------
 // Scan-result list (heap-allocated, freed after each scan round)
@@ -120,6 +125,8 @@ typedef struct scan_result_s {
 
 static scan_result_t *s_scan_results     = NULL;
 static size_t         s_num_scan_results = 0;
+
+static TaskHandle_t   s_scan_task_handle = NULL;
 
 static scan_result_t *find_scan_result(const esp_bd_addr_t bda)
 {
@@ -163,23 +170,29 @@ static void free_scan_results(void)
 // NVS helpers — store / load the last-connected BDA
 // ---------------------------------------------------------------------------
 
-static void nvs_save_bda(const esp_bd_addr_t bda)
+static void nvs_save_bda(const esp_bd_addr_t bda, esp_ble_addr_type_t addr_type)
 {
     nvs_handle_t h;
     if (nvs_open(BT_HID_NVS_NAMESPACE, NVS_READWRITE, &h) != ESP_OK) return;
     nvs_set_blob(h, BT_HID_NVS_BDA_KEY, bda, sizeof(esp_bd_addr_t));
+    nvs_set_u8(h, "addr_type", (uint8_t)addr_type);
     nvs_commit(h);
     nvs_close(h);
-    ESP_LOGI(TAG, "Saved BDA %02x:%02x:%02x:%02x:%02x:%02x to NVS",
-             bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
+    ESP_LOGI(TAG, "Saved BDA %02x:%02x:%02x:%02x:%02x:%02x (addr_type=%d) to NVS",
+             bda[0], bda[1], bda[2], bda[3], bda[4], bda[5], (int)addr_type);
 }
 
-static bool nvs_load_bda(esp_bd_addr_t out_bda)
+static bool nvs_load_bda(esp_bd_addr_t out_bda, esp_ble_addr_type_t *out_addr_type)
 {
     nvs_handle_t h;
     if (nvs_open(BT_HID_NVS_NAMESPACE, NVS_READONLY, &h) != ESP_OK) return false;
     size_t len = sizeof(esp_bd_addr_t);
     bool ok = (nvs_get_blob(h, BT_HID_NVS_BDA_KEY, out_bda, &len) == ESP_OK);
+    if (ok) {
+        uint8_t at = (uint8_t)BLE_ADDR_TYPE_RANDOM;
+        nvs_get_u8(h, "addr_type", &at);  /* missing key → stays RANDOM, safe default */
+        *out_addr_type = (esp_ble_addr_type_t)at;
+    }
     nvs_close(h);
     return ok;
 }
@@ -229,7 +242,7 @@ static void hidh_callback(void *handler_args,
             memcpy(s_remote.bda, bda, sizeof(esp_bd_addr_t));
             taskEXIT_CRITICAL(&s_mux);
 
-            nvs_save_bda(bda);
+            nvs_save_bda(bda, s_connect_addr_type);
         } else {
             ESP_LOGE(TAG, "OPEN failed, status=%d", p->open.status);
         }
@@ -339,6 +352,9 @@ static void ble_gap_event_handler(esp_gap_ble_cb_event_t   event,
                             param->scan_rst.ble_addr_type,
                             name,
                             param->scan_rst.rssi);
+
+            /* Stop scanning immediately — we have what we need. */
+            esp_ble_gap_stop_scanning();
             break;
         }
 
@@ -405,7 +421,8 @@ static void bt_hid_scan_task(void *pvParameters)
          * BLE_ADDR_TYPE_RANDOM is the most common for consumer remotes; if it
          * fails the outer scan loop will find it correctly.
          */
-        esp_hidh_dev_open(s_saved_bda, ESP_HID_TRANSPORT_BLE, BLE_ADDR_TYPE_RANDOM);
+        s_connect_addr_type = s_saved_addr_type;
+        esp_hidh_dev_open(s_saved_bda, ESP_HID_TRANSPORT_BLE, s_saved_addr_type);
         vTaskDelay(pdMS_TO_TICKS(BT_HID_BOND_TIMEOUT_MS));
 
         /* If the open succeeded the state will be CONNECTED — skip to main loop. */
@@ -461,6 +478,7 @@ static void bt_hid_scan_task(void *pvParameters)
                      best->bda[3], best->bda[4], best->bda[5],
                      best->name, best->rssi);
 
+            s_connect_addr_type = best->addr_type;
             esp_hidh_dev_open(best->bda, ESP_HID_TRANSPORT_BLE, best->addr_type);
             free_scan_results();
 
@@ -536,7 +554,7 @@ esp_err_t bt_hid_init(void)
     }
 
     /* Try to load a previously bonded device address from NVS. */
-    s_has_saved_bda = nvs_load_bda(s_saved_bda);
+    s_has_saved_bda = nvs_load_bda(s_saved_bda, &s_saved_addr_type);
     if (s_has_saved_bda) {
         ESP_LOGI(TAG, "Found saved BDA in NVS — will try direct reconnect first");
     }
@@ -551,8 +569,24 @@ esp_err_t bt_hid_init(void)
      * Priority 4: above webserver (typically 5–6 on core 0) is fine; below
      * the FSM (10) and RF task (5) so control always wins CPU.
      */
-    xTaskCreate(bt_hid_scan_task, "bt_hid_scan", 6 * 1024, NULL, 4, NULL);
+    xTaskCreate(bt_hid_scan_task, "bt_hid_scan", 6 * 1024, NULL, 4, &s_scan_task_handle);
 
     ESP_LOGI(TAG, "BLE HID host initialised");
     return ESP_OK;
+}
+
+void bt_hid_stop(void)
+{
+    if (s_scan_task_handle != NULL) {
+        vTaskSuspend(s_scan_task_handle);
+        ESP_LOGI(TAG, "BT HID scan task suspended");
+    }
+}
+
+void bt_hid_resume(void)
+{
+    if (s_scan_task_handle != NULL) {
+        vTaskResume(s_scan_task_handle);
+        ESP_LOGI(TAG, "BT HID scan task resumed");
+    }
 }

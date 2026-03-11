@@ -23,7 +23,7 @@ The SC-F001 is a **solar-powered automated crop harvesting robot** built on the 
 | 25 | 433MHz RF receiver (RMT input) |
 | 26 | Solar charger bulk enable (RTC GPIO, holds across deep sleep) |
 | 27 | Safety sensor (active low) |
-| 32/33 | External 32kHz RTC crystal |
+| 32/33 | External 32.768 kHz RTC crystal (standard watch crystal, 2¹⁵ Hz) |
 | 36 (VP) | ADC: drive current sense |
 | 39 (VN) | ADC: battery voltage |
 | 34 | ADC: jack current sense |
@@ -219,6 +219,24 @@ Safety break → immediate `STATE_UNDO_JACK_START`.
 - RF: `KEYCODE_0` … `KEYCODE_7`
 - WiFi: `WIFI_SSID`, `WIFI_PASS`, `WIFI_CHANNEL`
 - Schedule: `NUM_MOVES`, `MOVE_START`, `MOVE_END` (seconds-since-midnight)
+
+---
+
+## RTC & 32.768 kHz Crystal
+
+**Crystal:** Standard 32.768 kHz (32768 Hz = 2¹⁵ Hz) tuning-fork watch crystal on GPIO32/GPIO33. This frequency is universal for RTCs because it divides to exactly 1 Hz with a 15-bit binary counter.
+
+**sdkconfig.defaults settings:**
+- `CONFIG_RTC_CLK_SRC_EXT_CRYS=y` — selects the external crystal as the RTC slow clock source instead of the internal ~150 kHz RC oscillator
+- `CONFIG_ESP32_RTC_EXT_CRYST_ADDIT_CURRENT_V2=y` — enables extra drive current during the crystal startup window; required for high-ESR tuning-fork crystals (e.g. CM315D32768DZFT ~70 kΩ ESR)
+
+**Known startup failure mode:** On power-on, the ESP32 bootloader attempts to calibrate the crystal. If it fails to detect oscillation within its calibration window, it logs `W: 32 kHz XTAL not found, switching to internal 150 kHz oscillator` and falls back to the RC oscillator. The RC oscillator has ±5% accuracy, producing up to ~180 s/hr of RTC drift — this completely breaks harvest scheduling.
+
+**Firmware mitigation (`rtc_xtal_init()` in `rtc.c`):** If `rtc_clk_slow_src_get()` does not return `SOC_RTC_SLOW_CLK_SRC_XTAL32K` at startup, the code applies a manual bootstrap: `rtc_clk_32k_bootstrap(20000)` (~600 ms of extra drive current at 32 kHz cycles), waits 500 ms for oscillation to stabilise, then calls `rtc_clk_slow_src_set(SOC_RTC_SLOW_CLK_SRC_XTAL32K)` to switch explicitly. Success or failure is logged via `ESP_LOGI/LOGE`.
+
+**Diagnosing crystal issues:** Run `RTCDEBUG` over UART and check `slow_clk_src`. It reports either `XTAL32K (OK)` or `NOT XTAL32K — check crystal!`. The `logtool/rtc_test.py` script automates this and runs multi-cycle drift tests.
+
+**Time persistence across deep sleep:** `rtc_backup_s` and `rtc_sleep_entry_s` are `RTC_DATA_ATTR` (survive deep sleep). On wakeup, `rtc_restore_time()` adds exactly `DEEP_SLEEP_US / 1e6` seconds to `rtc_sleep_entry_s` to reconstruct the correct time without an NTP sync.
 
 ---
 

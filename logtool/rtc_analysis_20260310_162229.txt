@@ -1,0 +1,21 @@
+Raw log      : logtool/rtc_raw_20260310_162229.txt
+Analysis log : logtool/rtc_analysis_20260310_162229.txt
+Port         : COM3  115200 baud
+Ctrl+C to stop.
+
+[16:22:29.657] Resetting board...
+[16:22:32.317] Boot complete.
+
+[16:22:32.318] Syncing device RTC to host: 1773177752 (2026-03-10 21:22:32 UTC)...
+[16:22:32.647] Sync OK.
+
+
+  #   Wall clock (host)      Device time (UTC)    Diff    Source  Uptime
+  --  -------------------  -------------------  ------  --------  ------
+
+Streaming... (device will sleep after 180s inactivity, wake every 120s)
+
+
+
+[16:23:07.577] Stopped by user.
+No TIME events captured.

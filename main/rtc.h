@@ -20,7 +20,6 @@
 
 
 #define POWER_INACTIVITY_TIMEOUT_MS 180000
-#define DEEP_SLEEP_US 120000000ULL /* 120 seconds in deep sleep */
 
 /* -------------------------------------------------------------------------- */
 /*  Public API                                                                */
@@ -33,7 +32,9 @@ bool rtc_is_set();
 
 void rtc_check_shutdown_timer();
 void rtc_reset_shutdown_timer(); // reset shutoff timer
-void rtc_enter_deep_sleep();
+void soft_idle_enter(void);
+void soft_idle_exit(void);
+bool soft_idle_is_active(void);
 esp_sleep_wakeup_cause_t rtc_wakeup_cause();
 
 /*void adjust_rtc_hour(char *key, int8_t dir);
@@ -43,13 +44,15 @@ int64_t rtc_get_s (void);
 int64_t rtc_get_ms(void);
 void rtc_set_s(int64_t);
 
-void rtc_save_time(void);    // Snapshot current time to RTC memory (call periodically)
-void rtc_restore_time(void); // Restore time from RTC backup after a crash reboot
+void rtc_save_time(void);    // No-op: time is always live via rtc_get_s()
+void rtc_restore_time(void); // Re-syncs stdlib clock on boot; emits TIME log marker
 
 void    rtc_schedule_next_alarm(void);
 int64_t rtc_get_next_alarm_s();
 
 bool rtc_alarm_tripped();
+
+void rtc_print_debug(void); // Dump full RTC state to stdout (UART)
 
 /* -------------------------------------------------------------------------- */
 #endif /* MAIN_RTC_H_ */

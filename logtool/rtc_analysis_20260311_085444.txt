@@ -1,0 +1,5 @@
+Raw log      : logtool/rtc_raw_20260311_085444.txt
+Analysis log : logtool/rtc_analysis_20260311_085444.txt
+Port         : COM3  115200 baud
+Ctrl+C to stop.
+

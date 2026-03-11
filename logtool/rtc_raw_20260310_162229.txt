@@ -1,0 +1,276 @@
+[16:22:29.810 RX] ets Jul 29 2019 12:21:46
+[16:22:29.810 RX] 
+[16:22:29.810 RX] rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+[16:22:29.810 RX] configsip: 0, SPIWP:0xee
+[16:22:29.810 RX] clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+[16:22:29.810 RX] mode:DIO, clock div:2
+[16:22:29.810 RX] load:0x3fff0030,len:7176
+[16:22:29.810 RX] load:0x40078000,len:160
+[16:22:29.860 RX] 92
+[16:22:29.860 RX] ho 0 tail 12 room 4
+[16:22:29.860 RX] load:0x40080400,len:4
+[16:22:29.860 RX] load:0x40080404,len:3912
+[16:22:29.860 RX] entry 0x40080640
+[16:22:29.860 RX] I (31) boot: ESP-IDF v5.3.1-dirty 2nd stage bootloader
+[16:22:29.860 RX] I (31) boot: compile time Mar  4 2026 13:08:05
+[16:22:29.860 RX] I (31) boot: Multicore bootload
+[16:22:29.921 RX] er
+[16:22:29.921 RX] I (36) boot: chip revision: v3.1
+[16:22:29.921 RX] I (40) boot.esp32: SPI Speed      : 40MHz
+[16:22:29.921 RX] I (44) boot.esp32: SPI Mode       : DIO
+[16:22:29.921 RX] I (49) boot.esp32: SPI Flash Size : 8MB
+[16:22:29.921 RX] I (53) boot: Enabling RNG early entrop
+[16:22:29.971 RX] y source...
+[16:22:29.971 RX] I (59) boot: Partition Table:
+[16:22:29.971 RX] I (62) boot: ## Label            Usage          Type ST Offset   Length
+[16:22:29.971 RX] I (70) boot:  0 nvs              WiFi data        01 02 00009000 00004000
+[16:22:29.971 RX] I (77) boot:  1 otad
+[16:22:30.022 RX] ata          OTA data         01 00 0000d000 00002000
+[16:22:30.022 RX] I (84) boot:  2 phy_init         RF data          01 01 0000f000 00001000
+[16:22:30.022 RX] I (92) boot:  3 ota_0            OTA app          00 10 00010000 00180000
+[16:22:30.022 RX] I (99) boot:  4 ot
+[16:22:30.073 RX] a_1            OTA app          00 11 00190000 00180000
+[16:22:30.073 RX] I (107) boot:  5 storage          Unknown data     01 40 00310000 00020000
+[16:22:30.073 RX] I (114) boot: End of partition table
+[16:22:30.073 RX] I (119) esp_image: segment 0: paddr=00010020 vaddr=3
+[16:22:30.123 RX] f400020 size=40a70h (264816) map
+[16:22:30.123 RX] I (218) esp_image: segment 1: paddr=00050a98 vaddr=3ff80063 size=00008h (     8) load
+[16:22:30.123 RX] I (218) esp_image: segment 2: paddr=00050aa8 vaddr=3ffbdb60 size=0648ch ( 25740) load
+[16:22:30.123 RX] I (233) esp_ima
+[16:22:30.376 RX] ge: segment 3: paddr=00056f3c vaddr=40080000 size=090dch ( 37084) load
+[16:22:30.376 RX] I (248) esp_image: segment 4: paddr=00060020 vaddr=400d0020 size=ffc84h (1047684) map
+[16:22:30.376 RX] I (607) esp_image: segment 5: paddr=0015fcac vaddr=400890dc size=12200h ( 7
+[16:22:30.427 RX] 4240) load
+[16:22:30.427 RX] I (637) esp_image: segment 6: paddr=00171eb4 vaddr=400c0000 size=00064h (   100) load
+[16:22:30.427 RX] I (637) esp_image: segment 7: paddr=00171f20 vaddr=50000000 size=0004ch (    76) load
+[16:22:30.427 RX] I (657) boot: Loaded app from partiti
+[16:22:30.606 RX] on at offset 0x10000
+[16:22:30.606 RX] I (657) boot: Disabling RNG early entropy source...
+[16:22:30.606 RX] I (669) cpu_start: Multicore app
+[16:22:30.606 RX] W (830) clk: 32 kHz XTAL not found, switching to internal 150 kHz oscillator
+[16:22:30.606 RX] I (839) cpu_start: Pro cp
+[16:22:30.657 RX] u start user code
+[16:22:30.657 RX] I (839) cpu_start: cpu freq: 160000000 Hz
+[16:22:30.657 RX] I (839) app_init: Application information:
+[16:22:30.657 RX] I (843) app_init: Project name:     SC-F001
+[16:22:30.657 RX] I (848) app_init: App version:      e2451fc-dirty
+[16:22:30.657 RX] [0;32
+[16:22:30.707 RX] mI (854) app_init: Compile time:     Mar  5 2026 16:20:24
+[16:22:30.707 RX] I (860) app_init: ELF file SHA256:  dafdfaaee...
+[16:22:30.707 RX] I (865) app_init: ESP-IDF:          v5.3.1-dirty
+[16:22:30.707 RX] I (870) efuse_init: Min chip rev:     v0.0
+[16:22:30.707 RX] I (875) e
+[16:22:30.758 RX] fuse_init: Max chip rev:     v3.99 
+[16:22:30.758 RX] I (880) efuse_init: Chip rev:         v3.1
+[16:22:30.758 RX] I (885) heap_init: Initializing. RAM available for dynamic allocation:
+[16:22:30.758 RX] I (892) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+[16:22:30.758 RX] 
+[16:22:30.808 RX] I (898) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+[16:22:30.808 RX] I (904) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+[16:22:30.808 RX] I (910) heap_init: At 3FFCDD48 len 000122B8 (72 KiB): DRAM
+[16:22:30.808 RX] I (916) heap_init: At 3FFE0440 len 00003AE0 
+[16:22:30.858 RX] (14 KiB): D/IRAM
+[16:22:30.858 RX] I (923) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+[16:22:30.858 RX] I (929) heap_init: At 4009B2DC len 00004D24 (19 KiB): IRAM
+[16:22:30.858 RX] I (937) spi_flash: detected chip: generic
+[16:22:30.858 RX] I (940) spi_flash: flash io:
+[16:22:30.910 RX]  dio
+[16:22:30.910 RX] W (944) i2c: This driver is an old driver, please migrate your application code to adapt `driver/i2c_master.h`
+[16:22:30.910 RX] I (955) coexist: coex firmware version: 4482466
+[16:22:30.910 RX] I (961) main_task: Started on CPU0
+[16:22:30.910 RX] I (971) m
+[16:22:31.170 RX] ain_task: Calling app_main()
+[16:22:31.170 RX] W (971) RTC: Crystal not running at boot (src=0), attempting bootstrap...
+[16:22:31.895 RX] E (2101) RTC: Crystal not oscillating after bootstrap (cal=0) — staying on RC, timekeeping inaccurate
+[16:22:31.895 RX] I (2101) RTC: Wakeup: normal boot
+[16:22:31.895 RX] I (2111) MAIN: Firmware: V_e2451fc-dirty (2026-03-05 22:20:22)
+[16:22:31.895 RX] I (2111) MAI
+[16:22:31.946 RX] N: Version: e2451fc-dirty
+[16:22:31.946 RX] I (2121) MAIN: Branch: main
+[16:22:31.946 RX] I (2121) MAIN: Built: 2026-03-05 22:20:22
+[16:22:31.946 RX] I (2121) STORAGE: Initializing storage system...
+[16:22:31.946 RX] I (2131) STORAGE: Storage partition found: size=131072 bytes[0
+[16:22:31.996 RX] m
+[16:22:31.996 RX] I (2141) STORAGE: Log init: scanning 28 sectors with bisection
+[16:22:31.996 RX] I (2161) STORAGE: Log system initialized (bisection). Head: 131072, Tail: 16384
+[16:22:31.996 RX] I (2161) STORAGE: Log writer task started
+[16:22:31.996 RX] I (2161) STORAGE: Log wri
+[16:22:32.046 RX] 
+[16:22:32.046 RX] 
+[16:22:32.046 RX] ========================================
+[16:22:32.046 RX]   UART JSON Interface Ready
+[16:22:32.046 RX] ========================================
+[16:22:32.046 RX] Type 'HELP' for available commands
+[16:22:32.046 RX] Type 'GET' to see system status
+[16:22:32.046 RX] 
+[16:22:32.046 RX] > I (2181) UART: UART interface started
+[16:22:32.046 RX] I (2181) 
+[16:22:32.097 RX] gpio: GPIO[25]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+[16:22:32.097 RX] I (2191) RF: RF receiver task started on core 0
+[16:22:32.097 RX] I (2201) BTDM_INIT: BT controller compile version [b022216]
+[16:22:32.097 RX] I (2211) BTDM_INIT: Bluet
+[16:22:32.147 RX] ooth MAC: 94:54:c5:38:c4:3a
+[16:22:32.147 RX] I (2211) phy_init: phy_version 4830,54550f7,Jun 20 2024,14:22:08
+[16:22:32.147 RX] E (2221) phy_init: esp_phy_load_cal_data_from_nvs: NVS has not been initialized. Call nvs_flash_init before starting WiFi/BT.
+[16:22:32.147 RX] W
+[16:22:32.317 RX]  (2231) phy_init: failed to load RF calibration data (0x1101), falling back to full calibration
+[16:22:32.317 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:32.317 RX] W (2301) phy_init: saving new calibration data because of checksum failure, mode(2)
+[16:22:32.317 RX] [0
+[16:22:32.318 TX] POST: {"time": 1773177752}
+[16:22:32.344 RX] nvs_flash_init before initializing bluetooth.
+[16:22:32.344 RX] W (2551) BT_BTC: btc_config_init unable to load config file; starting unconfigured.
+[16:22:32.344 RX] 
+[16:22:32.344 RX] E (2551) BT_OSI: config_save: NVS not initialized. Call nvs_flash_init before initializing bluetooth
+[16:22:32.394 RX] .
+[16:22:32.394 RX] E (2561) BT_OSI: config_save, err_code: 0x2
+[16:22:32.394 RX] 
+[16:22:32.394 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:32.394 RX] POST: {"time": 1773177752}[16:22:32.394 RX] 
+[16:22:32.394 RX] 
+[16:22:32.394 RX] I (2581) COMMS: Setting time to 1773177752
+[16:22:32.394 RX] I (2581) ALARM: SET FOR 1773178549 (in 797
+[16:22:32.444 RX]  s)
+[16:22:32.444 RX] I (2581) RTC: TIME unix=1773177752 src=SYNC uptime=1s
+[16:22:32.444 RX] I (2581) STORAGE: Wrote; Tail/Head are now 16384/131093
+[16:22:32.444 RX] {
+[16:22:32.444 RX] 	"status":	"ok",
+[16:22:32.444 RX] 	"params_updated":	0,
+[16:22:32.444 RX] 	"params_failed":	0,
+[16:22:32.444 RX] 	"cmd_executed":	false
+[16:22:32.444 RX] }
+[16:22:32.444 RX] 
+[16:22:32.444 RX] > 
+[16:22:32.444 RX] 
+[16:22:32.444 RX] 
+[16:22:32.444 RX] > E
+[16:22:32.496 RX]  (2621) BT_APPL: bta_gattc_co_cache_addr_init, Line = 436, nvs flash open fail, err_code = 1101
+[16:22:32.496 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:32.496 RX] E (2641) BT_OSI: config_save: NVS not initialized. Call nvs_flash_init before initializing b
+[16:22:32.546 RX] luetooth.
+[16:22:32.546 RX] E (2651) BT_OSI: config_save, err_code: 0x2
+[16:22:32.546 RX] 
+[16:22:32.546 RX] E (2651) BT_OSI: config_save: NVS not initialized. Call nvs_flash_init before initializing bluetooth.
+[16:22:32.546 RX] E (2661) BT_OSI: config_save, err_code: 0x2
+[16:22:32.546 RX] 
+[16:22:32.546 RX] E (2
+[16:22:32.596 RX] 671) BT_OSI: config_save: NVS not initialized. Call nvs_flash_init before initializing bluetooth.
+[16:22:32.596 RX] E (2681) BT_OSI: config_save, err_code: 0x2
+[16:22:32.596 RX] 
+[16:22:32.596 RX] E (2681) BT_OSI: config_save: NVS not initialized. Call nvs_flash_init before initializi
+[16:22:32.647 RX] ng bluetooth.
+[16:22:32.647 RX] E (2691) BT_OSI: config_save, err_code: 0x2
+[16:22:32.647 RX] 
+[16:22:32.647 RX] I (2701) BT_HID: Scanning for HID devices (3s)...
+[16:22:32.647 RX] I (2701) BT_HID: BLE HID host initialised
+[16:22:32.647 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:32.647 RX] 
+[16:22:32.649 RX] I (2711) gpio: GPIO[14]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 
+[16:22:32.649 RX] I (2711) WEBSERVER: Initializing webserver...
+[16:22:32.649 RX] I (2721) gpio: GPIO[27]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| In
+[16:22:32.649 RX] tr:3 
+[16:22:32.649 RX] I (2741) WEBSERVER: AP LAUNCHING
+[16:22:32.649 RX] I (2761) WEBSERVER: AP LAUNCHING...
+[16:22:32.649 RX] I (2771) WEBSERVER: HI THERE
+[16:22:32.649 RX] I (2781) wifi:wifi driver task: 3ffe27f0, prio:23, stack:6656, core=0
+[16:22:32.649 RX] I (2781) wifi:wifi firmware version: cca
+[16:22:32.649 RX] ebfa
+[16:22:32.649 RX] I (2791) wifi:wifi certification version: v7.0
+[16:22:32.649 RX] I (2791) wifi:config NVS flash: enabled
+[16:22:32.649 RX] I (2791) wifi:config nano formating: disabled
+[16:22:32.649 RX] I (2791) wifi:Init data frame dynamic rx buffer num: 32
+[16:22:32.649 RX] I (2801) wifi:Init static rx mgmt buffer num: 5
+[16:22:32.649 RX] I (2801)
+[16:22:32.649 RX]  wifi:Init management short buffer num: 32
+[16:22:32.649 RX] I (2801) wifi:Init dynamic tx buffer num: 32
+[16:22:32.649 RX] I (2811) wifi:Init static rx buffer size: 1600
+[16:22:32.649 RX] I (2811) wifi:Init static rx buffer num: 10
+[16:22:32.649 RX] I (2821) wifi:Init dynamic rx buffer num: 32
+[16:22:32.649 RX] I (2821) wifi_init: 
+[16:22:32.650 RX] rx ba win: 6
+[16:22:32.650 RX] I (2821) wifi_init: accept mbox: 6
+[16:22:32.650 RX] I (2831) wifi_init: tcpip mbox: 32
+[16:22:32.650 RX] I (2831) wifi_init: udp mbox: 6
+[16:22:32.650 RX] I (2841) wifi_init: tcp mbox: 6
+[16:22:32.650 RX] I (2841) wifi_init: tcp tx win: 5760
+[16:22:32.650 RX] 
+[16:22:32.650 RX] I (2841) wifi_init: tcp rx win: 5760
+[16:22:32.650 RX] I (2851) wifi_init: tcp mss: 1440
+[16:22:32.650 RX] I (2861) wifi:mode : softAP (94:54:c5:38:c4:39)
+[16:22:32.650 RX] I (2871) wifi:Total power save buffer number: 16
+[16:22:32.650 RX] I (2871) wifi:Init max length of beacon: 752/752
+[16:22:32.650 RX] I (2871) wifi:Init 
+[16:22:32.673 RX] max length of beacon: 752/752
+[16:22:32.673 RX] I (2881) esp_netif_lwip: DHCP server started on interface WIFI_AP_DEF with IP: 192.168.4.1
+[16:22:32.673 RX] I (2881) DNS_SERVER: DNS server started on port 53
+[16:22:32.673 RX] I (2891) mdns_mem: mDNS task will be created from in
+[16:22:32.695 RX] ternal RAM
+[16:22:32.695 RX] I (2891) WEBSERVER: SoftAP ready. SSID: sc.local, Channel: 6, Password: password
+[16:22:32.695 RX] I (2901) WEBSERVER: Access at: http://sc.local or http://sc.local.local or http://192.168.4.1
+[16:22:32.695 RX] I (2911) WEBSERVER: AP LAUNCHED[0
+[16:22:32.716 RX] m
+[16:22:32.716 RX] I (2911) WEBSERVER: STARTING HTTP
+[16:22:32.716 RX] I (2921) WEBSERVER: HTTP server started successfully
+[16:22:32.716 RX] I (2921) WEBSERVER: Registered URI handler: /
+[16:22:32.716 RX] I (2931) WEBSERVER: Registered URI handler: /get
+[16:22:32.716 RX] I (2931) WEBSERV
+[16:22:32.737 RX] ER: Registered URI handler: /post
+[16:22:32.737 RX] I (2941) WEBSERVER: Registered URI handler: /log
+[16:22:32.737 RX] I (2941) WEBSERVER: Registered URI handler: /ota
+[16:22:32.737 RX] I (2951) WEBSERVER: Registered URI handler: /*
+[16:22:32.737 RX] I (2951) WEBSERVER: Webserver
+[16:22:32.950 RX]  initialization complete
+[16:22:32.950 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:34.021 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:35.694 RX] I (5721) BT_HID: Found 0 HID device(s)
+[16:22:35.694 RX] I (5721) BT_HID: No HID devices found, retrying in 2000ms...
+[16:22:35.694 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:36.110 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:37.354 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:37.557 RX] I (7721) BT_HID: Scanning for HID devices (3s)...
+[16:22:40.071 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:40.488 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:40.701 RX] I (10731) BT_HID: Found 0 HID device(s)
+[16:22:40.701 RX] I (10731) BT_HID: No HID devices found, retrying in 2000ms...
+[16:22:40.915 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:42.576 RX] I (12731) BT_HID: Scanning for HID devices (3s)...
+[16:22:42.789 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:43.191 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:44.037 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:45.517 RX] I (15741) BT_HID: Found 0 HID device(s)
+[16:22:45.518 RX] I (15741) BT_HID: No HID devices found, retrying in 2000ms...
+[16:22:46.989 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:47.618 RX] I (17741) BT_HID: Scanning for HID devices (3s)...
+[16:22:47.618 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:47.831 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:48.259 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:49.315 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:49.315 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:50.586 RX] I (20751) BT_HID: Found 0 HID device(s)
+[16:22:50.586 RX] I (20751) BT_HID: No HID devices found, retrying in 2000ms...
+[16:22:52.246 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:52.662 RX] I (22751) BT_HID: Scanning for HID devices (3s)...
+[16:22:52.662 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:53.074 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:53.288 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:53.503 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:53.703 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:53.915 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:54.116 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:54.116 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:55.372 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:55.574 RX] I (25761) BT_HID: Found 0 HID device(s)
+[16:22:55.574 RX] I (25761) BT_HID: No HID devices found, retrying in 2000ms...
+[16:22:57.637 RX] I (27761) BT_HID: Scanning for HID devices (3s)...
+[16:22:57.839 RX] E rmt: hw buffer too small, received symbols truncated
+[16:22:57.839 RX] E rmt: hw buffer too small, received symbols truncated
+[16:23:00.549 RX] I (30771) BT_HID: Found 0 HID device(s)
+[16:23:00.549 RX] I (30771) BT_HID: No HID devices found, retrying in 2000ms...
+[16:23:01.783 RX] E rmt: hw buffer too small, received symbols truncated
+[16:23:02.623 RX] I (32771) BT_HID: Scanning for HID devices (3s)...
+[16:23:03.027 RX] E rmt: hw buffer too small, received symbols truncated
+[16:23:03.241 RX] E rmt: hw buffer too small, received symbols truncated
+[16:23:04.289 RX] E rmt: hw buffer too small, received symbols truncated
+[16:23:05.746 RX] I (35781) BT_HID: Found 0 HID device(s)
+[16:23:05.746 RX] I (35781) BT_HID: No HID devices found, retrying in 2000ms...
+[16:23:06.365 RX] E rmt: hw buffer too small, received symbols truncated
