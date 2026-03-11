@@ -88,6 +88,8 @@ typedef struct {
     PARAM_DEF(CHG_BULK_S, u32, 20, "s") \
     PARAM_DEF(RF_PULSE_LENGTH, u32, 350000, "us") \
     PARAM_DEF(V_SENS_OFFSET, f32, 0.4, "V") \
+    PARAM_DEF(NET_SSID, str, "", "") \
+    PARAM_DEF(NET_PASS, str, "", "") \
     PARAM_DEF(WIFI_CHANNEL, u16, 6, "") \
     PARAM_DEF(WIFI_SSID, str, "sc.local", "") \
     PARAM_DEF(WIFI_PASS, str, "password", "") \

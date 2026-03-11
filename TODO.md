@@ -12,4 +12,9 @@
 - [test] Renaming wifi (should reboot the wifi/web comms to take effect)
 - [x] Make sure external RTC crystal is actually in use
 - [x] Warn if time is de-synced from client by more than 5 minutes
-- [ ] Bluetooth pairing
+- [x] Bluetooth pairing
+- [ ] WiFi Network Connection
+	- add entries for wifi network ssid/password
+	- try to connect to the wifi network first
+	- if that fails then broadcast ad-hoc network like currently
+- [ ] Hard Reset

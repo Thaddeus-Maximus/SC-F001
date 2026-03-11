@@ -345,7 +345,9 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
 
             if (param_idx == PARAM_WIFI_SSID ||
                 param_idx == PARAM_WIFI_PASS ||
-                param_idx == PARAM_WIFI_CHANNEL) {
+                param_idx == PARAM_WIFI_CHANNEL ||
+                param_idx == PARAM_NET_SSID  ||
+                param_idx == PARAM_NET_PASS) {
                 wifi_params_changed = true;
             }
             

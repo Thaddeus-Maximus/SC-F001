@@ -20,6 +20,7 @@
 #include "string.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_task_wdt.h"
 #include "esp_wifi.h"
 #include "esp_system.h"
 #include "esp_event.h"
@@ -823,6 +824,12 @@ httpd_uri_t uris[] = {{
 bool server_running = false;
 static bool s_wifi_running = false;
 
+static esp_netif_t      *s_ap_netif      = NULL;
+static esp_netif_t      *s_sta_netif     = NULL;
+static bool              s_wifi_initted  = false;
+static SemaphoreHandle_t s_sta_sem       = NULL;
+static bool              s_sta_connected = false;
+
 static esp_err_t start_http_server(void) {
 	if (server_running) return ESP_OK;
 	ESP_LOGI(TAG, "STARTING HTTP");
@@ -877,175 +884,232 @@ static esp_err_t stop_http_server(void) {
     return ESP_OK;
 }
 
-/* Event handler for WiFi events */
+/* Event handler for WiFi + IP events */
 
 int n_connected = 0;
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
-                                    int32_t event_id, void* event_data) {
-    
-    
-    if (event_id == WIFI_EVENT_AP_STACONNECTED) {
-        wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
-        ESP_LOGI(TAG, "Station connected, AID=%d", event->aid);
-        rtc_reset_shutdown_timer();
-        n_connected ++;
-        if (n_connected > 0)
-        	start_http_server();
-        
-    } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
-        wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
-        ESP_LOGI(TAG, "Station disconnected, AID=%d", event->aid);
-        n_connected --;
-        if (n_connected <= 0)
-        	stop_http_server();
+                                int32_t event_id, void* event_data) {
+    if (event_base == WIFI_EVENT) {
+        if (event_id == WIFI_EVENT_AP_STACONNECTED) {
+            wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
+            ESP_LOGI(TAG, "Station connected, AID=%d", event->aid);
+            rtc_reset_shutdown_timer();
+            n_connected++;
+            if (n_connected > 0) start_http_server();
+        } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
+            wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
+            ESP_LOGI(TAG, "Station disconnected, AID=%d", event->aid);
+            n_connected--;
+            if (n_connected <= 0) stop_http_server();
+        } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
+            s_sta_connected = false;
+            if (s_sta_sem) xSemaphoreGive(s_sta_sem);
+        }
+    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        ip_event_got_ip_t *e = (ip_event_got_ip_t *)event_data;
+        ESP_LOGI(TAG, "STA connected, IP: " IPSTR, IP2STR(&e->ip_info.ip));
+        s_sta_connected = true;
+        if (s_sta_sem) xSemaphoreGive(s_sta_sem);
     }
 }
 
-static esp_err_t launch_soft_ap(void) {
-    esp_err_t err;
-    
-    
-    ESP_LOGI(TAG, "AP LAUNCHING");
-    
-    ESP_LOGI(TAG, "AP LAUNCHING...");
+/* One-time WiFi driver + event system init (guarded by s_wifi_initted) */
+static esp_err_t wifi_common_init(void) {
+    if (s_wifi_initted) return ESP_OK;
 
-    err = esp_netif_init();
+    esp_err_t err = esp_netif_init();
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize netif: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "esp_netif_init failed: %s", esp_err_to_name(err));
         return err;
     }
-    
+
     err = esp_event_loop_create_default();
     if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "Failed to create event loop: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "esp_event_loop_create_default failed: %s", esp_err_to_name(err));
         return err;
-    }
-
-    esp_netif_t *ap_netif = esp_netif_create_default_wifi_ap();
-    if (ap_netif == NULL) {
-        ESP_LOGE(TAG, "Failed to create default WiFi AP interface");
-        return ESP_FAIL;
-    }
-
-    err = esp_netif_set_hostname(ap_netif, HOSTNAME);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set hostname: %s", esp_err_to_name(err));
-        // Non-critical, continue
     }
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     err = esp_wifi_init(&cfg);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize WiFi: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "esp_wifi_init failed: %s", esp_err_to_name(err));
         return err;
     }
 
-    err = esp_event_handler_instance_register(WIFI_EVENT,
-                                              ESP_EVENT_ANY_ID,
-                                              &wifi_event_handler,
-                                              NULL,
-                                              NULL);
+    err = esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
+                                              &wifi_event_handler, NULL, NULL);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to register event handler: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Failed to register WIFI_EVENT handler: %s", esp_err_to_name(err));
         return err;
     }
+
+    err = esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
+                                              &wifi_event_handler, NULL, NULL);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to register IP_EVENT handler: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    s_wifi_initted = true;
+    return ESP_OK;
+}
+
+/* Attempt STA connection; blocks up to 10 s. Returns ESP_OK on GOT_IP. */
+static esp_err_t try_connect_sta(const char *ssid, const char *pass) {
+    if (s_sta_netif == NULL) {
+        s_sta_netif = esp_netif_create_default_wifi_sta();
+        if (s_sta_netif == NULL) {
+            ESP_LOGE(TAG, "Failed to create STA netif");
+            return ESP_FAIL;
+        }
+        esp_netif_set_hostname(s_sta_netif, HOSTNAME);
+    }
+
+    esp_err_t err = wifi_common_init();
+    if (err != ESP_OK) return err;
+
+    wifi_config_t sta_cfg = {};
+    strlcpy((char *)sta_cfg.sta.ssid,     ssid,          sizeof(sta_cfg.sta.ssid));
+    strlcpy((char *)sta_cfg.sta.password, pass ? pass : "", sizeof(sta_cfg.sta.password));
+
+    err = esp_wifi_set_mode(WIFI_MODE_STA);
+    if (err != ESP_OK) { ESP_LOGE(TAG, "set_mode STA: %s", esp_err_to_name(err)); return err; }
+
+    err = esp_wifi_set_config(WIFI_IF_STA, &sta_cfg);
+    if (err != ESP_OK) { ESP_LOGE(TAG, "set_config STA: %s", esp_err_to_name(err)); return err; }
+
+    err = esp_wifi_start();
+    if (err != ESP_OK) { ESP_LOGE(TAG, "wifi_start: %s", esp_err_to_name(err)); return err; }
+
+    s_sta_connected = false;
+    if (s_sta_sem == NULL) {
+        s_sta_sem = xSemaphoreCreateBinary();
+    } else {
+        xSemaphoreTake(s_sta_sem, 0);  // drain any stale token
+    }
+
+    err = esp_wifi_connect();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "wifi_connect: %s", esp_err_to_name(err));
+        esp_wifi_stop();
+        return err;
+    }
+
+    /* Poll in 100 ms slices so the task watchdog gets reset each iteration.
+     * A single 10 s block would fire the 10 s WDT because webserver_init()
+     * runs in app_main before the main loop starts resetting it. */
+    for (int i = 0; i < 100 && !s_sta_connected; i++) {
+        if (xSemaphoreTake(s_sta_sem, pdMS_TO_TICKS(100)) == pdTRUE) break;
+        esp_task_wdt_reset();
+    }
+
+    if (!s_sta_connected) {
+        ESP_LOGW(TAG, "STA connection timed out or rejected");
+        esp_wifi_stop();
+        return ESP_FAIL;
+    }
+
+    s_wifi_running = true;
+    return ESP_OK;
+}
+
+static esp_err_t launch_soft_ap(void) {
+    ESP_LOGI(TAG, "AP LAUNCHING");
+
+    if (s_ap_netif == NULL) {
+        s_ap_netif = esp_netif_create_default_wifi_ap();
+        if (s_ap_netif == NULL) {
+            ESP_LOGE(TAG, "Failed to create default WiFi AP interface");
+            return ESP_FAIL;
+        }
+        esp_netif_set_hostname(s_ap_netif, HOSTNAME);
+    }
+
+    esp_err_t err = wifi_common_init();
+    if (err != ESP_OK) return err;
 
     wifi_config_t wifi_config = {
         .ap = {
-            .channel = get_param_value_t(PARAM_WIFI_CHANNEL).i16,
+            .channel = get_param_value_t(PARAM_WIFI_CHANNEL).u16,
             .max_connection = 4,
-            .authmode = WIFI_AUTH_WPA2_PSK
+            .authmode = WIFI_AUTH_WPA2_PSK,
         },
     };
-    
-    // Get the strings from your parameter system
-    char* ssid_str = get_param_string(PARAM_WIFI_SSID);
-    char* password_str = get_param_string(PARAM_WIFI_PASS);
-    
+
+    char *ssid_str     = get_param_string(PARAM_WIFI_SSID);
+    char *password_str = get_param_string(PARAM_WIFI_PASS);
     if (ssid_str == NULL || password_str == NULL) {
         ESP_LOGE(TAG, "Failed to get WiFi credentials from parameters");
         return ESP_FAIL;
     }
-    
-    // Allocate and set the SSID and password
-    memcpy(wifi_config.ap.ssid, ssid_str, MIN(strlen(ssid_str), sizeof(wifi_config.ap.ssid)));
+
+    memcpy(wifi_config.ap.ssid,     ssid_str,     MIN(strlen(ssid_str),     sizeof(wifi_config.ap.ssid)));
     memcpy(wifi_config.ap.password, password_str, MIN(strlen(password_str), sizeof(wifi_config.ap.password)));
-    
-    // password minimum length of 8
+
     if (strlen(password_str) < 8) {
         ESP_LOGW(TAG, "Password too short, using open authentication");
         wifi_config.ap.password[0] = '\0';
         wifi_config.ap.authmode = WIFI_AUTH_OPEN;
     }
-    
-    // Validate WiFi channel
+
     if (wifi_config.ap.channel > 11 || wifi_config.ap.channel < 1) {
-        ESP_LOGW(TAG, "Invalid WiFi channel %d, using default channel 6", 
-                 wifi_config.ap.channel);
+        ESP_LOGW(TAG, "Invalid WiFi channel %d, using default channel 6", wifi_config.ap.channel);
         wifi_config.ap.channel = 6;
     }
-    
-    // Set the length of SSID
+
     wifi_config.ap.ssid_len = strlen(ssid_str);
 
     err = esp_wifi_set_mode(WIFI_MODE_AP);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set WiFi mode: %s", esp_err_to_name(err));
-        return err;
-    }
-    
+    if (err != ESP_OK) { ESP_LOGE(TAG, "set_mode AP: %s", esp_err_to_name(err)); return err; }
+
     err = esp_wifi_set_config(WIFI_IF_AP, &wifi_config);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set WiFi config: %s", esp_err_to_name(err));
-        return err;
-    }
-    
+    if (err != ESP_OK) { ESP_LOGE(TAG, "set_config AP: %s", esp_err_to_name(err)); return err; }
+
     err = esp_wifi_start();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start WiFi: %s", esp_err_to_name(err));
-        return err;
-    }
+    if (err != ESP_OK) { ESP_LOGE(TAG, "wifi_start: %s", esp_err_to_name(err)); return err; }
+
     s_wifi_running = true;
 
-    // Start DNS server with your specific hostname
     err = simple_dns_server_start("192.168.4.1");
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start DNS server: %s", esp_err_to_name(err));
         // Non-critical, continue
     }
 
-    // Start mDNS for .local domain
     err = mdns_init();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize mDNS: %s", esp_err_to_name(err));
         // Non-critical, continue
     } else {
-        err = mdns_hostname_set(HOSTNAME);
-        if (err != ESP_OK) {
-            ESP_LOGW(TAG, "Failed to set mDNS hostname: %s", esp_err_to_name(err));
-        }
-        
-        err = mdns_instance_name_set("ClusterCommand");
-        if (err != ESP_OK) {
-            ESP_LOGW(TAG, "Failed to set mDNS instance name: %s", esp_err_to_name(err));
-        }
-        
-        err = mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0);
-        if (err != ESP_OK) {
-            ESP_LOGW(TAG, "Failed to add mDNS service: %s", esp_err_to_name(err));
-        }
+        mdns_hostname_set(HOSTNAME);
+        mdns_instance_name_set("ClusterCommand");
+        mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0);
     }
 
     uint8_t *placeholder = (wifi_config.ap.authmode == WIFI_AUTH_OPEN)
-                            ? (uint8_t*)"<open network>"
+                            ? (uint8_t *)"<open network>"
                             : wifi_config.ap.password;
     ESP_LOGI(TAG, "SoftAP ready. SSID: %s, Channel: %d, Password: %s",
              wifi_config.ap.ssid, wifi_config.ap.channel, placeholder);
-    ESP_LOGI(TAG, "Access at: http://%s or http://%s.local or http://192.168.4.1", 
-             HOSTNAME, HOSTNAME);
-    
+    ESP_LOGI(TAG, "Access at: http://%s.local or http://192.168.4.1", HOSTNAME);
     return ESP_OK;
+}
+
+/* STA-first startup: try NET_SSID, fall back to softAP on failure/empty. */
+static esp_err_t start_wifi(void) {
+    char *net_ssid = get_param_string(PARAM_NET_SSID);
+    if (net_ssid && strlen(net_ssid) > 0) {
+        char *net_pass = get_param_string(PARAM_NET_PASS);
+        ESP_LOGI(TAG, "Trying STA connection to '%s'...", net_ssid);
+        if (try_connect_sta(net_ssid, net_pass) == ESP_OK) {
+            ESP_LOGI(TAG, "STA connected — HTTP server running");
+            return ESP_OK;
+        }
+        ESP_LOGW(TAG, "STA failed — falling back to softAP");
+        /* try_connect_sta already called esp_wifi_stop() on failure */
+    }
+    return launch_soft_ap();
 }
 
 esp_err_t webserver_stop(void) {
@@ -1058,7 +1122,7 @@ esp_err_t webserver_stop(void) {
 }
 
 esp_err_t webserver_restart_wifi(void) {
-    ESP_LOGI(TAG, "Restarting WiFi AP with updated params...");
+    ESP_LOGI(TAG, "Restarting WiFi with updated params...");
 
     stop_http_server();
     if (s_wifi_running) {
@@ -1066,54 +1130,23 @@ esp_err_t webserver_restart_wifi(void) {
         s_wifi_running = false;
     }
 
-    wifi_config_t wifi_config = {
-        .ap = {
-            .channel       = get_param_value_t(PARAM_WIFI_CHANNEL).u16,
-            .max_connection = 4,
-            .authmode      = WIFI_AUTH_WPA2_PSK,
-        },
-    };
-
-    char *ssid_str = get_param_string(PARAM_WIFI_SSID);
-    char *pass_str = get_param_string(PARAM_WIFI_PASS);
-    memcpy(wifi_config.ap.ssid,     ssid_str, MIN(strlen(ssid_str), sizeof(wifi_config.ap.ssid)));
-    memcpy(wifi_config.ap.password, pass_str, MIN(strlen(pass_str), sizeof(wifi_config.ap.password)));
-    wifi_config.ap.ssid_len = strlen(ssid_str);
-    if (strlen(pass_str) < 8) {
-        wifi_config.ap.password[0] = '\0';
-        wifi_config.ap.authmode = WIFI_AUTH_OPEN;
-    }
-    if (wifi_config.ap.channel < 1 || wifi_config.ap.channel > 11)
-        wifi_config.ap.channel = 6;
-
-    esp_wifi_set_config(WIFI_IF_AP, &wifi_config);
-    esp_wifi_start();
-    s_wifi_running = true;
-    start_http_server();
-
-    ESP_LOGI(TAG, "WiFi AP restarted. New SSID: %s, Channel: %d",
-             wifi_config.ap.ssid, wifi_config.ap.channel);
+    esp_err_t err = start_wifi();
+    if (err != ESP_OK) return err;
+    start_http_server();  // no-op if STA path already started it
     return ESP_OK;
 }
 
 esp_err_t webserver_init(void) {
     ESP_LOGI(TAG, "Initializing webserver...");
-    
-    // Initialize comms module
-    esp_err_t err = launch_soft_ap();
+
+    esp_err_t err = start_wifi();
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to launch SoftAP: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Failed to start WiFi: %s", esp_err_to_name(err));
         return err;
     }
-    
-    ESP_LOGI(TAG, "AP LAUNCHED");
-    
-    err = start_http_server();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start HTTP server: %s", esp_err_to_name(err));
-        return err;
-    }
-    
+
+    start_http_server();  // no-op if STA path already started it
+
     ESP_LOGI(TAG, "Webserver initialization complete");
     return ESP_OK;
 }
