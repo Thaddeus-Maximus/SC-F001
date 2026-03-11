@@ -269,9 +269,60 @@ SC_ERR_LOW_BATTERY   = 0x230  // Voltage below threshold
 - **Framework:** ESP-IDF (>=4.1.0)
 - **Component deps** (`idf_component.yml`): `espressif/mdns`, `joltwallet/littlefs`, `esp-idf-lib/tca95x5`
 - **IDF requires:** `driver`, `esp_http_server`, `esp_netif`, `lwip`, `json`, `esp_timer`, `esp_adc`, `app_update`, `esp_wifi`, `nvs_flash`, `mdns`, `bt`, `esp_hid`
-- **Webpage:** `webpage.html` → `webpage_compile.py` → `webpage_gzip.h` (embedded gzip binary)
+- **Webpage:** `webpage.html` → `webpage_compile.py` → `webpage_gzip.h` (embedded gzip binary). **Must re-run `webpage_compile.py` after any HTML edit before building.**
 - **Version:** `version.h.in` filled by CMake from git tags → `FIRMWARE_VERSION`, `BUILD_DATE`
 - **Factory reset:** Hold GPIO13 button on cold boot → full parameter + log erase
+
+---
+
+## Webpage (`main/webpage.html`)
+
+Single-file SPA. Compiled to a gzip binary embedded in firmware. All JS is inline.
+
+**Key globals:**
+- `const ge = (id) => document.getElementById(id)` — shorthand used everywhere
+- `let data = {}` — full `/get` JSON response, updated every poll cycle
+- `let paramTableCreated = false` — tracks whether the DANGER ZONE param table has been built yet
+- `let pollInterval` — handle for the 2-second `fetchStatus()` interval
+
+**Endpoints used by JS (all relative):**
+- `./get` — GET, returns full system status JSON; polled every 2 s by `fetchStatus()`
+- `./post` — POST `application/json`, handles commands + parameter updates
+- `./log` — GET/POST, binary log download
+- `./ota` — POST, firmware upload
+
+**POST body format** (`./post`):
+```json
+{ "cmd": "start", "parameters": { "KEY": value, ... }, "time": 1234567 }
+```
+All fields optional. `parameters` is a flat object of param key → value.
+
+**Input / parameter binding convention:**
+- Any `<input id="PARAM_<KEY>">` anywhere in the page is automatically updated by `updateParamTable()` on every poll (skipped if the input has class `changed` or is focused)
+- `onchange="markChanged(this)"` — adds class `changed` (green), enables `commit_btn` / `cancel_btn`
+- `commitParams()` (Save Changes button) collects all `.changed` inputs whose `id` starts with `PARAM_`, POSTs `{parameters: {...}}`, clears `changed` class
+- `cancel_btn` calls `location.reload()`
+
+**Sections (top to bottom):**
+1. Status display (voltage, state, distance, etc.) — auto-updated from `data`
+2. Schedule settings (`<details>`) — MOVE_START / MOVE_END / NUM_MOVES
+3. Remote Control (`<details>`) — jog buttons + RF programming
+4. **WiFi Settings** (`<details open>`) — NET_SSID, NET_PASS, WIFI_SSID, WIFI_PASS with dedicated `applyWifiSettings()` button
+5. **DANGER ZONE** (`<details>`) — calibration, version, OTA upload, log download, auto-generated parameter table, REBOOT/SLEEP
+
+**`updateParamTable()`:**
+- On first call: builds a `<table id="table">` row per parameter, sorted alphabetically, skipping `WIFI_PARAM_KEYS = {NET_SSID, NET_PASS, WIFI_SSID, WIFI_PASS}` (those live in the dedicated WiFi section)
+- On subsequent calls: updates existing input values (skips changed/focused inputs); if a new key appears, rebuilds
+
+**Modal helpers** (all return Promises):
+- `modalAlert(message, title?)` — OK only
+- `modalConfirm(message, title?)` — OK / Cancel → resolves `true`/`false`
+- `modalPrompt(message, title?, defaultValue?)` → resolves string or `null` on cancel
+
+**Adding a new dedicated UI section:**
+1. Add `<input id="PARAM_<KEY>" onchange="markChanged(this)"/>` in HTML
+2. Add key to `WIFI_PARAM_KEYS` (or equivalent filter set) in `updateParamTable()` so it isn't duplicated in the raw table
+3. Optionally add a dedicated apply function following `applyWifiSettings()` pattern
 
 ---
 

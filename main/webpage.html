@@ -264,7 +264,34 @@ black: #2f2f2f
 	  </button>
     </details>
     <br/>
-    
+
+    <details open>
+    <summary>WiFi Settings</summary>
+    <table>
+        <tr>
+            <td>Network SSID</td>
+            <td><input type="text" id="PARAM_NET_SSID" onchange="markChanged(this)"/></td>
+        </tr>
+        <tr>
+            <td>Network Password</td>
+            <td><input type="text" id="PARAM_NET_PASS" onchange="markChanged(this)"/></td>
+        </tr>
+        <tr>
+            <td>AP SSID</td>
+            <td><input type="text" id="PARAM_WIFI_SSID" onchange="markChanged(this)"/></td>
+        </tr>
+        <tr>
+            <td>AP Password</td>
+            <td><input type="text" id="PARAM_WIFI_PASS" onchange="markChanged(this)"/></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td><button onclick="applyWifiSettings()">Apply WiFi Settings</button></td>
+        </tr>
+    </table>
+    </details>
+    <br/>
+
     <details>
     <summary>DANGER ZONE</summary>
     <table>
@@ -884,7 +911,9 @@ black: #2f2f2f
                 // Create table for the first time
                 table.innerHTML = '';
                 
+                const WIFI_PARAM_KEYS = new Set(['NET_SSID', 'NET_PASS', 'WIFI_SSID', 'WIFI_PASS']);
                 for (const [key, value] of sortedParams) {
+                    if (WIFI_PARAM_KEYS.has(key)) continue;  // shown in dedicated WiFi section
                     const row = table.insertRow();
                     const cell1 = row.insertCell(0);
                     const cell2 = row.insertCell(1);
@@ -1284,6 +1313,43 @@ black: #2f2f2f
                 
             } catch (e) {
                 await modalAlert(`Calibration error: ${e.message}`);
+            }
+        }
+
+        async function applyWifiSettings() {
+            if (!await modalConfirm(
+                "WiFi will restart. In STA mode, reconnect at http://sc.local on your network. In AP mode, reconnect to the device's AP.",
+                "Apply WiFi Settings"))
+                return;
+
+            const wifiKeys = ['NET_SSID', 'NET_PASS', 'WIFI_SSID', 'WIFI_PASS'];
+            const params = {};
+            for (const key of wifiKeys) {
+                const el = ge('PARAM_' + key);
+                if (el) params[key] = el.value;
+            }
+
+            try {
+                const response = await fetch('./post', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({parameters: params})
+                });
+                if (!response.ok) {
+                    await modalAlert('Failed to apply WiFi settings: ' + response.status);
+                    return;
+                }
+                for (const key of wifiKeys) {
+                    const el = ge('PARAM_' + key);
+                    if (el) el.classList.remove('changed');
+                }
+                if (document.querySelectorAll('input.changed').length === 0) {
+                    ge('commit_btn').disabled = true;
+                    ge('cancel_btn').disabled = true;
+                }
+                await modalAlert('WiFi settings applied. Reconnect in a moment.');
+            } catch(e) {
+                await modalAlert('Network error: ' + e.message);
             }
         }
         

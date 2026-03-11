@@ -956,7 +956,7 @@ static esp_err_t wifi_common_init(void) {
 }
 
 /* Attempt STA connection; blocks up to 10 s. Returns ESP_OK on GOT_IP. */
-static esp_err_t try_connect_sta(const char *ssid, const char *pass) {
+static esp_err_t try_connect_sta(const char *ssid, const char *pass, bool reset_wdt) {
     if (s_sta_netif == NULL) {
         s_sta_netif = esp_netif_create_default_wifi_sta();
         if (s_sta_netif == NULL) {
@@ -1001,7 +1001,7 @@ static esp_err_t try_connect_sta(const char *ssid, const char *pass) {
      * runs in app_main before the main loop starts resetting it. */
     for (int i = 0; i < 100 && !s_sta_connected; i++) {
         if (xSemaphoreTake(s_sta_sem, pdMS_TO_TICKS(100)) == pdTRUE) break;
-        esp_task_wdt_reset();
+        if (reset_wdt) esp_task_wdt_reset();
     }
 
     if (!s_sta_connected) {
@@ -1097,12 +1097,12 @@ static esp_err_t launch_soft_ap(void) {
 }
 
 /* STA-first startup: try NET_SSID, fall back to softAP on failure/empty. */
-static esp_err_t start_wifi(void) {
+static esp_err_t start_wifi(bool reset_wdt) {
     char *net_ssid = get_param_string(PARAM_NET_SSID);
     if (net_ssid && strlen(net_ssid) > 0) {
         char *net_pass = get_param_string(PARAM_NET_PASS);
         ESP_LOGI(TAG, "Trying STA connection to '%s'...", net_ssid);
-        if (try_connect_sta(net_ssid, net_pass) == ESP_OK) {
+        if (try_connect_sta(net_ssid, net_pass, reset_wdt) == ESP_OK) {
             ESP_LOGI(TAG, "STA connected — HTTP server running");
             return ESP_OK;
         }
@@ -1130,7 +1130,7 @@ esp_err_t webserver_restart_wifi(void) {
         s_wifi_running = false;
     }
 
-    esp_err_t err = start_wifi();
+    esp_err_t err = start_wifi(false);  // called from esp_timer task, not subscribed to WDT
     if (err != ESP_OK) return err;
     start_http_server();  // no-op if STA path already started it
     return ESP_OK;
@@ -1139,7 +1139,7 @@ esp_err_t webserver_restart_wifi(void) {
 esp_err_t webserver_init(void) {
     ESP_LOGI(TAG, "Initializing webserver...");
 
-    esp_err_t err = start_wifi();
+    esp_err_t err = start_wifi(true);  // called from app_main, which is subscribed to WDT
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start WiFi: %s", esp_err_to_name(err));
         return err;
