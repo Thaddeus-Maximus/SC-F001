@@ -229,8 +229,30 @@ void app_main(void) {esp_task_wdt_add(NULL);
     while(true) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
         
+        /* In soft idle: slow poll (5s) via direct GPIO, no I2C. */
+        if (soft_idle_is_active()) {
+            //vTaskDelay(pdMS_TO_TICKS(1000));
+            if (soft_idle_button_raw()) {
+                rtc_reset_shutdown_timer();
+                soft_idle_exit();
+                i2c_poll_buttons();  /* sync TCA9555 state after idle */
+                xLastWakeTime = xTaskGetTickCount();
+            }
+            if (rtc_alarm_tripped()) {
+                soft_idle_exit();
+                xLastWakeTime = xTaskGetTickCount();
+                vTaskDelay(pdMS_TO_TICKS(500));
+                fsm_request(FSM_CMD_START);
+                rtc_schedule_next_alarm();
+            }
+            solar_run_fsm();
+            rtc_check_shutdown_timer();
+            esp_task_wdt_reset();
+            continue;
+        }
+
         i2c_poll_buttons();
-        
+
         if (i2c_get_button_state(0)) {
         	rtc_reset_shutdown_timer();
         	soft_idle_exit();
@@ -248,22 +270,22 @@ void app_main(void) {esp_task_wdt_add(NULL);
         		} else if (i2c_get_button_ms(0) > 100){
         			drive_leds(LED_STATE_START1);
         		} else {
-					/*if (
+					if (
 						rtc_is_set() &&
-						!efuse_is_tripped(BRIDGE_JACK) &&
-						!efuse_is_tripped(BRIDGE_AUX) &&
-						!efuse_is_tripped(BRIDGE_DRIVE) &&
+						efuse_get(BRIDGE_JACK)==EFUSE_OK &&
+						efuse_get(BRIDGE_AUX)==EFUSE_OK &&
+						efuse_get(BRIDGE_DRIVE)==EFUSE_OK &&
 						fsm_get_error() == ESP_OK
 					) {
         				drive_leds(LED_STATE_AWAKE);
         			} else {
         				drive_leds(LED_STATE_ERROR);
-        			}*/
+        			}
         			
-        			int8_t state = 0b001;
+        			/*int8_t state = 0b001;
         			if (get_is_safe()) state |= 0b010;
         			if (get_sensor(SENSOR_SAFETY)) state |= 0b100;
-        			i2c_set_led1(state);
+        			i2c_set_led1(state);*/
 				}
 				
 				// when not actively moving we log at a low frequency (every 120s)
@@ -321,12 +343,6 @@ void app_main(void) {esp_task_wdt_add(NULL);
         
         
         if (rtc_alarm_tripped()) {
-        	bool was_idle = soft_idle_is_active();
-        	soft_idle_exit();
-        	if (was_idle) {
-        		// Give WiFi softAP time to come up before movement begins
-        		vTaskDelay(pdMS_TO_TICKS(500));
-        	}
         	fsm_request(FSM_CMD_START);
         	rtc_schedule_next_alarm();
         }

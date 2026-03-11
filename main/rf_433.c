@@ -61,17 +61,21 @@ static void rf_433_receiver_task(void* param) {
     rmt_channel_handle_t rx_channel = NULL;
     rmt_symbol_word_t symbols[64];
     rmt_rx_done_event_data_t rx_data;
-    
+
     rmt_receive_config_t rx_config = {
-        .signal_range_min_ns = 2000,
+        /* Hardware filter max on ESP32 is ~3187 ns (8-bit APB counter).
+         * Filters sub-3µs glitches; can't filter longer noise pulses in HW.
+         * Buffer overflow from other 433 MHz devices is benign — the decoder
+         * only reads the first 24 symbols regardless of total length. */
+        .signal_range_min_ns = 3000,
         .signal_range_max_ns = 1250000,
     };
-    
+
     rmt_rx_channel_config_t rx_ch_conf = {
         .gpio_num = (gpio_num_t)RF_PIN,
         .clk_src = RMT_CLK_SRC_DEFAULT,
         .resolution_hz = 1000000,
-        .mem_block_symbols = 64,
+        .mem_block_symbols = 64,  /* ESP32 non-DMA RMT: 1 block = 64 symbols max */
         .flags = {
             .invert_in = false,
             .with_dma = false,

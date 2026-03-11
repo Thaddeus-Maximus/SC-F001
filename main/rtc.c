@@ -84,7 +84,8 @@ void soft_idle_enter(void)
     i2c_set_led1(0);
 }
 
-bool soft_idle_is_active(void) { return in_soft_idle; }
+bool soft_idle_is_active(void)  { return in_soft_idle; }
+bool soft_idle_button_raw(void) { return gpio_get_level(PIN_BTN_INTERRUPT) == 0; }
 
 void soft_idle_exit(void)
 {

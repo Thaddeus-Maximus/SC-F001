@@ -432,6 +432,9 @@ static esp_err_t get_handler(httpd_req_t *req) {
  *   }
  * }
  */
+static void soft_idle_enter_cb(void *arg)    { soft_idle_enter(); }
+static void webserver_restart_wifi_cb(void *arg) { webserver_restart_wifi(); }
+
 /**
  * Unified POST handler - handles commands, parameter updates, time updates
  */
@@ -523,15 +526,39 @@ static esp_err_t post_handler(httpd_req_t *req) {
     }
 
     if (should_restart_wifi) {
-        vTaskDelay(pdMS_TO_TICKS(500));  // Let the TCP response flush
-        webserver_restart_wifi();
+        /* Same deadlock risk as should_sleep — httpd_stop() inside
+         * webserver_restart_wifi() cannot be called from within a handler. */
+        static esp_timer_handle_t s_wifi_restart_timer = NULL;
+        if (s_wifi_restart_timer == NULL) {
+            esp_timer_create_args_t ta = {
+                .callback = webserver_restart_wifi_cb,
+                .name     = "wifi_restart",
+            };
+            esp_timer_create(&ta, &s_wifi_restart_timer);
+        }
+        if (s_wifi_restart_timer != NULL) {
+            esp_timer_start_once(s_wifi_restart_timer, 500 * 1000); /* 500 ms in µs */
+        }
         return ESP_OK;
     }
 
     if (should_sleep) {
         ESP_LOGI(TAG, "Entering soft idle in 2 seconds...");
-        vTaskDelay(pdMS_TO_TICKS(2000));
-        soft_idle_enter();
+        /* Cannot call soft_idle_enter() (→ httpd_stop()) from within an httpd
+         * handler — httpd_stop() waits for all handlers to finish, causing a
+         * deadlock.  Schedule via a one-shot timer so this handler returns
+         * first and the httpd task is free. */
+        static esp_timer_handle_t s_sleep_timer = NULL;
+        if (s_sleep_timer == NULL) {
+            esp_timer_create_args_t ta = {
+                .callback = soft_idle_enter_cb,
+                .name     = "soft_idle",
+            };
+            esp_timer_create(&ta, &s_sleep_timer);
+        }
+        if (s_sleep_timer != NULL) {
+            esp_timer_start_once(s_sleep_timer, 2000 * 1000); /* 2 s in µs */
+        }
         return ESP_OK;
     }
     
@@ -881,29 +908,8 @@ static esp_err_t launch_soft_ap(void) {
     
     ESP_LOGI(TAG, "AP LAUNCHING");
     
-    err = nvs_flash_init();
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        // NVS partition was truncated and needs to be erased
-        ESP_LOGW(TAG, "NVS partition needs erasing, performing erase...");
-        err = nvs_flash_erase();
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to erase NVS: %s", esp_err_to_name(err));
-            return err;
-        }
-        // Retry init after erase
-        err = nvs_flash_init();
-    }
-    
-    
     ESP_LOGI(TAG, "AP LAUNCHING...");
-    
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize NVS: %s", esp_err_to_name(err));
-        return err;
-    }
-    
-    ESP_LOGI(TAG, "HI THERE");
-    
+
     err = esp_netif_init();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize netif: %s", esp_err_to_name(err));

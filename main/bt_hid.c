@@ -60,7 +60,8 @@
 // ---------------------------------------------------------------------------
 
 #define TAG                     "BT_HID"
-#define BT_HID_SCAN_DURATION_S  3   /* ceiling only — scan stops early on first HID hit */
+#define BT_HID_SCAN_DURATION_S  3
+#define BT_HID_MIN_RSSI         (-70)   /* dBm — ignore devices weaker than this */
 #define BT_HID_RECONNECT_MS     2000
 #define BT_HID_BOND_TIMEOUT_MS  5000   /* wait for saved device before scanning */
 #define BT_HID_CONNECT_WAIT_MS  5000   /* wait after open() before next loop */
@@ -245,6 +246,9 @@ static void hidh_callback(void *handler_args,
             nvs_save_bda(bda, s_connect_addr_type);
         } else {
             ESP_LOGE(TAG, "OPEN failed, status=%d", p->open.status);
+            /* Free the failed device handle — not doing so leaks a BT
+             * resource and can block future connection attempts. */
+            esp_hidh_dev_free(p->open.dev);
         }
         break;
     }
@@ -342,6 +346,15 @@ static void ble_gap_event_handler(esp_gap_ble_cb_event_t   event,
                 memcpy(name, name_d, copy);
             }
 
+            if (param->scan_rst.rssi < BT_HID_MIN_RSSI) {
+                ESP_LOGD(TAG, "SCAN %02x:%02x:%02x:%02x:%02x:%02x  RSSI:%d  '%s'  (too weak, skipping)",
+                         param->scan_rst.bda[0], param->scan_rst.bda[1],
+                         param->scan_rst.bda[2], param->scan_rst.bda[3],
+                         param->scan_rst.bda[4], param->scan_rst.bda[5],
+                         param->scan_rst.rssi, name);
+                break;
+            }
+
             ESP_LOGI(TAG, "SCAN %02x:%02x:%02x:%02x:%02x:%02x  RSSI:%d  '%s'  <<< HID",
                      param->scan_rst.bda[0], param->scan_rst.bda[1],
                      param->scan_rst.bda[2], param->scan_rst.bda[3],
@@ -352,9 +365,6 @@ static void ble_gap_event_handler(esp_gap_ble_cb_event_t   event,
                             param->scan_rst.ble_addr_type,
                             name,
                             param->scan_rst.rssi);
-
-            /* Stop scanning immediately — we have what we need. */
-            esp_ble_gap_stop_scanning();
             break;
         }
 

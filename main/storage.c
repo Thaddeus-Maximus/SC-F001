@@ -9,6 +9,7 @@
 #include "storage.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include "nvs_flash.h"
 #include "version.h"
 
 #define TAG "STORAGE"
@@ -423,9 +424,19 @@ esp_err_t factory_reset(void) {
 // ============================================================================
 esp_err_t storage_init(void) {
     ESP_LOGI(TAG, "Initializing storage system...");
-    
-    
-    
+
+    // NVS must be initialized before WiFi and BT
+    esp_err_t nvs_err = nvs_flash_init();
+    if (nvs_err == ESP_ERR_NVS_NO_FREE_PAGES || nvs_err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_LOGW(TAG, "NVS partition needs erasing, performing erase...");
+        nvs_err = nvs_flash_erase();
+        if (nvs_err == ESP_OK) nvs_err = nvs_flash_init();
+    }
+    if (nvs_err != ESP_OK) {
+        ESP_LOGE(TAG, "nvs_flash_init failed: %s", esp_err_to_name(nvs_err));
+        return nvs_err;
+    }
+
     log_mutex = xSemaphoreCreateMutex();
     if (log_mutex == NULL) {
         ESP_LOGE(TAG, "Failed to create log mutex");

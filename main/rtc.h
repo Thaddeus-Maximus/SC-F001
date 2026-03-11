@@ -35,6 +35,7 @@ void rtc_reset_shutdown_timer(); // reset shutoff timer
 void soft_idle_enter(void);
 void soft_idle_exit(void);
 bool soft_idle_is_active(void);
+bool soft_idle_button_raw(void);   /* direct GPIO read, no I2C */
 esp_sleep_wakeup_cause_t rtc_wakeup_cause();
 
 /*void adjust_rtc_hour(char *key, int8_t dir);
