@@ -979,15 +979,23 @@ static esp_err_t try_connect_sta(const char *ssid, const char *pass, bool reset_
     err = esp_wifi_set_config(WIFI_IF_STA, &sta_cfg);
     if (err != ESP_OK) { ESP_LOGE(TAG, "set_config STA: %s", esp_err_to_name(err)); return err; }
 
-    err = esp_wifi_start();
-    if (err != ESP_OK) { ESP_LOGE(TAG, "wifi_start: %s", esp_err_to_name(err)); return err; }
-
     s_sta_connected = false;
     if (s_sta_sem == NULL) {
         s_sta_sem = xSemaphoreCreateBinary();
     } else {
         xSemaphoreTake(s_sta_sem, 0);  // drain any stale token
     }
+
+    err = esp_wifi_start();
+    if (err != ESP_OK) { ESP_LOGE(TAG, "wifi_start: %s", esp_err_to_name(err)); return err; }
+
+    /* Yield so the event loop (priority 20) can process WIFI_EVENT_STA_START
+     * and esp_netif can finish initialising the STA interface before we call
+     * esp_wifi_connect().  The esp_timer task runs at priority 22, so without
+     * this yield it would call connect before STA_START is handled — the
+     * driver accepts the call (returns ESP_OK) but silently discards it when
+     * it finishes its own internal start sequence. */
+    vTaskDelay(pdMS_TO_TICKS(10));
 
     err = esp_wifi_connect();
     if (err != ESP_OK) {
@@ -996,11 +1004,9 @@ static esp_err_t try_connect_sta(const char *ssid, const char *pass, bool reset_
         return err;
     }
 
-    /* Poll in 100 ms slices so the task watchdog gets reset each iteration.
-     * A single 10 s block would fire the 10 s WDT because webserver_init()
-     * runs in app_main before the main loop starts resetting it. */
+    /* Poll in 100 ms slices so the WDT gets reset when needed (init path). */
     for (int i = 0; i < 100 && !s_sta_connected; i++) {
-        if (xSemaphoreTake(s_sta_sem, pdMS_TO_TICKS(100)) == pdTRUE) break;
+        xSemaphoreTake(s_sta_sem, pdMS_TO_TICKS(100));
         if (reset_wdt) esp_task_wdt_reset();
     }
 
@@ -1128,6 +1134,12 @@ esp_err_t webserver_restart_wifi(void) {
     if (s_wifi_running) {
         esp_wifi_stop();
         s_wifi_running = false;
+        /* Allow the event loop to drain the WIFI_EVENT_STA_DISCONNECTED (or
+         * AP stop) event that esp_wifi_stop() queues asynchronously.  Without
+         * this delay, the stale disconnect event is processed after the new
+         * esp_wifi_connect() call, which resets the driver's internal
+         * connection state machine and silently kills the new attempt. */
+        vTaskDelay(pdMS_TO_TICKS(200));
     }
 
     esp_err_t err = start_wifi(false);  // called from esp_timer task, not subscribed to WDT
