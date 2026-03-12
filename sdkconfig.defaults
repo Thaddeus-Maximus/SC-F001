@@ -20,3 +20,9 @@ CONFIG_ESP32_RTC_XTAL_BOOTSTRAP_CYCLES=500
 # Allow more calibration retries before falling back to RC oscillator.
 CONFIG_RTC_XTAL_CAL_RETRY=3
 CONFIG_ESP32_RTC_XTAL_CAL_RETRY=3
+
+# --- Safety & Panic ---
+
+# WDT timeout triggers a panic (→ reboot + core dump) instead of just logging.
+# Required for OTA rollback: a hung task causes a reboot, incrementing the reset counter.
+CONFIG_ESP_TASK_WDT_PANIC=y

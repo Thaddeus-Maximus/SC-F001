@@ -6,7 +6,7 @@
  */
  
  
-// TODO: Comment, and even better, produce a README for this.
+// See README.md for FSM documentation (states, guards, timing).
 
 #include "control_fsm.h"
 #include "esp_task_wdt.h"
@@ -340,28 +340,33 @@ void control_task(void *param) {
         if (!enabled) break;
 		
         /**** STATE TRANSITIONS ****/
+        // Every active state checks safety first — break triggers UNDO_JACK (emergency lower).
+        // Normal cycle: IDLE → DELAY → JACK_UP_START → JACK_UP → DRIVE → JACK_DOWN → IDLE
         switch (current_state) {
             case STATE_IDLE:
 			    break;
+
             case STATE_MOVE_START_DELAY:
+            	// 1s pause before raising jack — lets operator abort after pressing start
             	if (!get_is_safe()) {
 					fsm_error = SC_ERR_SAFETY_TRIP;
-					current_state = STATE_IDLE;
+					current_state = STATE_IDLE; // haven't raised jack yet, safe to just stop
                 	log = true;
 				} else if (timer_done()) {
 					current_state = STATE_JACK_UP_START;
-					set_timer(JACK_TIME / 2);  // First phase is half of total jack time
+					set_timer(JACK_TIME / 2);  // first phase: detect engagement (half of total jack time)
 					jack_start_us = fsm_now;
 				}
                 break;
+
             case STATE_JACK_UP_START:
+            	// Detect when jack engages the load (current spike, efuse, or timeout)
             	if (!get_is_safe()) {
 					fsm_error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
 					jack_finish_us = fsm_now;
                 	log = true;
 				} else {
-					
 					if (efuse_get(BRIDGE_JACK)) {
 						ESP_LOGI(TAG, "START->UP BY EFUSE");
 						current_state = STATE_JACK_UP;
@@ -369,7 +374,7 @@ void control_task(void *param) {
 	                	log = true;
 						set_timer(JACK_TIME);
 					}
-                	
+
                 	if (get_bridge_overcurrent(BRIDGE_JACK, get_param_value_t(PARAM_JACK_I_UP).f32)) {
 						ESP_LOGI(TAG, "START->UP BY CURRENT");
 						current_state = STATE_JACK_UP;
@@ -377,7 +382,7 @@ void control_task(void *param) {
 	                	log = true;
 						set_timer(JACK_TIME);
 					}
-					
+
 					if (timer_done()) {
 						ESP_LOGI(TAG, "START->UP BY TIME");
 						current_state = STATE_JACK_UP;
@@ -387,24 +392,27 @@ void control_task(void *param) {
 					}
 				}
                 break;
+
             case STATE_JACK_UP:
+            	// Continue raising until timer or efuse — records finish time for symmetric jack-down
             	if (!get_is_safe()) {
 					fsm_error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
 					jack_finish_us = fsm_now;
 					set_timer(JACK_DOWN_TIME);
                 	log = true;
-				} else {                	
+				} else {
                 	if (timer_done() || efuse_get(BRIDGE_JACK)) {
-                		// Track total time including first phase
 						current_state  = STATE_DRIVE_START_DELAY;
-						jack_finish_us = fsm_now;
+						jack_finish_us = fsm_now; // used to calculate symmetric jack-down duration
 						log = true;
 						set_timer(TRANSITION_DELAY_US);
 					}
 				}
                 break;
+
             case STATE_DRIVE_START_DELAY:
+            	// 1s pause between jack-up and drive — mechanical settling
             	if (!get_is_safe()) {
 					fsm_error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
@@ -414,13 +422,14 @@ void control_task(void *param) {
 					current_state = STATE_DRIVE;
             		log = true;
 					set_timer(DRIVE_TIME);
-					// Set the encoder counter to track remaining distance in this move
+					// Encoder counts down from -target to 0 (negative = distance remaining)
 					set_sensor_counter(SENSOR_DRIVE, -DRIVE_DIST);
-					// Record starting encoder position AFTER setting it
 					move_start_encoder = get_sensor_counter(SENSOR_DRIVE);
 				}
                 break;
+
             case STATE_DRIVE:
+            	// Horizontal travel — stops on timer, encoder target, or efuse trip
             	if (!get_is_safe()) {
 					fsm_error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
@@ -431,25 +440,21 @@ void control_task(void *param) {
 					int32_t ticks_traveled = current_encoder - move_start_encoder;
 					float ke = get_param_value_t(PARAM_DRIVE_KE).f32;
 					float distance_traveled = ticks_traveled / ke;
-					
-					// Stop if timer expires OR encoder target reached OR we've used up remaining distance
+
 					if (timer_done() || current_encoder > 0) {
-						// Update remaining distance based on actual travel
-						//if (current_encoder < 0)
-							remaining_distance -= this_move_dist;
-						//else
-						//	remaining_distance -= distance_traveled;
-						
+						// Normal completion — deduct planned distance from leash
+						remaining_distance -= this_move_dist;
+
 						current_state = STATE_DRIVE_END_DELAY;
                 		log = true;
 						set_timer(TRANSITION_DELAY_US);
 					}
-					
+
 					if (efuse_get(BRIDGE_DRIVE)) {
-						// Update remaining distance even on fault
+						// Fault — deduct actual distance traveled (may be partial)
 						remaining_distance -= distance_traveled;
 						if (remaining_distance < 0.0f) remaining_distance = 0.0f;
-						
+
 						fsm_error = SC_ERR_EFUSE_TRIP_1;
 						current_state = STATE_UNDO_JACK_START;
 						set_timer(JACK_DOWN_TIME);
@@ -457,7 +462,9 @@ void control_task(void *param) {
 					}
 				}
                 break;
+
             case STATE_DRIVE_END_DELAY:
+            	// 1s pause after drive — then lower jack
             	if (!get_is_safe()) {
 					fsm_error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
@@ -467,79 +474,51 @@ void control_task(void *param) {
             		log = true;
 				}
 				break;
+
             case STATE_JACK_DOWN:
-            
+            	// Lower jack — stops on efuse (hit ground), position sensor, or timeout
             	if (efuse_get(BRIDGE_JACK)) {
-					
 					ESP_LOGI(TAG, "DOWN->IDLE BY EFUSE");
-					// Current spike detected
 					current_state = STATE_IDLE;
 					log = true;
 					break;
-					
 				}
-				
-				/*if (get_bridge_overcurrent(BRIDGE_JACK, get_param_value_t(PARAM_JACK_I_DOWN).f32)) {
-					
-					ESP_LOGI(TAG, "DOWN->IDLE BY OVERCURRENT");
-					// Current spike detected
-					current_state = STATE_IDLE;
-					log = true;
-					break;
-					
-				}
-				
-				if (get_bridge_spike(BRIDGE_JACK, get_param_value_t(PARAM_JACK_IS_DOWN).f32)) {
-					
-					ESP_LOGI(TAG, "DOWN->IDLE BY SPIKE");
-					// Current spike detected
-					current_state = STATE_IDLE;
-					log = true;
-					break;
-					
-				}*/
-				
+
 				if (get_sensor(SENSOR_JACK)) {
 					ESP_LOGI(TAG, "DOWN->IDLE BY SENSOR");
 					current_state = STATE_IDLE;
 					log = true;
 					break;
 				}
-				
-				if (timer_done() ) {
+
+				if (timer_done()) {
 					ESP_LOGI(TAG, "DOWN->IDLE BY TIME");
 					current_state = STATE_IDLE;
 					log = true;
 					break;
 				}
-				
                 break;
-                
-                
+
             case STATE_UNDO_JACK_START:
-            	// wait for e-fuse to un-trip
+            	// Emergency: wait for jack efuse to cool, then lower
             	if (!efuse_get(BRIDGE_JACK)) {
 					set_timer(JACK_DOWN_TIME);
 					current_state = STATE_JACK_DOWN;
             		log = true;
 				}
 				break;
-				
-				
+
 			case STATE_CALIBRATE_JACK_DELAY:
-				// no way out of this except a command
-				break;
+				break; // waiting for user command to begin measurement
 			case STATE_CALIBRATE_JACK_MOVE:
 				if (timer_done()) {
 					current_state = STATE_IDLE;
 					fsm_cal_t = fsm_now - timer_start;
 				}
 				break;
-				
-				
+
 			case STATE_CALIBRATE_DRIVE_DELAY:
-				// no way out of this except a command
-				break;
+				break; // waiting for user command to begin measurement
 			case STATE_CALIBRATE_DRIVE_MOVE:
 				if (!get_is_safe() || timer_done()) {
 					current_state = STATE_IDLE;
@@ -547,7 +526,7 @@ void control_task(void *param) {
 					fsm_cal_e = get_sensor_counter(SENSOR_DRIVE);
 				}
 				break;
-				
+
             default: break;
         }
         
