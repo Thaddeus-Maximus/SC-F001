@@ -6,7 +6,7 @@
    - [clauded] Verify `CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT` — confirmed active
    - [clauded] Confirm brownout detector level — ~2.43V is correct (ESP32 rail protection; battery low-V handled by FSM's `LOW_PROTECTION_V`)
    - [clauded] Research sdkconfig management best practices — documented in CLAUDE.md "sdkconfig Management" section
-2. - [ ] Fix managed_components: remove unused deps, pin versions in `idf_component.yml`; document in CLAUDE.md
+2. - [clauded] Fix managed_components: removed unused `littlefs` and `tca95x5` deps, pinned `mdns` to `~1.9.1`, bumped IDF min to `>=5.0`; documented in CLAUDE.md
 3. - [ ] OTA rollback via consecutive-reset counter
    - [ ] Add `RTC_DATA_ATTR uint8_t reset_counter` — increment on boot, clear after successful health check
    - [ ] On counter ≥ 5, call `esp_ota_mark_app_invalid_rollback_and_reboot()`
@@ -15,8 +15,8 @@
 4. - [ ] Critical init failures (ADC, storage, log, I2C, FSM, sensors) should `esp_restart()` — this feeds the OTA rollback reset counter
 5. - [ ] Non-critical init failures (wifi, webserver, RF, BT) should log a `LOG_TYPE_ERROR` entry and attempt retry
    - [ ] WiFi/BT already have restart paths (`webserver_restart_wifi()`, `bt_hid_resume()`) — wire these into a retry-on-failure path at boot, not just soft idle exit
-6. - [ ] Power-on self-test (POST) — run after all inits, before FSM starts; log results; feed OTA health check
-   - [ ] ADC: read all 4 channels twice with short delay, flag if frozen or out of range (battery 5–25V, currents 0–150A)
+6. - [ ] Power-on self-test (POST) — run as a part of all inits. Calling init should result in a 3-try effort to do the init if there are issues, then reset.
+   - [ ] ADC: read all 4 channels twice with short delay, flag if frozen or out of range (currents -150A to 150A)
    - [ ] I2C: verify TCA9555 responds (read port 0)
    - [ ] Flash: write-read-verify test on last sector of storage partition
 7. - [ ] Parameter validation

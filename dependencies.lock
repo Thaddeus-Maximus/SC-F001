@@ -1,70 +1,4 @@
 dependencies:
-  esp-idf-lib/esp_idf_lib_helpers:
-    component_hash: 689853bb8993434f9556af0f2816e808bf77b5d22100144b21f3519993daf237
-    dependencies: []
-    source:
-      registry_url: https://components.espressif.com
-      type: service
-    targets:
-    - esp32
-    - esp32c2
-    - esp32c3
-    - esp32c5
-    - esp32c6
-    - esp32c61
-    - esp32h2
-    - esp32p4
-    - esp32s2
-    - esp32s3
-    version: 1.4.0
-  esp-idf-lib/i2cdev:
-    component_hash: 4f3838b2e68ab2b77fd43737139fa97dd0243b46af7b4a04588c67ff6b275ba1
-    dependencies:
-    - name: esp-idf-lib/esp_idf_lib_helpers
-      registry_url: https://components.espressif.com
-      require: private
-      version: '*'
-    source:
-      registry_url: https://components.espressif.com
-      type: service
-    targets:
-    - esp32
-    - esp32c2
-    - esp32c3
-    - esp32c5
-    - esp32c6
-    - esp32c61
-    - esp32h2
-    - esp32p4
-    - esp32s2
-    - esp32s3
-    version: 2.1.0
-  esp-idf-lib/tca95x5:
-    component_hash: 4bbdbd82828cf1fd5c03fd07e3ea2cb0f36daf16cb3ac7219d1e5decb9ec04ee
-    dependencies:
-    - name: esp-idf-lib/esp_idf_lib_helpers
-      registry_url: https://components.espressif.com
-      require: private
-      version: '*'
-    - name: esp-idf-lib/i2cdev
-      registry_url: https://components.espressif.com
-      require: private
-      version: '*'
-    source:
-      registry_url: https://components.espressif.com/
-      type: service
-    targets:
-    - esp32
-    - esp32c2
-    - esp32c3
-    - esp32c5
-    - esp32c6
-    - esp32c61
-    - esp32h2
-    - esp32p4
-    - esp32s2
-    - esp32s3
-    version: 1.0.7
   espressif/mdns:
     component_hash: 29e47564b1a7ee778135e17fbbf2a2773f71c97ebabfe626c8eda7c958a7ad16
     dependencies:
@@ -79,21 +13,9 @@ dependencies:
     source:
       type: idf
     version: 5.3.1
-  joltwallet/littlefs:
-    component_hash: 1808d73e99168f6f3c26dd31799a248484762b3a320ec4962dec11a145f4277f
-    dependencies:
-    - name: idf
-      require: private
-      version: '>=5.0'
-    source:
-      registry_url: https://components.espressif.com/
-      type: service
-    version: 1.20.3
 direct_dependencies:
-- esp-idf-lib/tca95x5
 - espressif/mdns
 - idf
-- joltwallet/littlefs
-manifest_hash: c3a20310a8ecc5e8e0221a7589abf8d2e372eb48f06d6b6fbb3fbf5f48a61aaf
+manifest_hash: 7677ef9427111d5bfe7e9d00453defd2f35330f3a0aefe9690b0a5f577f93b06
 target: esp32
 version: 2.0.0

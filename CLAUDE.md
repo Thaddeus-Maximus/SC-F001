@@ -41,6 +41,16 @@ See `README.md` for full project documentation (hardware, architecture, protocol
 
 ---
 
+## Managed Components
+
+Only **mdns** is used. The TCA9555 is driven by a custom raw I2C driver in `i2c.c` (not the `esp-idf-lib/tca95x5` library). LittleFS is not used.
+
+`idf_component.yml` pins mdns to `~1.9.1` (compatible patch updates only). If adding a new component, pin it with `~` (e.g. `"~1.2.0"`) to allow patches but not breaking changes.
+
+After changing `idf_component.yml`, run `idf.py reconfigure` to update `managed_components/`.
+
+---
+
 ## Conventions
 
 - **Naming:** `snake_case` functions with module prefix (`fsm_init`, `i2c_poll_buttons`); `UPPER_SNAKE_CASE` constants/enums
