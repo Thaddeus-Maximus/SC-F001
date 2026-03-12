@@ -1,20 +1,55 @@
-# TODO
-- [test] Seamless crashing
-		- crashes need to not cause RTC to lose time
-		- the remaining_distance needs to be unaffected
-		- the equivalent of a try-catch block on the whole program
-		- this should also make a log
-- [x] Logtool: python tool that shows logs
-		-[x] needs to support both opening a log.bin and streaming from http://ip-address-or-hostname/log
-		-[x] needs to have a CLI table output
-		-[test] needs to have a GUI output (matplotlib)
-- [test] Refactor; make sure everything adheres to naming conventions
-- [test] Renaming wifi (should reboot the wifi/web comms to take effect)
-- [x] Make sure external RTC crystal is actually in use
-- [x] Warn if time is de-synced from client by more than 5 minutes
-- [x] Bluetooth pairing
-- [ ] WiFi Network Connection
-	- add entries for wifi network ssid/password
-	- try to connect to the wifi network first
-	- if that fails then broadcast ad-hoc network like currently
-- [ ] Hard Reset
+# SC-F001 Firmware — TODO
+
+- [ ] sdkconfig audit
+  - [ ] Enable `CONFIG_ESP_TASK_WDT_PANIC=y` (required for OTA rollback reset counter to work on WDT hangs)
+  - [ ] Verify `CONFIG_FREERTOS_CHECK_STACKOVERFLOW=2` is set (currently canary — confirmed)
+  - [ ] Verify `CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT` is set (currently set — confirmed)
+  - [ ] Confirm brownout detector level (~2.43V) is appropriate for 12V battery system with regulator
+  - [ ] Research sdkconfig management best practices; document in CLAUDE.md
+- [ ] Fix managed_components: remove unused deps, pin versions in `idf_component.yml`; document in CLAUDE.md
+- [ ] OTA rollback via consecutive-reset counter
+  - [ ] Add `RTC_DATA_ATTR uint8_t reset_counter` — increment on boot, clear after successful health check
+  - [ ] On counter ≥ 5, call `esp_ota_mark_app_invalid_rollback_and_reboot()`
+  - [ ] After POST passes and FSM starts, call `esp_ota_mark_app_valid_cancel_rollback()`
+  - [ ] Decide what "health check passes" means (POST passes? 30s uptime? first successful FSM cycle?)
+- [ ] Critical init failures (ADC, storage, log, I2C, FSM, sensors) should `esp_restart()` — this feeds the OTA rollback reset counter
+- [ ] Non-critical init failures (wifi, webserver, RF, BT) should log a `LOG_TYPE_ERROR` entry and attempt retry
+  - [ ] WiFi/BT already have restart paths (`webserver_restart_wifi()`, `bt_hid_resume()`) — wire these into a retry-on-failure path at boot, not just soft idle exit
+- [ ] Power-on self-test (POST) — run after all inits, before FSM starts; log results; feed OTA health check
+  - [ ] ADC: read all 4 channels twice with short delay, flag if frozen or out of range (battery 5–25V, currents 0–150A)
+  - [ ] I2C: verify TCA9555 responds (read port 0)
+  - [ ] Flash: write-read-verify test on last sector of storage partition
+- [ ] Parameter validation
+  - [ ] Add per-param bounds to `PARAM_LIST` macro (min, max, flags)
+  - [ ] NaN/Inf → reset to default; out-of-range → clamp to min/max
+  - [ ] Enforce validation inside `commit_params()` (covers both `storage_init()` load and `/set` POST)
+  - [ ] Audit for anywhere params are set without an immediate `commit_params()` call
+  - [ ] Audit abandoned parameters (e.g. jack current) — add comments marking them deprecated
+- [ ] Factory reset: erase entire storage partition (not just params), require 10s button hold, LED indication (flash all → hold solid once triggered)
+- [ ] Ensure RTC_DATA_ATTR variables survive panics/WDT resets
+  - [ ] Verify `sync_unix_us`, `sync_rtc_us`, `rtc_set` (time) are not corrupted by any init path
+  - [ ] Verify `remaining_distance`, `fsm_error` (FSM state) are not zeroed except by intentional reset
+  - [ ] Verify `log_head_offset`, `log_tail_offset` stay consistent after crash (no partial writes)
+- [ ] Measure flash log write duration (bracket with `esp_timer_get_time()`, compare to WDT timeout of 5s)
+- [ ] WiFi STA mode with event-group signaling
+  - [ ] Try connecting to saved STA network first, fall back to softAP on failure/timeout
+  - [ ] Add `EventGroupHandle_t` with `WIFI_READY_BIT` (set when STA connected or softAP up) and `BT_READY_BIT` (set when BT scan task starts)
+  - [ ] Replace blind 500ms `vTaskDelay` on alarm wake with `xEventGroupWaitBits()` + timeout
+  - [ ] Use same event group in `soft_idle_exit()` path
+- [ ] Verify `sensors_init()` placement and ISR safety
+  - [ ] Confirm `sensors_init()` is safe to call from `app_main()` (research says yes — creates queue + installs ISR service, no task-context dependency)
+  - [ ] Decide: move to main.c (simpler) or keep in `control_task()` (current) — either way, remove the dead commented-out call in main.c and add a clarifying comment
+  - [ ] Audit all ISRs are IRAM-safe: no `ESP_LOGx`, `printf`, `malloc`, or flash access — only `xQueueSendFromISR()`
+  - [ ] Handle `sensors_init()` failure as critical (→ reboot)
+- [ ] Confirm whether external RTC crystal can be dropped (device never enters deep sleep now) — if yes, remove `rtc_xtal_init()` and related sdkconfig entries; if no, document why it must stay
+- [ ] Remove `rtc_wakeup_cause()` call (informational only, no longer needed)
+- [ ] Confirm `rtc_check_shutdown_timer()` uses signed subtraction — then remove the esp_timer overflow TODO comment (int64_t overflows after 292K years)
+- [ ] Extract pure logic (e-fuse thermal model, param serialization, sensor debounce) into host-testable modules with Unity/CMock
+- [ ] UART integration test framework: Python runner + ESP-side test commands
+- [test] Logtool GUI output (matplotlib)
+- [test] Verify naming convention adherence across codebase
+- [test] Verify WiFi SSID rename triggers comms reboot
+- [ ] Documentation restructure
+  - [ ] Move project/hardware documentation from CLAUDE.md → README.md; keep CLAUDE.md for AI-specific instructions and conventions only
+  - [ ] Document all FreeRTOS tasks and priorities in README.md
+  - [ ] Add terse comments to FSM state transitions in `control_fsm.c` (focus on "why", not "what")
