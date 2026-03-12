@@ -26,8 +26,6 @@ esp_err_t send_bat_log() {
 	
 	uint8_t entry[12] = {};
 	
-	
-    
     // Pack 64-bit timestamp into bytes 1-8
     uint64_t be_timestamp = rtc_get_ms();
     memcpy(&entry[0], &be_timestamp, 8);
@@ -111,15 +109,20 @@ void app_main(void) {esp_task_wdt_add(NULL);
     ESP_LOGI(TAG, "Version: %s", FIRMWARE_VERSION);
     ESP_LOGI(TAG, "Branch: %s", FIRMWARE_BRANCH);
     ESP_LOGI(TAG, "Built: %s", BUILD_DATE);
-
+    
+    // TODO: Check wdt stuff
+    // TODO: Stack Overflow Detection
+	// TODO: Remove XTAL crystal stuff
     if (rtc_xtal_init() != ESP_OK) ESP_LOGE(TAG, "RTC FAILED");
     rtc_restore_time();  // Recover time from RTC domain if we crashed
 
     // Say hello; turn on the lights
-    rtc_wakeup_cause();  // log wakeup cause (informational only)
+    rtc_wakeup_cause();  // log wakeup cause (informational only) // TODO: Shouldnt be needed anymore
     if (i2c_init()      != ESP_OK) ESP_LOGE(TAG, "I2C FAILED");
     i2c_set_relays((relay_port_t){.raw=0});
     drive_leds(LED_STATE_BOOTING);
+    
+    // TODO: How many tasks do we have?
     
     
     // Check for factory reset condition: Cold boot (power-on/ext-reset) + button held
@@ -168,10 +171,12 @@ void app_main(void) {esp_task_wdt_add(NULL);
     }
     
     // Every boot we load parameters and monitor solar, no matter what
+	// TODO: Do things with errors (put in real log? then reset. "assert with LOGE"?)
 	if (adc_init()      != ESP_OK) ESP_LOGE(TAG, "ADC FAILED");
     if (storage_init()  != ESP_OK) ESP_LOGE(TAG, "STORAGE FAILED");
     if (log_init()      != ESP_OK) ESP_LOGE(TAG, "LOG FAILED");
-
+    // TODO: figure out how long logging takes (for reference, and comp to wdt)
+    
     esp_reset_reason_t reset_reason = esp_reset_reason();
     esp_sleep_wakeup_cause_t wake_cause = esp_sleep_get_wakeup_cause();
 
@@ -184,6 +189,9 @@ void app_main(void) {esp_task_wdt_add(NULL);
         log_write(boot_entry, sizeof(boot_entry), LOG_TYPE_BOOT);
     }
 
+	// TODO: make sure that this is "crash proof"
+	// TODO: OTA rollback (triggered how? preferably with hardware... or if there are 5 resets in a row [check bootloader?]. also need way to nuke the storage partition or safe boot)
+	// TODO: (maybe) recovery partition that allows uploading firmware
     // Write a crash log entry if we rebooted unexpectedly
     if (reset_reason == ESP_RST_PANIC    ||
         reset_reason == ESP_RST_INT_WDT  ||
@@ -197,11 +205,17 @@ void app_main(void) {esp_task_wdt_add(NULL);
         log_write(crash_entry, sizeof(crash_entry), LOG_TYPE_CRASH);
     }
 
+	// TODO: is this reasonable now that we eliminated deep sleep?
     if (solar_run_fsm() != ESP_OK) ESP_LOGE(TAG, "SOLAR FAILED");
     // TODO: Do a 12V check and enter deep sleep if there's a problem
 
     send_bat_log();
     
+    // TODO: test strategy!!! (software verification, and unit bringup)
+    // TODO: A->D bringup; sanity check (sum up all inputs, wait 5ms, sum again, make sure there is a change (not frozen))
+    
+    // TODO: make sure sdkconfig is sane. Make notes, have claude figure this out properly
+    // TODO: fix managed_components
     
 	//send_log();
 	
@@ -210,26 +224,23 @@ void app_main(void) {esp_task_wdt_add(NULL);
     /*** FULL BOOT — always, every boot ***/
     if (uart_init()    != ESP_OK) ESP_LOGE(TAG, "UART FAILED");
     //if (power_init()   != ESP_OK) ESP_LOGE(TAG, "POWER FAILED");
+    
+    // TODO: Seriously, log all the errors on bluetooth
     if (rf_433_init()  != ESP_OK) ESP_LOGE(TAG, "RF FAILED");
     if (bt_hid_init()  != ESP_OK) ESP_LOGE(TAG, "BT HID FAILED");
     if (fsm_init()     != ESP_OK) ESP_LOGE(TAG, "FSM FAILED");
-    //if (sensors_init() != ESP_OK) ESP_LOGE(TAG, "SENSORS FAILED");
+    //if (sensors_init() != ESP_OK) ESP_LOGE(TAG, "SENSORS FAILED"); // TODO: Why is this off?
     if (webserver_init() != ESP_OK) ESP_LOGE(TAG, "WEBSERVER FAILED");
 
     /*** MAIN LOOP ***/
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const TickType_t xFrequency = pdMS_TO_TICKS(50);
-    
-    /*while(true) {
-		ESP_LOGI(TAG, "TICK");
-        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(1000));
-        esp_task_wdt_reset();
-	}*/
 
     while(true) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
         
         /* In soft idle: slow poll (5s) via direct GPIO, no I2C. */
+        // TODO: Critique & confirm what we do in idle
         if (soft_idle_is_active()) {
             //vTaskDelay(pdMS_TO_TICKS(1000));
             if (soft_idle_button_raw()) {
@@ -242,6 +253,7 @@ void app_main(void) {esp_task_wdt_add(NULL);
                 soft_idle_exit();
                 xLastWakeTime = xTaskGetTickCount();
                 vTaskDelay(pdMS_TO_TICKS(500));
+                // TODO: do a hard wait until wifi and bluetooth come up, not just blindly wait; might be better to be non-blocking
                 fsm_request(FSM_CMD_START);
                 rtc_schedule_next_alarm();
             }
@@ -257,6 +269,8 @@ void app_main(void) {esp_task_wdt_add(NULL);
         	rtc_reset_shutdown_timer();
         	soft_idle_exit();
         }
+        
+        // TODO: Make sure all ISRs are clean (very tight, no blocking functions)
         	
         switch (fsm_get_state()) {
 			case STATE_IDLE:
@@ -348,7 +362,7 @@ void app_main(void) {esp_task_wdt_add(NULL);
         }
 
         solar_run_fsm();
-        rtc_check_shutdown_timer();
+        rtc_check_shutdown_timer(); // TODO: Will esp timer overflow? Handle overflow if needed (this used to be handled by the fact that we were in deep sleep)
         esp_task_wdt_reset();
 	}
 }

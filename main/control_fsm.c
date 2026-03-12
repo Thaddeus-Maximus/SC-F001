@@ -4,6 +4,9 @@
  *  Created on: Nov 10, 2025
  *      Author: Thad
  */
+ 
+ 
+// TODO: Comment, and even better, produce a README for this.
 
 #include "control_fsm.h"
 #include "esp_task_wdt.h"
@@ -93,6 +96,7 @@ void fsm_request(fsm_cmd_t cmd)
     rtc_reset_shutdown_timer();  // any accepted command extends the wake period
     if (fsm_cmd_queue != NULL)
         xQueueSend(fsm_cmd_queue, &cmd, 0);  // safe from any context
+        // TODO: Make sure this is threadsafe
 }
 
 int8_t fsm_get_current_progress(int8_t denominator) {
@@ -178,7 +182,7 @@ void control_task(void *param) {
     const TickType_t xFrequency = pdMS_TO_TICKS(20);
     enabled = true;
     
-    sensors_init();
+    sensors_init(); // TODO: Why is this *here* rather than in main?
 
     while (enabled) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);

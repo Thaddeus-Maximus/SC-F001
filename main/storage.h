@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "esp_err.h"
 
+// TODO: Sanity check that the EEPROM is working (sacrifice sector 0?)
+
 // ============================================================================
 // FLASH LAYOUT CONSTANTS
 // ============================================================================
@@ -51,6 +53,9 @@ typedef struct {
 // PARAMETER SYSTEM
 // ============================================================================
 
+
+// TODO: Bounds checking / constraints (especially no division by zero, no NaNs, no infs)
+// TODO: abandoned parameters (esp. jack current) 
 
 #define PARAM_LIST \
     PARAM_DEF(BOOT_TIME,    i32, 0, "us") \
