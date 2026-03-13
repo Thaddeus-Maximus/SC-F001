@@ -54,10 +54,12 @@
     - [clauded] Add terse comments to FSM state transitions in `control_fsm.c` (focus on "why", not "what")
 
 
+20. - [clauded] Fix compile warnings — unused vars (uart_comms.c, rf_433.c), const-correctness (log_write signatures), fallthrough annotation (control_fsm.c)
+21. - [clauded] NVS is required: WiFi blob stores RF cal data (CONFIG_ESP_WIFI_NVS_ENABLED), Bluedroid stores bonding/GATT cache unconditionally, bt_hid.c stores last-connected BDA. Cannot remove nvs_flash_init().
+22. - [clauded] NVS vs custom params: NVS serves WiFi/BT internals + BDA storage; custom flash partition serves app params with CRC32 protection. Different purposes, no consolidation needed.
+23. - [clauded] BUG FIX: `FSM_CMD_START` fallthrough was overwriting `this_move_dist = MIN(...)` with unconditional `DRIVE_DIST` — replaced fallthrough with goto to shared start logic so leash limit is preserved
 
-20. - [ ] Extract pure logic (e-fuse thermal model, param serialization, sensor debounce) into host-testable modules with Unity/CMock
-21. - [ ] UART integration test framework: Python runner + ESP-side test commands
-22. - [clauded] Fix compile warnings — unused vars (uart_comms.c, rf_433.c), const-correctness (log_write signatures), fallthrough annotation (control_fsm.c)
-25. - [clauded] BUG FIX: `FSM_CMD_START` fallthrough was overwriting `this_move_dist = MIN(...)` with unconditional `DRIVE_DIST` — replaced fallthrough with goto to shared start logic so leash limit is preserved
-23. - [clauded] NVS is required: WiFi blob stores RF cal data (CONFIG_ESP_WIFI_NVS_ENABLED), Bluedroid stores bonding/GATT cache unconditionally, bt_hid.c stores last-connected BDA. Cannot remove nvs_flash_init().
-24. - [clauded] NVS vs custom params: NVS serves WiFi/BT internals + BDA storage; custom flash partition serves app params with CRC32 protection. Different purposes, no consolidation needed.
+24. - [ ] Do general bug-scan with claude. Especially think through the FSM logic.
+25. - [ ] Extract pure logic (e-fuse thermal model, param serialization, sensor debounce) into host-testable modules with Unity/CMock?
+26. - [ ] UART integration test framework: Python runner + ESP-side test commands
+27. - [ ] Bug: WiFi won't want to connect to STA except at first boot
