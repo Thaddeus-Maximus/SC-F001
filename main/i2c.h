@@ -49,6 +49,7 @@ typedef union {
 
 // Public Functions
 esp_err_t i2c_init(void);
+esp_err_t i2c_post(void);
 esp_err_t i2c_stop(void);
 
 esp_err_t i2c_set_relays(relay_port_t states);

@@ -52,6 +52,18 @@ esp_err_t i2c_init(void) {
     return ESP_OK;
 }
 
+esp_err_t i2c_post(void) {
+    // Verify TCA9555 responds by reading input port 0
+    uint16_t val = 0;
+    esp_err_t err = tca_read_word(TCA_REG_INPUT0, &val);
+    if (err != ESP_OK) {
+        ESP_LOGE("I2C", "POST: TCA9555 read failed: %s", esp_err_to_name(err));
+        return err;
+    }
+    ESP_LOGI("I2C", "POST: TCA9555 OK (port0=0x%04X)", val);
+    return ESP_OK;
+}
+
 esp_err_t i2c_set_relays(relay_port_t states) {
     return tca_write_word_8(TCA_REG_OUTPUT1, states.raw);
 }

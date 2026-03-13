@@ -1,8 +1,10 @@
-# ESP32 Partition Table - 8MB (0x800000) Flash with OTA Support  #5568K,
+# ESP32 Partition Table - 8MB (0x800000) Flash with OTA Support
 # Name,     Type, SubType,  Offset,   Size,     Flags
 nvs,        data, nvs,      0x9000,   0x4000,
 otadata,    data, ota,      0xd000,   0x2000,
 phy_init,   data, phy,      0xf000,   0x1000,
 ota_0,      app,  ota_0,    0x10000,  1536K,
 ota_1,      app,  ota_1,    0x190000, 1536K,
-storage,    data, 0x40,     0x310000, 128K,
+params,     data, 0x40,     0x310000, 16K,
+log,        data, 0x41,     0x314000, 108K,
+post_test,  data, 0x42,     0x32F000, 4K,

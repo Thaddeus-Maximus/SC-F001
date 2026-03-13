@@ -99,7 +99,7 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
 }
 
 // Cache the storage partition pointer to avoid repeated lookups
-static const esp_partition_t *cached_storage_partition = NULL;
+static const esp_partition_t *cached_log_partition = NULL;
 
 // In webserver.c - Replace the log_handler function
 
@@ -144,17 +144,17 @@ static esp_err_t log_handler(httpd_req_t *req) {
         return httpd_resp_send_err(req, HTTPD_405_METHOD_NOT_ALLOWED, "Method not allowed");
     }
 
-    const esp_partition_t *storage_partition = cached_storage_partition;
-    if (storage_partition == NULL) {
-        storage_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, 
-                                                     ESP_PARTITION_SUBTYPE_ANY, 
-                                                     "storage");
-        if (storage_partition == NULL) {
-            ESP_LOGE(TAG, "Storage partition not found");
-            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
-                                        "Storage partition not found");
+    const esp_partition_t *log_part = cached_log_partition;
+    if (log_part == NULL) {
+        log_part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
+                                            ESP_PARTITION_SUBTYPE_ANY,
+                                            "log");
+        if (log_part == NULL) {
+            ESP_LOGE(TAG, "Log partition not found");
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+                                        "Log partition not found");
         }
-        cached_storage_partition = storage_partition;
+        cached_log_partition = log_part;
     }
 
     int32_t head = log_get_head();
@@ -163,7 +163,7 @@ static esp_err_t log_handler(httpd_req_t *req) {
     if (tail < 0) {
         tail = log_get_tail();
     } else {
-        if (tail < log_start || tail >= (int32_t)storage_partition->size) {
+        if (tail < log_start || tail >= (int32_t)log_part->size) {
             ESP_LOGW(TAG, "Invalid tail pointer %ld, using current tail", (long)tail);
             tail = log_get_tail();
         }
@@ -176,7 +176,7 @@ static esp_err_t log_handler(httpd_req_t *req) {
     } else if (tail < head) {
         log_data_size = head - tail;
     } else {
-        log_data_size = (storage_partition->size - tail) + (head - log_start);
+        log_data_size = (log_part->size - tail) + (head - log_start);
     }
 
     // Generate JSON header (same as /get endpoint)
@@ -270,7 +270,7 @@ static esp_err_t log_handler(httpd_req_t *req) {
         // Normal case: tail before head
         while (offset < head) {
             size_t to_read = MIN(sizeof(http_buffer), head - offset);
-            err = esp_partition_read(storage_partition, offset, http_buffer, to_read);
+            err = esp_partition_read(log_part, offset, http_buffer, to_read);
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
                          (long)offset, esp_err_to_name(err));
@@ -290,9 +290,9 @@ static esp_err_t log_handler(httpd_req_t *req) {
     }
     else {
         // Wrapped case: tail after head, read from tail to end, then start to head
-        while (offset < (int32_t)storage_partition->size) {
-            size_t to_read = MIN(sizeof(http_buffer), storage_partition->size - offset);
-            err = esp_partition_read(storage_partition, offset, http_buffer, to_read);
+        while (offset < (int32_t)log_part->size) {
+            size_t to_read = MIN(sizeof(http_buffer), log_part->size - offset);
+            err = esp_partition_read(log_part, offset, http_buffer, to_read);
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
                          (long)offset, esp_err_to_name(err));
@@ -314,7 +314,7 @@ static esp_err_t log_handler(httpd_req_t *req) {
         offset = log_start;
         while (offset < head) {
             size_t to_read = MIN(sizeof(http_buffer), head - offset);
-            err = esp_partition_read(storage_partition, offset, http_buffer, to_read);
+            err = esp_partition_read(log_part, offset, http_buffer, to_read);
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
                          (long)offset, esp_err_to_name(err));

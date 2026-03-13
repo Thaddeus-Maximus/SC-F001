@@ -38,6 +38,7 @@ esp_err_t process_bridge_current(bridge_t bridge);
 esp_err_t process_battery_voltage();
 
 esp_err_t adc_init();
+esp_err_t adc_post(void);
 esp_err_t power_init();
 esp_err_t power_stop();
 

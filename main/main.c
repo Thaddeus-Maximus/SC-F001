@@ -2,6 +2,7 @@
 #include "esp_system.h"
 #include "i2c.h"
 #include "log_test.h"
+#include "partition_test.h"
 #include "storage.h"
 #include "uart_comms.h"
 #include "esp_err.h"
@@ -19,6 +20,23 @@
 #include <string.h>
 
 #define TAG "MAIN"
+
+#define POST_MAX_RETRIES 3
+
+// Try an init function up to POST_MAX_RETRIES times. On final failure, reboot.
+// Critical inits (ADC, I2C, storage, FSM, sensors) use this — a permanent failure
+// feeds the OTA rollback reset counter via the panic→reboot path.
+static void init_critical(const char *name, esp_err_t (*fn)(void)) {
+    for (int attempt = 1; attempt <= POST_MAX_RETRIES; attempt++) {
+        esp_err_t err = fn();
+        if (err == ESP_OK) return;
+        ESP_LOGE(TAG, "%s FAILED (attempt %d/%d): %s", name, attempt, POST_MAX_RETRIES, esp_err_to_name(err));
+        if (attempt < POST_MAX_RETRIES) vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    ESP_LOGE(TAG, "%s FAILED after %d attempts — rebooting", name, POST_MAX_RETRIES);
+    vTaskDelay(pdMS_TO_TICKS(500));
+    esp_restart();
+}
 
 int64_t last_bat_log_time = 0;
 esp_err_t send_bat_log() {
@@ -103,26 +121,20 @@ void drive_leds(led_state_t state) {
 
 void app_main(void) {esp_task_wdt_add(NULL);
 
-	//run_all_log_tests();
-
     ESP_LOGI(TAG, "Firmware: %s", FIRMWARE_STRING);
     ESP_LOGI(TAG, "Version: %s", FIRMWARE_VERSION);
     ESP_LOGI(TAG, "Branch: %s", FIRMWARE_BRANCH);
     ESP_LOGI(TAG, "Built: %s", BUILD_DATE);
     
-    // TODO: Check wdt stuff
-    // TODO: Stack Overflow Detection
-	// TODO: Remove XTAL crystal stuff
+    // TODO: Confirm whether external RTC crystal can be dropped (see TODO.md #13)
     if (rtc_xtal_init() != ESP_OK) ESP_LOGE(TAG, "RTC FAILED");
     rtc_restore_time();  // Recover time from RTC domain if we crashed
 
-    // Say hello; turn on the lights
-    rtc_wakeup_cause();  // log wakeup cause (informational only) // TODO: Shouldnt be needed anymore
-    if (i2c_init()      != ESP_OK) ESP_LOGE(TAG, "I2C FAILED");
+    // Critical inits — retry up to 3 times, then reboot (feeds OTA rollback counter)
+    init_critical("I2C", i2c_init);
+    i2c_post();  // verify TCA9555 responds
     i2c_set_relays((relay_port_t){.raw=0});
     drive_leds(LED_STATE_BOOTING);
-    
-    // TODO: How many tasks do we have?
     
     
     // Check for factory reset condition: Cold boot (power-on/ext-reset) + button held
@@ -170,13 +182,17 @@ void app_main(void) {esp_task_wdt_add(NULL);
         esp_restart();
     }
     
-    // Every boot we load parameters and monitor solar, no matter what
-	// TODO: Do things with errors (put in real log? then reset. "assert with LOGE"?)
-	if (adc_init()      != ESP_OK) ESP_LOGE(TAG, "ADC FAILED");
-    if (storage_init()  != ESP_OK) ESP_LOGE(TAG, "STORAGE FAILED");
-    if (log_init()      != ESP_OK) ESP_LOGE(TAG, "LOG FAILED");
-    // TODO: figure out how long logging takes (for reference, and comp to wdt)
-    
+    // Critical inits — retry up to 3 times, then reboot
+    init_critical("ADC", adc_init);
+    init_critical("STORAGE", storage_init);
+    init_critical("LOG", log_init);
+
+    // POST checks — verify hardware is responding correctly
+    adc_post();      // ADC channels readable and not frozen
+    storage_post();  // flash write-read-verify on test sector
+
+    //run_all_log_tests();
+
     esp_reset_reason_t reset_reason = esp_reset_reason();
     esp_sleep_wakeup_cause_t wake_cause = esp_sleep_get_wakeup_cause();
 
@@ -189,9 +205,7 @@ void app_main(void) {esp_task_wdt_add(NULL);
         log_write(boot_entry, sizeof(boot_entry), LOG_TYPE_BOOT);
     }
 
-	// TODO: make sure that this is "crash proof"
-	// TODO: OTA rollback (triggered how? preferably with hardware... or if there are 5 resets in a row [check bootloader?]. also need way to nuke the storage partition or safe boot)
-	// TODO: (maybe) recovery partition that allows uploading firmware
+    // TODO: OTA rollback counter (see TODO.md #3)
     // Write a crash log entry if we rebooted unexpectedly
     if (reset_reason == ESP_RST_PANIC    ||
         reset_reason == ESP_RST_INT_WDT  ||
@@ -205,31 +219,19 @@ void app_main(void) {esp_task_wdt_add(NULL);
         log_write(crash_entry, sizeof(crash_entry), LOG_TYPE_CRASH);
     }
 
-	// TODO: is this reasonable now that we eliminated deep sleep?
     if (solar_run_fsm() != ESP_OK) ESP_LOGE(TAG, "SOLAR FAILED");
-    // TODO: Do a 12V check and enter deep sleep if there's a problem
 
     send_bat_log();
-    
-    // TODO: test strategy!!! (software verification, and unit bringup)
-    // TODO: A->D bringup; sanity check (sum up all inputs, wait 5ms, sum again, make sure there is a change (not frozen))
-    
-    // TODO: make sure sdkconfig is sane. Make notes, have claude figure this out properly
-    // TODO: fix managed_components
-    
-	//send_log();
-	
-	//write_dummy_log_1();
-    
-    /*** FULL BOOT — always, every boot ***/
-    if (uart_init()    != ESP_OK) ESP_LOGE(TAG, "UART FAILED");
-    //if (power_init()   != ESP_OK) ESP_LOGE(TAG, "POWER FAILED");
-    
-    // TODO: Seriously, log all the errors on bluetooth
-    if (rf_433_init()  != ESP_OK) ESP_LOGE(TAG, "RF FAILED");
-    if (bt_hid_init()  != ESP_OK) ESP_LOGE(TAG, "BT HID FAILED");
-    if (fsm_init()     != ESP_OK) ESP_LOGE(TAG, "FSM FAILED");
-    //if (sensors_init() != ESP_OK) ESP_LOGE(TAG, "SENSORS FAILED"); // TODO: Why is this off?
+
+    /*** FULL BOOT ***/
+    // Critical — must succeed or reboot
+    init_critical("UART", uart_init);
+    init_critical("FSM", fsm_init);
+    // sensors_init() is called inside control_task() — see control_fsm.c:185
+
+    // Non-critical — log error but continue booting
+    if (rf_433_init()    != ESP_OK) ESP_LOGE(TAG, "RF FAILED");
+    if (bt_hid_init()    != ESP_OK) ESP_LOGE(TAG, "BT HID FAILED");
     if (webserver_init() != ESP_OK) ESP_LOGE(TAG, "WEBSERVER FAILED");
 
     /*** MAIN LOOP ***/

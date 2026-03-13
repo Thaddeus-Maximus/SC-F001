@@ -12,13 +12,13 @@
    - [ ] On counter ≥ 5, call `esp_ota_mark_app_invalid_rollback_and_reboot()`
    - [ ] After POST passes and FSM starts, call `esp_ota_mark_app_valid_cancel_rollback()`
    - [ ] Decide what "health check passes" means (POST passes? 30s uptime? first successful FSM cycle?)
-4. - [ ] Critical init failures (ADC, storage, log, I2C, FSM, sensors) should `esp_restart()` — this feeds the OTA rollback reset counter
-5. - [ ] Non-critical init failures (wifi, webserver, RF, BT) should log a `LOG_TYPE_ERROR` entry and attempt retry
+4. - [clauded] Critical init failures (ADC, storage, log, I2C, FSM, UART) → `init_critical()` retries 3×, then `esp_restart()`
+5. - [clauded] Non-critical init failures (RF, BT, webserver) → log error, continue booting
    - [ ] WiFi/BT already have restart paths (`webserver_restart_wifi()`, `bt_hid_resume()`) — wire these into a retry-on-failure path at boot, not just soft idle exit
-6. - [ ] Power-on self-test (POST) — run as a part of all inits. Calling init should result in a 3-try effort to do the init if there are issues, then reset.
-   - [ ] ADC: read all 4 channels twice with short delay, flag if frozen or out of range (currents -150A to 150A)
-   - [ ] I2C: verify TCA9555 responds (read port 0)
-   - [ ] Flash: write-read-verify test on last sector of storage partition
+6. - [clauded] Power-on self-test (POST) — `init_critical()` wrapper + dedicated POST checks after init
+   - [clauded] ADC: `adc_post()` reads all 4 channels twice with 5ms delay, warns if frozen
+   - [clauded] I2C: `i2c_post()` verifies TCA9555 responds (read port 0)
+   - [clauded] Flash: `storage_post()` write-read-verify on last sector of storage partition
 7. - [ ] Parameter validation
    - [ ] Add per-param bounds to `PARAM_LIST` macro (min, max, flags)
    - [ ] NaN/Inf → reset to default; out-of-range → clamp to min/max

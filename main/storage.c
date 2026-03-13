@@ -7,6 +7,7 @@
 #include "esp_crc.h"
 #include "esp_task_wdt.h"
 #include "storage.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "nvs_flash.h"
@@ -107,11 +108,13 @@ size_t param_type_size(param_type_e x) {
 	return -1;
 }
 
-// Partition pointer
-static const esp_partition_t *storage_partition = NULL;
+// Partition pointers (separate partitions for params, log, and POST test)
+static const esp_partition_t *params_partition = NULL;
+static const esp_partition_t *log_partition = NULL;
+static const esp_partition_t *post_partition = NULL;
 
 // Log head/tail tracking with mutex protection
-// These now track byte offsets within the log area, not entry indices
+// These track byte offsets within the log partition (0-based)
 RTC_DATA_ATTR static uint32_t log_head_offset = 0;
 RTC_DATA_ATTR static uint32_t log_tail_offset = 0;
 RTC_DATA_ATTR static bool log_initialized = false;
@@ -134,8 +137,13 @@ uint32_t log_get_tail(void) {
     return tail;
 }
 
-uint32_t log_get_offset(void) { 
-    return LOG_START_OFFSET; 
+uint32_t log_get_offset(void) {
+    return 0;
+}
+
+uint32_t log_get_size(void) {
+    if (log_partition == NULL) return 0;
+    return log_partition->size;
 }
 
 // ============================================================================
@@ -350,23 +358,22 @@ static void unpack_param(const uint8_t *src, param_idx_t id) {
 // COMMIT PARAMETERS TO FLASH
 // ============================================================================
 esp_err_t commit_params(void) {
-    if (storage_partition == NULL) {
-        ESP_LOGE(TAG, "Storage partition not initialized");
+    if (params_partition == NULL) {
+        ESP_LOGE(TAG, "Params partition not initialized");
         return ESP_ERR_INVALID_STATE;
     }
-    
+
     ESP_LOGI(TAG, "Committing %d parameters to flash...", NUM_PARAMS);
-    
-    // Erase parameter sectors first
-    esp_err_t err = esp_partition_erase_range(storage_partition, PARAMS_OFFSET, 
-                                               PARAMETER_NUM_SECTORS * FLASH_SECTOR_SIZE);
+
+    // Erase entire params partition
+    esp_err_t err = esp_partition_erase_range(params_partition, 0, params_partition->size);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to erase parameter sectors: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Failed to erase params partition: %s", esp_err_to_name(err));
         return err;
     }
-    
+
     // Write each parameter with CRC
-    uint32_t flash_offset = PARAMS_OFFSET;
+    uint32_t flash_offset = 0;
     for (int i = 0; i < NUM_PARAMS; i++) {
         param_stored_t stored;
         memset(&stored, 0, sizeof(param_stored_t));
@@ -380,7 +387,7 @@ esp_err_t commit_params(void) {
         stored.crc = esp_crc32_le(crc_input, stored.data, size);
         
         // Write to flash
-        err = esp_partition_write(storage_partition, flash_offset, 
+        err = esp_partition_write(params_partition, flash_offset,
                                    &stored, sizeof(param_stored_t));
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Failed to write parameter %d (%s): %s", 
@@ -420,6 +427,58 @@ esp_err_t factory_reset(void) {
 }
 
 // ============================================================================
+// FLASH POST (Power-On Self-Test)
+// ============================================================================
+esp_err_t storage_post(void) {
+    if (post_partition == NULL) {
+        // Find post_test partition if not already found
+        post_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
+                                                  ESP_PARTITION_SUBTYPE_ANY,
+                                                  "post_test");
+        if (post_partition == NULL) {
+            ESP_LOGE(TAG, "POST: post_test partition not found");
+            return ESP_ERR_NOT_FOUND;
+        }
+    }
+
+    uint8_t write_buf[16];
+    uint8_t read_buf[16];
+
+    // Fill with a pattern based on boot time so we don't pass on stale data
+    uint32_t seed = (uint32_t)esp_timer_get_time();
+    for (int i = 0; i < 16; i++) write_buf[i] = (uint8_t)(seed + i * 37);
+
+    esp_err_t err = esp_partition_erase_range(post_partition, 0, FLASH_SECTOR_SIZE);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "POST: flash erase failed: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    err = esp_partition_write(post_partition, 0, write_buf, sizeof(write_buf));
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "POST: flash write failed: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    err = esp_partition_read(post_partition, 0, read_buf, sizeof(read_buf));
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "POST: flash read failed: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    if (memcmp(write_buf, read_buf, sizeof(write_buf)) != 0) {
+        ESP_LOGE(TAG, "POST: flash verify MISMATCH");
+        return ESP_FAIL;
+    }
+
+    // Erase the test sector so it's clean for next boot
+    esp_partition_erase_range(post_partition, 0, FLASH_SECTOR_SIZE);
+
+    ESP_LOGI(TAG, "POST: flash OK");
+    return ESP_OK;
+}
+
+// ============================================================================
 // STORAGE INITIALIZATION
 // ============================================================================
 esp_err_t storage_init(void) {
@@ -443,27 +502,27 @@ esp_err_t storage_init(void) {
         return ESP_ERR_NO_MEM;
     }
     if (log_mutex) xSemaphoreTake(log_mutex, portMAX_DELAY);
-    
-    storage_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, 
-                                                  ESP_PARTITION_SUBTYPE_ANY, 
-                                                  "storage");
-    if (storage_partition == NULL) {
-        ESP_LOGE(TAG, "Storage partition not found");
+
+    params_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
+                                                ESP_PARTITION_SUBTYPE_ANY,
+                                                "params");
+    if (params_partition == NULL) {
+        ESP_LOGE(TAG, "Params partition not found");
         if (log_mutex) xSemaphoreGive(log_mutex);
         return ESP_ERR_NOT_FOUND;
     }
-    
-    ESP_LOGI(TAG, "Storage partition found: size=%lu bytes", 
-             (unsigned long)storage_partition->size);
-    
+
+    ESP_LOGI(TAG, "Params partition found: size=%lu bytes",
+             (unsigned long)params_partition->size);
+
     // Load parameters from flash
-    uint32_t flash_offset = PARAMS_OFFSET;
+    uint32_t flash_offset = 0;
     //bool all_valid = true;
     
     for (int i = 0; i < NUM_PARAMS; i++) {
         param_stored_t stored;
         
-        esp_err_t err = esp_partition_read(storage_partition, flash_offset, 
+        esp_err_t err = esp_partition_read(params_partition, flash_offset,
                                            &stored, sizeof(param_stored_t));
         
         if (err != ESP_OK) {
@@ -509,63 +568,41 @@ static inline uint32_t log_sector_end(uint32_t x) {
     
 // Helper function to check if a sector is erased (starts with 0xFF)
 static bool is_sector_erased(uint32_t x) {
-    uint8_t buf; //[256];
-    esp_err_t err = esp_partition_read(storage_partition, LOG_START_OFFSET + x * FLASH_SECTOR_SIZE, &buf, 1);
+    uint8_t buf;
+    esp_err_t err = esp_partition_read(log_partition, x * FLASH_SECTOR_SIZE, &buf, 1);
     if (err != ESP_OK) return false;
-    if (buf == 0xFF) return true;
-    
-    /*for (int i = 0; i < 256; i++) {
-        if (buf[i] != 0xFF) return false;
-    }*/
-    return false;
+    return (buf == 0xFF);
 }
 
 static bool is_sector_full(uint32_t x) {
-    uint8_t buf; //[256];
-    esp_err_t err = esp_partition_read(storage_partition, LOG_START_OFFSET + (x+1) * FLASH_SECTOR_SIZE - 1, &buf, 1);
+    uint8_t buf;
+    esp_err_t err = esp_partition_read(log_partition, (x+1) * FLASH_SECTOR_SIZE - 1, &buf, 1);
     if (err != ESP_OK) return false;
-    if (buf == 0xFF) return false;
-    
-    /*for (int i = 0; i < 256; i++) {
-        if (buf[i] != 0xFF) return false;
-    }*/
-    return true;
+    return (buf != 0xFF);
 }
 
 static inline void find_head_tail(int32_t num_sectors, int32_t *head, int32_t *tail) {
     
 }
 
-// Helper function to check if a sector has data (contains non-0xFF, non-0x00 bytes)
-/*static bool sector_has_data(uint32_t sector_offset) {
-    uint8_t buf; //[256];
-    esp_err_t err = esp_partition_read(storage_partition, sector_offset, &buf, 256);
-    if (err != ESP_OK) return false;
-    if (buf )
-    
-    for (int i = 0; i < 256; i++) {
-        if (buf[i] != 0xFF && buf[i] != 0x00) return true;
-    }
-    return false;
-}*/
 
 // Replace log_write with this non-blocking version:
 esp_err_t log_write(uint8_t* buf, uint8_t len, uint8_t type) {
-    if (!log_initialized || storage_partition == NULL) {
+    if (!log_initialized || log_partition == NULL) {
         ESP_LOGE(TAG, "Logging not initialized");
         return ESP_FAIL;
     }
-    
+
     if (len > LOG_MAX_PAYLOAD) {
         ESP_LOGE(TAG, "Log payload too large: %d bytes (max %d)", len, LOG_MAX_PAYLOAD);
         return ESP_ERR_INVALID_SIZE;
     }
-    
+
     if (log_queue == NULL) {
         ESP_LOGE(TAG, "Log queue not initialized");
         return ESP_FAIL;
     }
-    
+
     if (type == 0xFF) {
 		ESP_LOGE(TAG, "Attempt to log with type=0xFF; not allowed");
 		return ESP_ERR_INVALID_ARG;
@@ -588,67 +625,65 @@ esp_err_t log_write(uint8_t* buf, uint8_t len, uint8_t type) {
 
 // The actual blocking write function (called by the task)
 static esp_err_t log_write_blocking(uint8_t* buf, uint8_t len, uint8_t type) {
-    if (!log_initialized || storage_partition == NULL) {
+    if (!log_initialized || log_partition == NULL) {
         ESP_LOGE(TAG, "Logging not initialized");
         return ESP_FAIL;
     }
-    
+
     if (len > LOG_MAX_PAYLOAD) {
         ESP_LOGE(TAG, "Log payload too large: %d bytes (max %d)", len, LOG_MAX_PAYLOAD);
         return ESP_ERR_INVALID_SIZE;
     }
-    
+
     if (log_mutex) xSemaphoreTake(log_mutex, portMAX_DELAY);
-    
+
     // check if we will overrun the sector
     if (log_head_offset + len+2 >= log_sector_end(log_head_offset)) {
-        //ESP_LOGI(TAG, "WILL OVERRUN (%ld >= %ld)", (long)log_head_offset + len+2, (long)log_sector_end(log_head_offset));
         // zero the rest of sector
         char zeros[256] = {0};
-        esp_partition_write(storage_partition, 
+        esp_partition_write(log_partition,
         log_head_offset, &zeros,
         log_sector_end(log_head_offset)-log_head_offset);
-        
+
         // set head to next sector, and check for wrap
         log_head_offset = log_sector_end(log_head_offset);
-        if (log_head_offset >= storage_partition->size)
-            log_head_offset = LOG_START_OFFSET;
-            
+        if (log_head_offset >= log_partition->size)
+            log_head_offset = 0;
+
         // Next write will be in a new sector - check if it needs erasing
         uint8_t check_byte;
-        esp_err_t err = esp_partition_read(storage_partition, log_head_offset, 
+        esp_err_t err = esp_partition_read(log_partition, log_head_offset,
                                             &check_byte, 1);
-        
+
         // Erase the next sector
         if (err == ESP_OK && check_byte != 0xFF) {
-            //ESP_LOGI(TAG, "Erasing sector %lu for log", (unsigned long)log_head_offset);
-            err = esp_partition_erase_range(storage_partition, 
-                                             log_head_offset, 
+            err = esp_partition_erase_range(log_partition,
+                                             log_head_offset,
                                              FLASH_SECTOR_SIZE);
-            
+
             if (err != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to erase sector: %s", esp_err_to_name(err));
                 if (log_mutex) xSemaphoreGive(log_mutex);
                 return ESP_FAIL;
             }
-            
+
         }
-        
+
         // update the tail, if needed
         if (log_tail_offset >= log_head_offset + FLASH_SECTOR_SIZE) log_tail_offset = log_head_offset + FLASH_SECTOR_SIZE;
-        if (log_tail_offset >= storage_partition->size)
-            log_tail_offset = LOG_START_OFFSET;
-        
-        ESP_LOGI(TAG, "Erased; Tail/Head are now %lu/%lu", 
+        if (log_tail_offset >= log_partition->size)
+            log_tail_offset = 0;
+
+        ESP_LOGI(TAG, "Erased; Tail/Head are now %lu/%lu",
                  (unsigned long)log_tail_offset, (unsigned long)log_head_offset);
     }
     len++; // account for type bit
-        
-        
-    esp_partition_write(storage_partition, log_head_offset, &len, 1);
-    esp_partition_write(storage_partition, log_head_offset+1, buf, len-1);
-    esp_partition_write(storage_partition, log_head_offset+len, &type, 1);
-    
+
+
+    esp_partition_write(log_partition, log_head_offset, &len, 1);
+    esp_partition_write(log_partition, log_head_offset+1, buf, len-1);
+    esp_partition_write(log_partition, log_head_offset+len, &type, 1);
+
     log_head_offset+=len+1;
     ESP_LOGI(TAG, "Wrote; Tail/Head are now %lu/%lu", 
                  (unsigned long)log_tail_offset, (unsigned long)log_head_offset);
@@ -686,21 +721,29 @@ static void log_writer_task(void *pvParameters) {
 
 // Modified log_init to create queue and task
 esp_err_t log_init() {
-    if (storage_partition == NULL) {
-        ESP_LOGE(TAG, "Storage partition not initialized, call storage_init() first");
-        return ESP_ERR_INVALID_STATE;
+    // Find the log partition
+    log_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
+                                             ESP_PARTITION_SUBTYPE_ANY,
+                                             "log");
+    if (log_partition == NULL) {
+        ESP_LOGE(TAG, "Log partition not found");
+        return ESP_ERR_NOT_FOUND;
     }
-    
+
+    if (log_mutex == NULL) {
+        log_mutex = xSemaphoreCreateMutex();
+        if (log_mutex == NULL) return ESP_ERR_NO_MEM;
+    }
+
     if (log_mutex) xSemaphoreTake(log_mutex, portMAX_DELAY);
-    
-    uint32_t log_area_size = storage_partition->size - LOG_START_OFFSET;
-    uint32_t num_sectors = log_area_size / FLASH_SECTOR_SIZE;
-    
+
+    uint32_t num_sectors = log_partition->size / FLASH_SECTOR_SIZE;
+
     ESP_LOGI(TAG, "Log init: scanning %lu sectors with bisection", (unsigned long)num_sectors);
-    
+
     // Default to empty log
-    log_head_offset = LOG_START_OFFSET;
-    log_tail_offset = LOG_START_OFFSET;
+    log_head_offset = 0;
+    log_tail_offset = 0;
     
     // Binary search for the first non-full sector
     int32_t l = 0;
@@ -750,10 +793,10 @@ esp_err_t log_init() {
     }
     
     if (head_sector == -1) {
-        if (is_sector_erased(LOG_START_OFFSET)) {
+        if (is_sector_erased(0)) {
             ESP_LOGI(TAG, "Log is empty");
-            log_head_offset = LOG_START_OFFSET;
-            log_tail_offset = LOG_START_OFFSET;
+            log_head_offset = 0;
+            log_tail_offset = 0;
         } else {
             head_sector = 0;
             ESP_LOGW(TAG, "Log appears full, searching from start");
@@ -763,17 +806,17 @@ esp_err_t log_init() {
     // Walk the data structure to find exact head
     uint32_t cursor;
     if (head_sector > 0) {
-        cursor = LOG_START_OFFSET + (head_sector - 1) * FLASH_SECTOR_SIZE;
+        cursor = (head_sector - 1) * FLASH_SECTOR_SIZE;
     } else {
-        cursor = LOG_START_OFFSET;
+        cursor = 0;
     }
-    
-    uint32_t head_sector_start = LOG_START_OFFSET + head_sector * FLASH_SECTOR_SIZE;
-    
+
+    uint32_t head_sector_start = head_sector * FLASH_SECTOR_SIZE;
+
     bool found_head = false;
-    while (cursor < head_sector_start + FLASH_SECTOR_SIZE && cursor < storage_partition->size) {
+    while (cursor < head_sector_start + FLASH_SECTOR_SIZE && cursor < log_partition->size) {
         uint8_t buf;
-        esp_err_t err = esp_partition_read(storage_partition, cursor, &buf, 1);
+        esp_err_t err = esp_partition_read(log_partition, cursor, &buf, 1);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Failed to read during log init at offset %lu", (unsigned long)cursor);
             if (log_mutex) xSemaphoreGive(log_mutex);
@@ -798,9 +841,9 @@ esp_err_t log_init() {
     }
     
     if (tail_sector >= 0) {
-        log_tail_offset = LOG_START_OFFSET + tail_sector * FLASH_SECTOR_SIZE;
+        log_tail_offset = tail_sector * FLASH_SECTOR_SIZE;
     } else {
-        log_tail_offset = LOG_START_OFFSET;
+        log_tail_offset = 0;
     }
     
     log_initialized = true;
@@ -866,7 +909,9 @@ void storage_deinit(void) {
         log_queue = NULL;
     }
     
-    storage_partition = NULL;
+    params_partition = NULL;
+    log_partition = NULL;
+    post_partition = NULL;
     log_initialized = false;
     if (log_mutex) {
         vSemaphoreDelete(log_mutex);
@@ -879,53 +924,11 @@ void storage_deinit(void) {
 
 
 
-/*
- * ADDITIONS TO storage.c
- * 
- * Add these functions to storage.c to support the test suite.
- * These provide the ability to erase all log sectors, simulate power cycles,
- * and read back log entries for verification.
- */
-
-// Add these function declarations to storage.h:
-/*
-esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type);
-void log_read_reset(void);
-esp_err_t log_erase_all_sectors(void);
-esp_err_t log_simulate_power_cycle(void);
-*/
-
-// Add this static variable near the top of storage.c with other log static variables
-// (around line 118, after log_tail_offset and log_initialized):
+// ============================================================================
+// LOG READ / TEST SUPPORT FUNCTIONS
+// ============================================================================
 
 static uint32_t log_read_cursor = 0;
-
-
-// Add these functions to storage.c (after the existing log functions):
-
-/*
- * ADDITIONS TO storage.c
- * 
- * Add these functions to storage.c to support the test suite.
- * These provide the ability to erase all log sectors, simulate power cycles,
- * and read back log entries for verification.
- */
-
-// Add these function declarations to storage.h:
-/*
-esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type);
-void log_read_reset(void);
-esp_err_t log_erase_all_sectors(void);
-esp_err_t log_simulate_power_cycle(void);
-*/
-
-// Add this static variable near the top of storage.c with other log static variables
-// (around line 118, after log_tail_offset and log_initialized):
-/*
-static uint32_t log_read_cursor = 0;
-*/
-
-// Add these functions to storage.c (after the existing log functions):
 
 /**
  * @brief Read a log entry from the current read cursor position
@@ -952,18 +955,18 @@ esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type) {
     // Add this declaration near the other log static variables in storage.c:
     // static uint32_t log_read_cursor = 0;
     
-    if (!log_initialized || storage_partition == NULL) {
+    if (!log_initialized || log_partition == NULL) {
         ESP_LOGE(TAG, "Logging not initialized");
         return ESP_ERR_INVALID_STATE;
     }
-    
+
     if (len == NULL || buf == NULL || type == NULL) {
         ESP_LOGE(TAG, "NULL pointer passed to log_read");
         return ESP_ERR_INVALID_ARG;
     }
-    
+
     if (log_mutex) xSemaphoreTake(log_mutex, portMAX_DELAY);
-    
+
     // Initialize read cursor to tail on first read (when cursor is 0)
     if (log_read_cursor == 0) {
         log_read_cursor = log_tail_offset;
@@ -977,7 +980,7 @@ esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type) {
     
     // Read the length byte
     uint8_t entry_len;
-    esp_err_t err = esp_partition_read(storage_partition, log_read_cursor, &entry_len, 1);
+    esp_err_t err = esp_partition_read(log_partition, log_read_cursor, &entry_len, 1);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to read entry length at offset %lu", (unsigned long)log_read_cursor);
         if (log_mutex) xSemaphoreGive(log_mutex);
@@ -996,8 +999,8 @@ esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type) {
         uint32_t next_sector = ((log_read_cursor / FLASH_SECTOR_SIZE) + 1) * FLASH_SECTOR_SIZE;
         
         // Handle wraparound
-        if (next_sector >= storage_partition->size) {
-            log_read_cursor = LOG_START_OFFSET;
+        if (next_sector >= log_partition->size) {
+            log_read_cursor = 0;
         } else {
             log_read_cursor = next_sector;
         }
@@ -1015,7 +1018,7 @@ esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type) {
     
     // Read the data (length-1 bytes, since length includes the type byte)
     uint8_t data_len = entry_len - 1;
-    err = esp_partition_read(storage_partition, log_read_cursor + 1, buf, data_len);
+    err = esp_partition_read(log_partition, log_read_cursor + 1, buf, data_len);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to read entry data at offset %lu", (unsigned long)(log_read_cursor + 1));
         if (log_mutex) xSemaphoreGive(log_mutex);
@@ -1024,7 +1027,7 @@ esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type) {
     
     // Read the type byte
     uint8_t entry_type;
-    err = esp_partition_read(storage_partition, log_read_cursor + entry_len, &entry_type, 1);
+    err = esp_partition_read(log_partition, log_read_cursor + entry_len, &entry_type, 1);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to read entry type at offset %lu", (unsigned long)(log_read_cursor + entry_len));
         if (log_mutex) xSemaphoreGive(log_mutex);
@@ -1045,8 +1048,8 @@ esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type) {
     log_read_cursor += entry_len + 1; // +1 for the type byte after data
     
     // Handle wraparound
-    if (log_read_cursor >= storage_partition->size) {
-        log_read_cursor = LOG_START_OFFSET;
+    if (log_read_cursor >= log_partition->size) {
+        log_read_cursor = 0;
     }
     
     if (log_mutex) xSemaphoreGive(log_mutex);
@@ -1078,37 +1081,31 @@ void log_read_reset(void) {
  * @return ESP_OK on success, error code otherwise
  */
 esp_err_t log_erase_all_sectors(void) {
-    if (storage_partition == NULL) {
-        ESP_LOGE(TAG, "Storage partition not initialized");
+    if (log_partition == NULL) {
+        ESP_LOGE(TAG, "Log partition not initialized");
         return ESP_ERR_INVALID_STATE;
     }
     // Stop the log writer task
 	if (log_task_running) {
 	    log_task_running = false;
 	    vTaskDelay(pdMS_TO_TICKS(200));
-	    
+
 	    if (log_task_handle != NULL) {
-	        // Don't try to delete from watchdog - task was never added
-	        // esp_task_wdt_delete(log_task_handle);  // <-- REMOVE THIS LINE
 	        vTaskDelay(pdMS_TO_TICKS(100));
 	        log_task_handle = NULL;
 	    }
 	}
-	
+
 	// Clear the queue
 	if (log_queue != NULL) {
 	    xQueueReset(log_queue);
 	}
-    
+
     if (log_mutex) xSemaphoreTake(log_mutex, portMAX_DELAY);
-    
-    uint32_t log_area_size = storage_partition->size - LOG_START_OFFSET;
-    
-    ESP_LOGI(TAG, "Erasing all log sectors (%lu bytes)...", (unsigned long)log_area_size);
-    
-    esp_err_t err = esp_partition_erase_range(storage_partition, 
-                                               LOG_START_OFFSET, 
-                                               log_area_size);
+
+    ESP_LOGI(TAG, "Erasing all log sectors (%lu bytes)...", (unsigned long)log_partition->size);
+
+    esp_err_t err = esp_partition_erase_range(log_partition, 0, log_partition->size);
     
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to erase log area: %s", esp_err_to_name(err));

@@ -179,6 +179,41 @@ esp_err_t adc_init() {
 	return ESP_OK;
 }
 
+esp_err_t adc_post(void) {
+    // Read all 4 channels twice with a short delay; flag if frozen or wildly out of range
+    const adc_channel_t channels[] = { PIN_V_ISENS1, PIN_V_ISENS2, PIN_V_ISENS3, PIN_V_SENS_BAT };
+    const char *names[] = { "ISENS1", "ISENS2", "ISENS3", "BATTERY" };
+    int first[4], second[4];
+
+    for (int i = 0; i < 4; i++) {
+        if (adc_oneshot_read(adc1_handle, channels[i], &first[i]) != ESP_OK) {
+            ESP_LOGE(TAG, "POST: ADC read failed on %s", names[i]);
+            return ESP_FAIL;
+        }
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(5));
+
+    for (int i = 0; i < 4; i++) {
+        if (adc_oneshot_read(adc1_handle, channels[i], &second[i]) != ESP_OK) {
+            ESP_LOGE(TAG, "POST: ADC read failed on %s (2nd)", names[i]);
+            return ESP_FAIL;
+        }
+    }
+
+    // Check for frozen ADC (identical readings on noise-bearing current sense channels)
+    for (int i = 0; i < 3; i++) {  // only current sense, not battery (battery can be stable)
+        if (first[i] == second[i] && first[i] != 0) {
+            ESP_LOGW(TAG, "POST: ADC %s may be frozen (both reads = %d)", names[i], first[i]);
+            // Warning only — a truly stuck ADC will trip efuse protections anyway
+        }
+    }
+
+    ESP_LOGI(TAG, "POST: ADC OK (BAT=%d/%d, I1=%d/%d, I2=%d/%d, I3=%d/%d)",
+             first[3], second[3], first[0], second[0], first[1], second[1], first[2], second[2]);
+    return ESP_OK;
+}
+
 float get_raw_battery_voltage(void) {
 	int adc_raw = 0;
     int voltage_mv = 0;

@@ -10,9 +10,6 @@
 // FLASH LAYOUT CONSTANTS
 // ============================================================================
 #define FLASH_SECTOR_SIZE 4096
-#define PARAMS_OFFSET 0
-#define PARAMETER_NUM_SECTORS 4
-#define LOG_START_OFFSET FLASH_SECTOR_SIZE*PARAMETER_NUM_SECTORS  // Start after first sector (parameters)
 
 // ============================================================================
 // LOG ENTRY TYPE DEFINITIONS (Magic values 0xC0-0xCF)
@@ -153,6 +150,7 @@ typedef struct {
 
 // Initialization
 esp_err_t storage_init(void);
+esp_err_t storage_post(void);
 void storage_deinit(void);
 
 // Parameter access
