@@ -61,36 +61,50 @@ typedef struct {
 #define PARAM_NAME_STR(name) #name
 
 // Generate parameter table with live values (initialized to defaults)
-#define PARAM_DEF(name, type, default_val, unit) PARAM_VALUE_INIT(type, default_val),
+#define PARAM_DEF(name, type, default_val, unit, min, max) PARAM_VALUE_INIT(type, default_val),
 param_value_t parameter_table[NUM_PARAMS] = {
     PARAM_LIST
 };
 #undef PARAM_DEF
 
 // Generate default values array
-#define PARAM_DEF(name, type, default_val, unit) PARAM_VALUE_INIT(type, default_val),
+#define PARAM_DEF(name, type, default_val, unit, min, max) PARAM_VALUE_INIT(type, default_val),
 const param_value_t parameter_defaults[NUM_PARAMS] = {
     PARAM_LIST
 };
 #undef PARAM_DEF
 
 // Generate parameter types array
-#define PARAM_DEF(name, type, default_val, unit) PARAM_TYPE_ENUM(type),
+#define PARAM_DEF(name, type, default_val, unit, min, max) PARAM_TYPE_ENUM(type),
 const param_type_e parameter_types[NUM_PARAMS] = {
     PARAM_LIST
 };
 #undef PARAM_DEF
 
 // Generate parameter names array
-#define PARAM_DEF(name, type, default_val, unit) PARAM_NAME_STR(name),
+#define PARAM_DEF(name, type, default_val, unit, min, max) PARAM_NAME_STR(name),
 const char* parameter_names[NUM_PARAMS] = {
     PARAM_LIST
 };
 #undef PARAM_DEF
 
 // Generate parameter units array (8 chars max per unit)
-#define PARAM_DEF(name, type, default_val, unit) unit,
+#define PARAM_DEF(name, type, default_val, unit, min, max) unit,
 const char parameter_units[NUM_PARAMS][8] = {
+    PARAM_LIST
+};
+#undef PARAM_DEF
+
+// Generate parameter min bounds array
+#define PARAM_DEF(name, type, default_val, unit, min, max) PARAM_VALUE_INIT(type, min),
+static const param_value_t parameter_mins[NUM_PARAMS] = {
+    PARAM_LIST
+};
+#undef PARAM_DEF
+
+// Generate parameter max bounds array
+#define PARAM_DEF(name, type, default_val, unit, min, max) PARAM_VALUE_INIT(type, max),
+static const param_value_t parameter_maxs[NUM_PARAMS] = {
     PARAM_LIST
 };
 #undef PARAM_DEF
@@ -106,6 +120,96 @@ size_t param_type_size(param_type_e x) {
     	case PARAM_TYPE_str: return PARAM_STR_SIZE;
 	}
 	return -1;
+}
+
+// ============================================================================
+// PARAMETER VALIDATION
+// ============================================================================
+// Returns true if the value was modified (clamped or reset to default).
+// - Strings: always skipped
+// - Float NaN/Inf: reset to default
+// - min == max (same raw bytes): skip bounds check (sentinel for "no bounds")
+// - Otherwise: clamp to [min, max]
+static bool validate_param(param_idx_t id) {
+    param_type_e type = parameter_types[id];
+
+    // String params: no numeric validation
+    if (type == PARAM_TYPE_str) return false;
+
+    // Float types: NaN/Inf → reset to default
+    if (type == PARAM_TYPE_f32) {
+        if (isnanf(parameter_table[id].f32) || isinff(parameter_table[id].f32)) {
+            ESP_LOGW(TAG, "Param %s: NaN/Inf, reset to default", parameter_names[id]);
+            parameter_table[id] = parameter_defaults[id];
+            return true;
+        }
+    }
+    if (type == PARAM_TYPE_f64) {
+        if (isnan(parameter_table[id].f64) || isinf(parameter_table[id].f64)) {
+            ESP_LOGW(TAG, "Param %s: NaN/Inf, reset to default", parameter_names[id]);
+            parameter_table[id] = parameter_defaults[id];
+            return true;
+        }
+    }
+
+    // Skip bounds check if min == max (sentinel)
+    size_t sz = param_type_size(type);
+    if (memcmp(&parameter_mins[id], &parameter_maxs[id], sz) == 0)
+        return false;
+
+    // Clamp to [min, max] per type
+    bool clamped = false;
+    switch (type) {
+        case PARAM_TYPE_u16:
+            if (parameter_table[id].u16 < parameter_mins[id].u16) {
+                parameter_table[id].u16 = parameter_mins[id].u16; clamped = true;
+            } else if (parameter_table[id].u16 > parameter_maxs[id].u16) {
+                parameter_table[id].u16 = parameter_maxs[id].u16; clamped = true;
+            }
+            break;
+        case PARAM_TYPE_i16:
+            if (parameter_table[id].i16 < parameter_mins[id].i16) {
+                parameter_table[id].i16 = parameter_mins[id].i16; clamped = true;
+            } else if (parameter_table[id].i16 > parameter_maxs[id].i16) {
+                parameter_table[id].i16 = parameter_maxs[id].i16; clamped = true;
+            }
+            break;
+        case PARAM_TYPE_u32:
+            if (parameter_table[id].u32 < parameter_mins[id].u32) {
+                parameter_table[id].u32 = parameter_mins[id].u32; clamped = true;
+            } else if (parameter_table[id].u32 > parameter_maxs[id].u32) {
+                parameter_table[id].u32 = parameter_maxs[id].u32; clamped = true;
+            }
+            break;
+        case PARAM_TYPE_i32:
+            if (parameter_table[id].i32 < parameter_mins[id].i32) {
+                parameter_table[id].i32 = parameter_mins[id].i32; clamped = true;
+            } else if (parameter_table[id].i32 > parameter_maxs[id].i32) {
+                parameter_table[id].i32 = parameter_maxs[id].i32; clamped = true;
+            }
+            break;
+        case PARAM_TYPE_f32:
+            if (parameter_table[id].f32 < parameter_mins[id].f32) {
+                parameter_table[id].f32 = parameter_mins[id].f32; clamped = true;
+            } else if (parameter_table[id].f32 > parameter_maxs[id].f32) {
+                parameter_table[id].f32 = parameter_maxs[id].f32; clamped = true;
+            }
+            break;
+        case PARAM_TYPE_f64:
+            if (parameter_table[id].f64 < parameter_mins[id].f64) {
+                parameter_table[id].f64 = parameter_mins[id].f64; clamped = true;
+            } else if (parameter_table[id].f64 > parameter_maxs[id].f64) {
+                parameter_table[id].f64 = parameter_maxs[id].f64; clamped = true;
+            }
+            break;
+        default:
+            break;
+    }
+
+    if (clamped) {
+        ESP_LOGW(TAG, "Param %s: out of range, clamped", parameter_names[id]);
+    }
+    return clamped;
 }
 
 // Partition pointers (separate partitions for params, log, and POST test)
@@ -380,6 +484,9 @@ esp_err_t commit_params(void) {
         param_stored_t stored;
         memset(&stored, 0, sizeof(param_stored_t));
         
+        // Validate before writing — clamp out-of-range, reset NaN/Inf
+        validate_param(i);
+
         // Pack parameter data
         pack_param(stored.data, i);
         
@@ -568,6 +675,9 @@ esp_err_t storage_init(void) {
         
         if (calculated_crc == stored.crc) {
             unpack_param(stored.data, i);
+            if (validate_param(i)) {
+                ESP_LOGW(TAG, "Param %d (%s) out of range after load, clamped", i, parameter_names[i]);
+            }
         } else {
             ESP_LOGW(TAG, "Parameter %d (%s) failed CRC check, using default", 
                      i, parameter_names[i]);

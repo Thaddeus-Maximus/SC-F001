@@ -16,13 +16,6 @@ int64_t receive_keycode(void);
 esp_err_t rf_433_init();
 esp_err_t rf_433_stop();
 
-void rf_433_set_keycode(uint8_t index, uint32_t code);
-
-/*
-int8_t rf_433_get_keycode();
-int64_t rf_433_get_raw_keycode();
-*/
-
 void rf_433_learn_keycode(uint8_t index);
 void rf_433_cancel_learn_keycode();
 

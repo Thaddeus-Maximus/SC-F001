@@ -83,8 +83,6 @@ void pulse_override(fsm_override_t cmd) {
 }
 
 int64_t fsm_cal_t, fsm_cal_e;
-float fsm_cal_val;
-void fsm_set_cal_val(float v) {fsm_cal_val = v;}
 int64_t fsm_get_cal_t(){return fsm_cal_t;}
 int64_t fsm_get_cal_e(){return fsm_cal_e;}
 
@@ -290,14 +288,6 @@ void control_task(void *param) {
                 		log = true;
 					}
 					break;
-				case FSM_CMD_CALIBRATE_JACK_FINISH:				
-					set_param_value_t(PARAM_JACK_KT, 
-					(param_value_t){.f32 = fsm_cal_t / fsm_cal_val});
-					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_FINISH -> %f", get_param_value_t(PARAM_JACK_KT).f32);
-					break;
-					
-					
-                	
                 case FSM_CMD_CALIBRATE_DRIVE_PREP:
 					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_PREP");
 					if (current_state == STATE_IDLE
@@ -325,15 +315,6 @@ void control_task(void *param) {
 						current_state = STATE_IDLE;
                 		log = true;
 					}
-					break;
-				case FSM_CMD_CALIBRATE_DRIVE_FINISH:				
-					set_param_value_t(PARAM_DRIVE_KT, 
-					(param_value_t){.f32 = fsm_cal_t / fsm_cal_val});
-					set_param_value_t(PARAM_DRIVE_KE, 
-					(param_value_t){.f32 = fsm_cal_e / fsm_cal_val});
-					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_FINISH -> %f / %f",
-					  get_param_value_t(PARAM_DRIVE_KT).f32,
-					  get_param_value_t(PARAM_DRIVE_KE).f32);
 					break;
             }
         }

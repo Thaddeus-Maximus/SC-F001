@@ -17,12 +17,10 @@ typedef enum {
 	FSM_CMD_CALIBRATE_JACK_PREP,
 	FSM_CMD_CALIBRATE_JACK_START,
 	FSM_CMD_CALIBRATE_JACK_END,
-	FSM_CMD_CALIBRATE_JACK_FINISH,
-	
+
 	FSM_CMD_CALIBRATE_DRIVE_PREP,
 	FSM_CMD_CALIBRATE_DRIVE_START,
-	FSM_CMD_CALIBRATE_DRIVE_END,
-	FSM_CMD_CALIBRATE_DRIVE_FINISH
+	FSM_CMD_CALIBRATE_DRIVE_END
 } fsm_cmd_t;
 
 typedef enum {
@@ -90,7 +88,6 @@ void pulse_override(fsm_override_t cmd);
 esp_err_t fsm_init();
 esp_err_t fsm_stop();
 
-void fsm_set_cal_val(float v);
 int64_t fsm_get_cal_t();
 int64_t fsm_get_cal_e();
 void fsm_request(fsm_cmd_t cmd);

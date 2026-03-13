@@ -220,10 +220,6 @@ esp_err_t rf_433_init() {
 
 esp_err_t rf_433_stop() { return ESP_OK; }
 
-void rf_433_set_keycode(uint8_t index, uint32_t code) {
-    set_param_value_t(PARAM_KEYCODE_0+index, (param_value_t){.u32=code});
-}
-
 void rf_433_learn_keycode(uint8_t index) {
     if (index >= 8) return;
     learn_flag = index;

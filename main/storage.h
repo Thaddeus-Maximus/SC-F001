@@ -51,61 +51,63 @@ typedef struct {
 // ============================================================================
 
 
-// TODO: Bounds checking / constraints (especially no division by zero, no NaNs, no infs)
-// TODO: abandoned parameters (esp. jack current) 
+// PARAM_DEF(name, type, default, unit, min, max)
+// min == max → skip bounds validation (used for keycodes, strings, informational params)
+// Division-critical params have min > 0 to prevent div-by-zero
+// NaN/Inf floats are always reset to default regardless of bounds
 
 #define PARAM_LIST \
-    PARAM_DEF(BOOT_TIME,    i32, 0, "us") \
-    PARAM_DEF(NUM_MOVES,    u32, 0, "") \
-    PARAM_DEF(MOVE_START,   u32, 0, "s") \
-    PARAM_DEF(MOVE_END,     u32, 0, "s") \
-    PARAM_DEF(DRIVE_DIST,   f32, 10, "ft") \
-    PARAM_DEF(JACK_DIST,    f32,  5, "in") \
-    PARAM_DEF(DRIVE_KE,     f32, 29.2, "n/ft") \
-    PARAM_DEF(DRIVE_KT,     f32, 2880000, "us/ft") \
-    PARAM_DEF(JACK_KT,      f32, 1428571, "ms/in") \
-    PARAM_DEF(KEYCODE_0,    u32, 0, "") \
-    PARAM_DEF(KEYCODE_1,    u32, 0, "") \
-    PARAM_DEF(KEYCODE_2,    u32, 0, "") \
-    PARAM_DEF(KEYCODE_3,    u32, 0, "") \
-    PARAM_DEF(KEYCODE_4,    u32, 0, "") \
-    PARAM_DEF(KEYCODE_5,    u32, 0, "") \
-    PARAM_DEF(KEYCODE_6,    u32, 0, "") \
-    PARAM_DEF(KEYCODE_7,    u32, 0, "") \
-    PARAM_DEF(ADC_ALPHA_BATTERY, f32, 0.5, "-") \
-    PARAM_DEF(ADC_ALPHA_ISENS, f32, 0.6, "-") \
-    PARAM_DEF(ADC_ALPHA_IAZ, f32, 0.005, "-") \
-    PARAM_DEF(ADC_DB_IAZ, f32, 5.0, "A") \
-    PARAM_DEF(EFUSE_INOM_1, f32, 40.0, "A") \
-    PARAM_DEF(EFUSE_INOM_2, f32, 14.0, "A") \
-    PARAM_DEF(EFUSE_INOM_3, f32, 4.0, "A") \
-    PARAM_DEF(EFUSE_HEAT_THRESH, f32, 60.0, "i/i^2-s") \
-    PARAM_DEF(EFUSE_KINST, f32, 2.0, "i/i") \
-    PARAM_DEF(EFUSE_TAUCOOL, f32, 0.2, "i") \
-    PARAM_DEF(EFUSE_TCOOL, u32, 5000000, "us") \
-    PARAM_DEF(LOW_PROTECTION_V, f32, 10.0, "V") \
-    PARAM_DEF(LOW_PROTECTION_S, u32, 10, "s") \
-    PARAM_DEF(CHG_LOW_V,  f32, 5.0, "V") \
-    PARAM_DEF(CHG_LOW_S,  u32, 5, "s") \
-    PARAM_DEF(CHG_BULK_S, u32, 20, "s") \
-    PARAM_DEF(RF_PULSE_LENGTH, u32, 350000, "us") \
-    PARAM_DEF(V_SENS_OFFSET, f32, 0.4, "V") \
-    PARAM_DEF(NET_SSID, str, "", "") \
-    PARAM_DEF(NET_PASS, str, "", "") \
-    PARAM_DEF(WIFI_CHANNEL, u16, 6, "") \
-    PARAM_DEF(WIFI_SSID, str, "sc.local", "") \
-    PARAM_DEF(WIFI_PASS, str, "password", "") \
-    PARAM_DEF(EFUSE_INRUSH_US, u32, 250000, "us") \
-    PARAM_DEF(JACK_I_UP,   f32, 8.0, "A") \
-    PARAM_DEF(JACK_I_DOWN, f32, 15.0, "A") \
-    PARAM_DEF(V_SENS_K, f32, 0.00766666666, "V/mV") \
-    PARAM_DEF(BUILD_VERSION, str, "undefined", "") \
-    PARAM_DEF(SAFETY_BREAK_US, u32, 300000, "") \
-    PARAM_DEF(SAFETY_MAKE_US, u32, 1000000, "") \
-    PARAM_DEF(JACK_IS_DOWN, f32, 8.0, "A") \
+    PARAM_DEF(BOOT_TIME,         i32, 0,             "us",      0, 0) /* informational, skip */ \
+    PARAM_DEF(NUM_MOVES,         u32, 0,             "",        0, 1000) \
+    PARAM_DEF(MOVE_START,        u32, 0,             "s",       0, 86400) \
+    PARAM_DEF(MOVE_END,          u32, 0,             "s",       0, 86400) \
+    PARAM_DEF(DRIVE_DIST,        f32, 10,            "ft",      0.0, 100.0) \
+    PARAM_DEF(JACK_DIST,         f32,  5,            "in",      0.0, 10.0) \
+    PARAM_DEF(DRIVE_KE,          f32, 29.2,          "n/ft",    1.0, 1e9) \
+    PARAM_DEF(DRIVE_KT,          f32, 2880000,       "us/ft",   1.0, 1e9) /* div-critical */ \
+    PARAM_DEF(JACK_KT,           f32, 1428571,       "ms/in",   1.0, 1e9) /* div-critical */ \
+    PARAM_DEF(KEYCODE_0,         u32, 0,             "",        0, 0) /* skip */ \
+    PARAM_DEF(KEYCODE_1,         u32, 0,             "",        0, 0) \
+    PARAM_DEF(KEYCODE_2,         u32, 0,             "",        0, 0) \
+    PARAM_DEF(KEYCODE_3,         u32, 0,             "",        0, 0) \
+    PARAM_DEF(KEYCODE_4,         u32, 0,             "",        0, 0) \
+    PARAM_DEF(KEYCODE_5,         u32, 0,             "",        0, 0) \
+    PARAM_DEF(KEYCODE_6,         u32, 0,             "",        0, 0) \
+    PARAM_DEF(KEYCODE_7,         u32, 0,             "",        0, 0) \
+    PARAM_DEF(ADC_ALPHA_BATTERY, f32, 0.5,           "-",       0.0, 1.0) \
+    PARAM_DEF(ADC_ALPHA_ISENS,   f32, 0.6,           "-",       0.0, 1.0) \
+    PARAM_DEF(ADC_ALPHA_IAZ,     f32, 0.005,         "-",       0.0, 1.0) \
+    PARAM_DEF(ADC_DB_IAZ,        f32, 5.0,           "A",       0.0, 200.0) \
+    PARAM_DEF(EFUSE_INOM_1,      f32, 40.0,          "A",       0.0, 200.0) \
+    PARAM_DEF(EFUSE_INOM_2,      f32, 14.0,          "A",       0.0, 200.0) \
+    PARAM_DEF(EFUSE_INOM_3,      f32, 4.0,           "A",       0.0, 200.0) \
+    PARAM_DEF(EFUSE_HEAT_THRESH, f32, 60.0,          "i/i^2-s", 0.0, 1e9) \
+    PARAM_DEF(EFUSE_KINST,       f32, 2.0,           "i/i",     0.01, 100.0) /* div-critical */ \
+    PARAM_DEF(EFUSE_TAUCOOL,     f32, 0.2,           "i",       0.0, 100.0) \
+    PARAM_DEF(EFUSE_TCOOL,       u32, 5000000,       "us",      0, 60000000) \
+    PARAM_DEF(LOW_PROTECTION_V,  f32, 10.0,          "V",       0.0, 100.0) \
+    PARAM_DEF(LOW_PROTECTION_S,  u32, 10,            "s",       0, 3600) \
+    PARAM_DEF(CHG_LOW_V,         f32, 5.0,           "V",       0.0, 100.0) \
+    PARAM_DEF(CHG_LOW_S,         u32, 5,             "s",       0, 3600) \
+    PARAM_DEF(CHG_BULK_S,        u32, 20,            "s",       0, 3600) \
+    PARAM_DEF(RF_PULSE_LENGTH,   u32, 350000,        "us",      0, 10000000) \
+    PARAM_DEF(V_SENS_OFFSET,     f32, 0.4,           "V",       -10.0, 10.0) \
+    PARAM_DEF(NET_SSID,          str, "",             "",        "", "") \
+    PARAM_DEF(NET_PASS,          str, "",             "",        "", "") \
+    PARAM_DEF(WIFI_CHANNEL,      u16, 6,             "",        1, 14) \
+    PARAM_DEF(WIFI_SSID,         str, "sc.local",    "",        "", "") \
+    PARAM_DEF(WIFI_PASS,         str, "password",    "",        "", "") \
+    PARAM_DEF(EFUSE_INRUSH_US,   u32, 250000,        "us",      0, 10000000) \
+    PARAM_DEF(JACK_I_UP,         f32, 8.0,           "A",       0.0, 200.0) \
+    PARAM_DEF(JACK_I_DOWN,       f32, 15.0,          "A",       0.0, 200.0) \
+    PARAM_DEF(V_SENS_K,          f32, 0.00766666666, "V/mV",    0.0, 1.0) \
+    PARAM_DEF(BUILD_VERSION,     str, "undefined",   "",        "", "") \
+    PARAM_DEF(SAFETY_BREAK_US,   u32, 300000,        "",        0, 10000000) \
+    PARAM_DEF(SAFETY_MAKE_US,    u32, 1000000,       "",        0, 10000000) \
+    PARAM_DEF(JACK_IS_DOWN,      f32, 8.0,           "A",       0.0, 200.0) /* deprecated: may duplicate JACK_I_DOWN */
 
 // Generate enum for parameter indices
-#define PARAM_DEF(name, type, default_val, unit) PARAM_##name,
+#define PARAM_DEF(name, type, default_val, unit, min, max) PARAM_##name,
 typedef enum {
     PARAM_LIST
     NUM_PARAMS

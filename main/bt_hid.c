@@ -53,6 +53,7 @@
 #include "esp_timer.h"
 
 #include "bt_hid.h"
+#include "comms_events.h"
 #include "control_fsm.h"
 
 // ---------------------------------------------------------------------------
@@ -581,6 +582,8 @@ esp_err_t bt_hid_init(void)
      */
     xTaskCreate(bt_hid_scan_task, "bt_hid_scan", 6 * 1024, NULL, 4, &s_scan_task_handle);
 
+    if (comms_event_group) xEventGroupSetBits(comms_event_group, BT_READY_BIT);
+
     ESP_LOGI(TAG, "BLE HID host initialised");
     return ESP_OK;
 }
@@ -591,6 +594,7 @@ void bt_hid_stop(void)
         vTaskSuspend(s_scan_task_handle);
         ESP_LOGI(TAG, "BT HID scan task suspended");
     }
+    if (comms_event_group) xEventGroupClearBits(comms_event_group, BT_READY_BIT);
 }
 
 void bt_hid_resume(void)
@@ -599,4 +603,5 @@ void bt_hid_resume(void)
         vTaskResume(s_scan_task_handle);
         ESP_LOGI(TAG, "BT HID scan task resumed");
     }
+    if (comms_event_group) xEventGroupSetBits(comms_event_group, BT_READY_BIT);
 }

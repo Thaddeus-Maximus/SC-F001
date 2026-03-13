@@ -275,32 +275,10 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
             ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_PREP");
             cmd_executed = true;
         }
-        else if (strcmp(cmd_str, "cal_jack_finish") == 0) {
-            cJSON *amt = cJSON_GetObjectItem(root, "amt");
-            if (cJSON_IsNumber(amt) && amt->valuedouble >= 0 && amt->valuedouble < 8) {
-                ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_FINISH");
-                fsm_set_cal_val(amt->valuedouble);
-                fsm_request(FSM_CMD_CALIBRATE_JACK_FINISH);
-                cmd_executed = true;
-            } else {
-                error_msg = "cal_jack_finish requires amt parameter (0-8)";
-            }
-        }
         else if (strcmp(cmd_str, "cal_drive_start") == 0) {
             fsm_request(FSM_CMD_CALIBRATE_DRIVE_PREP);
             ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_PREP");
             cmd_executed = true;
-        }
-        else if (strcmp(cmd_str, "cal_drive_finish") == 0) {
-            cJSON *amt = cJSON_GetObjectItem(root, "amt");
-            if (cJSON_IsNumber(amt) && amt->valuedouble >= 0 && amt->valuedouble < 8) {
-                ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_FINISH");
-                fsm_set_cal_val(amt->valuedouble);
-                fsm_request(FSM_CMD_CALIBRATE_DRIVE_FINISH);
-                cmd_executed = true;
-            } else {
-                error_msg = "cal_drive_finish requires amt parameter (0-8)";
-            }
         }
         else if (strcmp(cmd_str, "cal_get") == 0) {
             ESP_LOGI(TAG, "CAL_GET");

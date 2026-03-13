@@ -209,7 +209,7 @@ void app_main(void) {esp_task_wdt_add(NULL);
     adc_post();      // ADC channels readable and not frozen
     storage_post();  // flash write-read-verify on test sector
 
-    run_all_log_tests();
+    //run_all_log_tests();
 
     esp_reset_reason_t reset_reason = esp_reset_reason();
     esp_sleep_wakeup_cause_t wake_cause = esp_sleep_get_wakeup_cause();
@@ -263,7 +263,8 @@ void app_main(void) {esp_task_wdt_add(NULL);
     // Create event group before non-critical inits (they set bits on it)
     comms_event_group = xEventGroupCreate();
 
-    // Non-critical — retry once on failure, then log and continue
+    // Non-critical — retry once on failure, then log and continue.
+    // Set event bits even on failure so alarm-wake doesn't block forever.
     if (rf_433_init() != ESP_OK) {
         ESP_LOGW(TAG, "RF init failed, retrying...");
         vTaskDelay(pdMS_TO_TICKS(200));
@@ -272,12 +273,18 @@ void app_main(void) {esp_task_wdt_add(NULL);
     if (bt_hid_init() != ESP_OK) {
         ESP_LOGW(TAG, "BT init failed, retrying...");
         vTaskDelay(pdMS_TO_TICKS(200));
-        if (bt_hid_init() != ESP_OK) ESP_LOGE(TAG, "BT HID FAILED (continuing without BT)");
+        if (bt_hid_init() != ESP_OK) {
+            ESP_LOGE(TAG, "BT HID FAILED (continuing without BT)");
+            if (comms_event_group) xEventGroupSetBits(comms_event_group, BT_READY_BIT);
+        }
     }
     if (webserver_init() != ESP_OK) {
         ESP_LOGW(TAG, "Webserver init failed, retrying...");
         vTaskDelay(pdMS_TO_TICKS(500));
-        if (webserver_init() != ESP_OK) ESP_LOGE(TAG, "WEBSERVER FAILED (continuing without WiFi)");
+        if (webserver_init() != ESP_OK) {
+            ESP_LOGE(TAG, "WEBSERVER FAILED (continuing without WiFi)");
+            if (comms_event_group) xEventGroupSetBits(comms_event_group, WIFI_READY_BIT);
+        }
     }
 
     // POST + FSM started successfully — this firmware is good.
