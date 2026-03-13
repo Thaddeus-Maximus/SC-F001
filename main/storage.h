@@ -171,7 +171,7 @@ esp_err_t commit_params(void);
 
 // Logging functions
 esp_err_t log_init(void);
-esp_err_t log_write(uint8_t* buf, uint8_t len, uint8_t type);
+esp_err_t log_write(const uint8_t* buf, uint8_t len, uint8_t type);
 uint32_t log_get_head(void);
 uint32_t log_get_tail(void);
 uint32_t log_get_offset(void);
@@ -188,5 +188,5 @@ esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type);
 esp_err_t log_erase_all_sectors(void);
 esp_err_t log_simulate_power_cycle(void);
 void log_read_reset(void);
-esp_err_t log_write_blocking_test(uint8_t* buf, uint8_t len, uint8_t type);
+esp_err_t log_write_blocking_test(const uint8_t* buf, uint8_t len, uint8_t type);
 #endif // STORAGE_H

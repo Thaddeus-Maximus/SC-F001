@@ -211,8 +211,10 @@ void control_task(void *param) {
                 		continue;
                 	}
                 	this_move_dist = MIN(get_param_value_t(PARAM_DRIVE_DIST).f32, remaining_distance);
+                	goto do_start;
                 case FSM_CMD_START_IGNORE_OVERTRAVEL:
                 	this_move_dist = get_param_value_t(PARAM_DRIVE_DIST).f32;
+                do_start:
                     if (current_state == STATE_IDLE) {
                     	
                     	if (get_battery_V() < get_param_value_t(PARAM_LOW_PROTECTION_V).f32) {

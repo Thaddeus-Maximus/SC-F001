@@ -145,15 +145,6 @@ static void rf_433_receiver_task(void* param) {
                         ESP_LOGI(TAG, "LEARNED KEYCODE (temp storage)");
                         learn_flag = -1;
                     } else if (controls_enabled) {
-                        // Only process RF commands if controls are enabled
-                        rf_code_t rf_msg = {
-                            .code = code,
-                            .high_avg = high / 24,
-                            .low_avg = low / 24,
-                            .errors = err,
-                            .num_symbols = len
-                        };
-                        
                         for (uint8_t i = 0; i < NUM_RF_BUTTONS; i++) {
                             uint32_t match = get_param_value_t(PARAM_KEYCODE_0+i).u32;
                             // Compare just the code (lower 32 bits)

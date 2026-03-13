@@ -724,7 +724,7 @@ static inline void find_head_tail(int32_t num_sectors, int32_t *head, int32_t *t
 
 
 // Replace log_write with this non-blocking version:
-esp_err_t log_write(uint8_t* buf, uint8_t len, uint8_t type) {
+esp_err_t log_write(const uint8_t* buf, uint8_t len, uint8_t type) {
     if (!log_initialized || log_partition == NULL) {
         ESP_LOGE(TAG, "Logging not initialized");
         return ESP_FAIL;
@@ -761,7 +761,7 @@ esp_err_t log_write(uint8_t* buf, uint8_t len, uint8_t type) {
 }
 
 // The actual blocking write function (called by the task)
-static esp_err_t log_write_blocking(uint8_t* buf, uint8_t len, uint8_t type) {
+static esp_err_t log_write_blocking(const uint8_t* buf, uint8_t len, uint8_t type) {
     if (!log_initialized || log_partition == NULL) {
         ESP_LOGE(TAG, "Logging not initialized");
         return ESP_FAIL;
@@ -1319,7 +1319,7 @@ esp_err_t log_simulate_power_cycle(void) {
     return ESP_OK;
 }
 
-esp_err_t log_write_blocking_test(uint8_t* buf, uint8_t len, uint8_t type) {
+esp_err_t log_write_blocking_test(const uint8_t* buf, uint8_t len, uint8_t type) {
     // Check queue space - wait if nearly full
     while (uxQueueSpacesAvailable(log_queue) < 2) {
         vTaskDelay(pdMS_TO_TICKS(10));

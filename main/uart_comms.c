@@ -62,7 +62,7 @@ static void cmd_post(char *json_data) {
     
     // Call the unified POST handler
     cJSON *response = NULL;
-    esp_err_t err = comms_handle_post(request, &response);
+    (void)comms_handle_post(request, &response);
     cJSON_Delete(request);
     
     if (response == NULL) {
