@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "esp_err.h"
 #include "esp_task_wdt.h"
+#include "esp_timer.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -1087,6 +1088,87 @@ int count_passed_tests(test_result_t* results, int num_tests) {
     return passed;
 }
 
+// ============================================================================
+// Write timing benchmark — measures blocking write duration
+// ============================================================================
+void test_log_write_timing(void) {
+    ESP_LOGI(TAG, "");
+    ESP_LOGI(TAG, "=== Log Write Timing Benchmark ===");
+
+    // Erase and reinit to get a clean state
+    esp_err_t err = log_erase_all_sectors();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to erase log for timing test");
+        return;
+    }
+    esp_task_wdt_reset();
+
+    // Use a 39-byte payload (typical FSM log entry size)
+    uint8_t payload[39];
+    for (int i = 0; i < 39; i++) payload[i] = (uint8_t)i;
+
+    #define TIMING_ITERATIONS 200
+
+    int64_t min_us = INT64_MAX;
+    int64_t max_us = 0;
+    int64_t total_us = 0;
+    int sector_cross_count = 0;
+    int64_t sector_cross_max_us = 0;
+
+    uint32_t prev_head = log_get_head();
+
+    for (int i = 0; i < TIMING_ITERATIONS; i++) {
+        int64_t t0 = esp_timer_get_time();
+        err = log_write_blocking_test(payload, sizeof(payload), LOG_TYPE_DATA);
+        // Wait for queue flush
+        vTaskDelay(pdMS_TO_TICKS(50));
+        int64_t t1 = esp_timer_get_time();
+
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Write %d failed: %s", i, esp_err_to_name(err));
+            continue;
+        }
+
+        int64_t dt = t1 - t0;
+        total_us += dt;
+        if (dt < min_us) min_us = dt;
+        if (dt > max_us) max_us = dt;
+
+        // Detect sector crossing (head wrapped or jumped by > payload size)
+        uint32_t cur_head = log_get_head();
+        if (cur_head < prev_head || (cur_head - prev_head) > sizeof(payload) + 10) {
+            sector_cross_count++;
+            if (dt > sector_cross_max_us) sector_cross_max_us = dt;
+        }
+        prev_head = cur_head;
+
+        if (i % 50 == 0) esp_task_wdt_reset();
+    }
+
+    int64_t avg_us = total_us / TIMING_ITERATIONS;
+
+    ESP_LOGI(TAG, "");
+    ESP_LOGI(TAG, "=== WRITE TIMING REPORT ===");
+    ESP_LOGI(TAG, "  Iterations:       %d", TIMING_ITERATIONS);
+    ESP_LOGI(TAG, "  Payload size:     %d bytes", (int)sizeof(payload));
+    ESP_LOGI(TAG, "  Min:              %lld us", (long long)min_us);
+    ESP_LOGI(TAG, "  Max:              %lld us", (long long)max_us);
+    ESP_LOGI(TAG, "  Avg:              %lld us", (long long)avg_us);
+    ESP_LOGI(TAG, "  Sector crossings: %d (max %lld us)", sector_cross_count, (long long)sector_cross_max_us);
+    ESP_LOGI(TAG, "  WDT margin:       %.1fs (WDT=5s, worst=%lldus)",
+             5.0 - (double)max_us / 1000000.0, (long long)max_us);
+    if (max_us > 1000000) {
+        ESP_LOGW(TAG, "  WARNING: max write > 1s — close to WDT timeout!");
+    } else if (max_us > 100000) {
+        ESP_LOGI(TAG, "  Note: max write > 100ms (expected during sector erase)");
+    }
+    ESP_LOGI(TAG, "===========================");
+    ESP_LOGI(TAG, "");
+
+    #undef TIMING_ITERATIONS
+    esp_task_wdt_reset();
+}
+
 // Main test runner
 esp_err_t run_all_log_tests(void) {
     ESP_LOGI(TAG, "\n\n");
@@ -1169,12 +1251,12 @@ esp_err_t run_all_log_tests(void) {
     
     if (passed == num_tests) {
         ESP_LOGI(TAG, "ALL TESTS PASSED!");
-        
+        // Run write timing benchmark as a final report (not a pass/fail test)
+        test_log_write_timing();
     } else {
         ESP_LOGE(TAG, "SOME TESTS FAILED!");
-
     }
-    
+
     while(1) { esp_task_wdt_reset(); vTaskDelay(pdMS_TO_TICKS(100)); }
     return ESP_OK;
 }

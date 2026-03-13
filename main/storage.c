@@ -113,8 +113,10 @@ static const esp_partition_t *params_partition = NULL;
 static const esp_partition_t *log_partition = NULL;
 static const esp_partition_t *post_partition = NULL;
 
-// Log head/tail tracking with mutex protection
-// These track byte offsets within the log partition (0-based)
+// Log head/tail tracking with mutex protection.
+// These track byte offsets within the log partition (0-based).
+// RTC_DATA_ATTR is historical — log_init() always recovers these from a flash scan,
+// so the RTC values are overwritten on every boot. No partial-write risk.
 RTC_DATA_ATTR static uint32_t log_head_offset = 0;
 RTC_DATA_ATTR static uint32_t log_tail_offset = 0;
 RTC_DATA_ATTR static bool log_initialized = false;
@@ -407,21 +409,46 @@ esp_err_t commit_params(void) {
 // ============================================================================
 esp_err_t factory_reset(void) {
     ESP_LOGI(TAG, "Performing factory reset...");
-    
+
     // Reset all parameters to defaults
     for (int i = 0; i < NUM_PARAMS; i++) {
         memcpy(&parameter_table[i], &parameter_defaults[i], sizeof(param_value_t));
     }
-    
-    // TODO: WIPE ENTIRE PARTITION
-    
-    // Commit defaults to flash
+
+    // Commit defaults to params partition
     esp_err_t err = commit_params();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to commit defaults during factory reset");
         return err;
     }
-    
+
+    // Erase the log partition
+    const esp_partition_t *log_part = esp_partition_find_first(
+        ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "log");
+    if (log_part != NULL) {
+        ESP_LOGI(TAG, "Erasing log partition (%lu bytes)...", (unsigned long)log_part->size);
+        err = esp_partition_erase_range(log_part, 0, log_part->size);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to erase log partition: %s", esp_err_to_name(err));
+            return err;
+        }
+    }
+
+    // Erase the POST test partition
+    const esp_partition_t *post_part = esp_partition_find_first(
+        ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "post_test");
+    if (post_part != NULL) {
+        err = esp_partition_erase_range(post_part, 0, post_part->size);
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to erase post_test partition: %s", esp_err_to_name(err));
+        }
+    }
+
+    // Reset log state so next boot starts fresh
+    log_head_offset = 0;
+    log_tail_offset = 0;
+    log_initialized = false;
+
     ESP_LOGI(TAG, "Factory reset complete");
     return ESP_OK;
 }

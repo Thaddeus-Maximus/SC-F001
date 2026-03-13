@@ -32,14 +32,15 @@
 
 static QueueHandle_t fsm_cmd_queue = NULL;
 
+// AUDIT: fsm_init() does not zero these — they persist across panics/WDT resets.
+// Only cleared by explicit user action (fsm_clear_error, fsm_set_remaining_distance).
 RTC_DATA_ATTR esp_err_t fsm_error = ESP_OK;
 esp_err_t fsm_get_error() { return fsm_error; }
 void fsm_clear_error() { fsm_error = ESP_OK; }
-	
+
 
 int64_t override_time = -1;
 fsm_override_t override_cmd;
-//int64_t override_cooldown[8] = {-1};
 bool enabled = false;
 
 float this_move_dist = 0.0f;
@@ -182,7 +183,7 @@ void control_task(void *param) {
     const TickType_t xFrequency = pdMS_TO_TICKS(20);
     enabled = true;
     
-    sensors_init(); // TODO: Why is this *here* rather than in main?
+    // sensors_init() is called from main.c as a critical init (before FSM starts)
 
     while (enabled) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);

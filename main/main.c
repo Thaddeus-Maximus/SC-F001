@@ -1,5 +1,6 @@
 #include "esp_task_wdt.h"
 #include "esp_system.h"
+#include "esp_ota_ops.h"
 #include "i2c.h"
 #include "log_test.h"
 #include "partition_test.h"
@@ -16,12 +17,20 @@
 #include "rf_433.h"
 #include "bt_hid.h"
 #include "webserver.h"
+#include "comms_events.h"
 #include "version.h"
 #include <string.h>
+
+EventGroupHandle_t comms_event_group = NULL;
 
 #define TAG "MAIN"
 
 #define POST_MAX_RETRIES 3
+#define OTA_ROLLBACK_THRESHOLD 5
+#define FACTORY_RESET_HOLD_MS 10000
+
+// Survives resets (panic, WDT, sw reset) but NOT power-on or external reset
+RTC_DATA_ATTR static uint8_t ota_reset_counter = 0;
 
 // Try an init function up to POST_MAX_RETRIES times. On final failure, reboot.
 // Critical inits (ADC, I2C, storage, FSM, sensors) use this — a permanent failure
@@ -137,49 +146,58 @@ void app_main(void) {esp_task_wdt_add(NULL);
     drive_leds(LED_STATE_BOOTING);
     
     
-    // Check for factory reset condition: Cold boot (power-on/ext-reset) + button held
+    // Factory reset: cold boot + button held for 10s
+    // LEDs flash while waiting, go solid when triggered
     esp_reset_reason_t boot_reset_reason = esp_reset_reason();
     if ((boot_reset_reason == ESP_RST_POWERON || boot_reset_reason == ESP_RST_EXT)
         && gpio_get_level(GPIO_NUM_13) == 0) {
-        ESP_LOGW(TAG, "FACTORY RESET TRIGGERED - Button held on cold boot");
-        
-        // Flash LED pattern to indicate factory reset
-        for (int i = 0; i < 10; i++) {
-            i2c_set_led1(0b111);
+        ESP_LOGW(TAG, "Button held on cold boot — hold %ds for factory reset", FACTORY_RESET_HOLD_MS / 1000);
+
+        // Flash all LEDs while user holds button (100ms on/off cycle)
+        int held_ms = 0;
+        while (gpio_get_level(GPIO_NUM_13) == 0 && held_ms < FACTORY_RESET_HOLD_MS) {
+            i2c_set_led1((held_ms / 100) % 2 ? 0b111 : 0b000);
             vTaskDelay(pdMS_TO_TICKS(100));
+            held_ms += 100;
+            esp_task_wdt_reset();
+        }
+
+        if (held_ms < FACTORY_RESET_HOLD_MS) {
+            ESP_LOGI(TAG, "Button released early (%dms) — skipping factory reset", held_ms);
             i2c_set_led1(0b000);
-            vTaskDelay(pdMS_TO_TICKS(100));
-        }
-        
-        // Initialize minimal components needed for factory reset
-        if (storage_init()  != ESP_OK) ESP_LOGE(TAG, "STORAGE FAILED");
-        
-        // Perform factory reset
-        esp_err_t reset_err = factory_reset();
-        if (reset_err == ESP_OK) {
-            ESP_LOGI(TAG, "Factory reset completed successfully");
-            // Flash success pattern
-            for (int i = 0; i < 5; i++) {
-                i2c_set_led1(0b010);
-                vTaskDelay(pdMS_TO_TICKS(200));
-                i2c_set_led1(0b000);
-                vTaskDelay(pdMS_TO_TICKS(200));
-            }
         } else {
-            ESP_LOGE(TAG, "Factory reset failed!");
-            // Flash error pattern
-            for (int i = 0; i < 5; i++) {
-                i2c_set_led1(0b100);
-                vTaskDelay(pdMS_TO_TICKS(200));
-                i2c_set_led1(0b000);
-                vTaskDelay(pdMS_TO_TICKS(200));
+            // Solid LEDs = reset triggered
+            i2c_set_led1(0b111);
+            ESP_LOGW(TAG, "FACTORY RESET TRIGGERED");
+
+            // Initialize storage so we can erase it
+            if (storage_init() != ESP_OK) ESP_LOGE(TAG, "STORAGE FAILED");
+
+            esp_err_t reset_err = factory_reset();
+            if (reset_err == ESP_OK) {
+                ESP_LOGI(TAG, "Factory reset completed successfully");
+                // Success: green blink
+                for (int i = 0; i < 5; i++) {
+                    i2c_set_led1(0b010);
+                    vTaskDelay(pdMS_TO_TICKS(200));
+                    i2c_set_led1(0b000);
+                    vTaskDelay(pdMS_TO_TICKS(200));
+                }
+            } else {
+                ESP_LOGE(TAG, "Factory reset failed!");
+                // Error: red blink
+                for (int i = 0; i < 5; i++) {
+                    i2c_set_led1(0b100);
+                    vTaskDelay(pdMS_TO_TICKS(200));
+                    i2c_set_led1(0b000);
+                    vTaskDelay(pdMS_TO_TICKS(200));
+                }
             }
+
+            ESP_LOGI(TAG, "Rebooting system...");
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            esp_restart();
         }
-        
-        // Reboot the system
-        ESP_LOGI(TAG, "Rebooting system...");
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        esp_restart();
     }
     
     // Critical inits — retry up to 3 times, then reboot
@@ -191,7 +209,7 @@ void app_main(void) {esp_task_wdt_add(NULL);
     adc_post();      // ADC channels readable and not frozen
     storage_post();  // flash write-read-verify on test sector
 
-    //run_all_log_tests();
+    run_all_log_tests();
 
     esp_reset_reason_t reset_reason = esp_reset_reason();
     esp_sleep_wakeup_cause_t wake_cause = esp_sleep_get_wakeup_cause();
@@ -205,18 +223,31 @@ void app_main(void) {esp_task_wdt_add(NULL);
         log_write(boot_entry, sizeof(boot_entry), LOG_TYPE_BOOT);
     }
 
-    // TODO: OTA rollback counter (see TODO.md #3)
-    // Write a crash log entry if we rebooted unexpectedly
-    if (reset_reason == ESP_RST_PANIC    ||
-        reset_reason == ESP_RST_INT_WDT  ||
-        reset_reason == ESP_RST_TASK_WDT ||
-        reset_reason == ESP_RST_WDT) {
-        ESP_LOGW(TAG, "Crash detected! Reset reason: %d", reset_reason);
+    // OTA rollback: count consecutive abnormal resets (panic/WDT).
+    // Power-on and external resets clear the counter; crashes increment it.
+    // After OTA_ROLLBACK_THRESHOLD consecutive crashes, roll back to the
+    // previous OTA partition (if available).
+    if (reset_reason == ESP_RST_POWERON || reset_reason == ESP_RST_EXT) {
+        ota_reset_counter = 0;
+    } else if (reset_reason == ESP_RST_PANIC    ||
+               reset_reason == ESP_RST_INT_WDT  ||
+               reset_reason == ESP_RST_TASK_WDT ||
+               reset_reason == ESP_RST_WDT) {
+        ota_reset_counter++;
+        ESP_LOGW(TAG, "Crash detected (reason=%d), reset counter=%d/%d",
+                 reset_reason, ota_reset_counter, OTA_ROLLBACK_THRESHOLD);
+
         uint8_t crash_entry[9] = {};
         uint64_t ts = rtc_get_ms();
         memcpy(&crash_entry[0], &ts, 8);
         crash_entry[8] = (uint8_t)reset_reason;
         log_write(crash_entry, sizeof(crash_entry), LOG_TYPE_CRASH);
+
+        if (ota_reset_counter >= OTA_ROLLBACK_THRESHOLD) {
+            ESP_LOGE(TAG, "Rollback threshold reached — marking app invalid");
+            esp_ota_mark_app_invalid_rollback_and_reboot();
+            // Does not return — reboots into previous OTA slot
+        }
     }
 
     if (solar_run_fsm() != ESP_OK) ESP_LOGE(TAG, "SOLAR FAILED");
@@ -226,13 +257,33 @@ void app_main(void) {esp_task_wdt_add(NULL);
     /*** FULL BOOT ***/
     // Critical — must succeed or reboot
     init_critical("UART", uart_init);
+    init_critical("SENSORS", sensors_init);
     init_critical("FSM", fsm_init);
-    // sensors_init() is called inside control_task() — see control_fsm.c:185
 
-    // Non-critical — log error but continue booting
-    if (rf_433_init()    != ESP_OK) ESP_LOGE(TAG, "RF FAILED");
-    if (bt_hid_init()    != ESP_OK) ESP_LOGE(TAG, "BT HID FAILED");
-    if (webserver_init() != ESP_OK) ESP_LOGE(TAG, "WEBSERVER FAILED");
+    // Create event group before non-critical inits (they set bits on it)
+    comms_event_group = xEventGroupCreate();
+
+    // Non-critical — retry once on failure, then log and continue
+    if (rf_433_init() != ESP_OK) {
+        ESP_LOGW(TAG, "RF init failed, retrying...");
+        vTaskDelay(pdMS_TO_TICKS(200));
+        if (rf_433_init() != ESP_OK) ESP_LOGE(TAG, "RF FAILED (continuing without RF)");
+    }
+    if (bt_hid_init() != ESP_OK) {
+        ESP_LOGW(TAG, "BT init failed, retrying...");
+        vTaskDelay(pdMS_TO_TICKS(200));
+        if (bt_hid_init() != ESP_OK) ESP_LOGE(TAG, "BT HID FAILED (continuing without BT)");
+    }
+    if (webserver_init() != ESP_OK) {
+        ESP_LOGW(TAG, "Webserver init failed, retrying...");
+        vTaskDelay(pdMS_TO_TICKS(500));
+        if (webserver_init() != ESP_OK) ESP_LOGE(TAG, "WEBSERVER FAILED (continuing without WiFi)");
+    }
+
+    // POST + FSM started successfully — this firmware is good.
+    // Clear the rollback counter and mark the OTA partition as valid.
+    ota_reset_counter = 0;
+    esp_ota_mark_app_valid_cancel_rollback();
 
     /*** MAIN LOOP ***/
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -254,8 +305,12 @@ void app_main(void) {esp_task_wdt_add(NULL);
             if (rtc_alarm_tripped()) {
                 soft_idle_exit();
                 xLastWakeTime = xTaskGetTickCount();
-                vTaskDelay(pdMS_TO_TICKS(500));
-                // TODO: do a hard wait until wifi and bluetooth come up, not just blindly wait; might be better to be non-blocking
+                // Wait for WiFi + BT to come back up (or timeout after 5s)
+                if (comms_event_group) {
+                    xEventGroupWaitBits(comms_event_group, COMMS_ALL_BITS,
+                                        pdFALSE, pdTRUE, pdMS_TO_TICKS(5000));
+                }
+                esp_task_wdt_reset();
                 fsm_request(FSM_CMD_START);
                 rtc_schedule_next_alarm();
             }
@@ -364,7 +419,7 @@ void app_main(void) {esp_task_wdt_add(NULL);
         }
 
         solar_run_fsm();
-        rtc_check_shutdown_timer(); // TODO: Will esp timer overflow? Handle overflow if needed (this used to be handled by the fact that we were in deep sleep)
+        rtc_check_shutdown_timer();
         esp_task_wdt_reset();
 	}
 }

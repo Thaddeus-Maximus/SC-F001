@@ -25,10 +25,6 @@ See `README.md` for full project documentation (hardware, architecture, protocol
 **Current project-specific overrides (sdkconfig.defaults):**
 | Setting | Value | Why |
 |---------|-------|-----|
-| `CONFIG_RTC_CLK_SRC_EXT_CRYS` | y | Use external 32kHz crystal for accurate RTC |
-| `CONFIG_ESP32_RTC_EXT_CRYST_ADDIT_CURRENT_V2` | y | Drive high-ESR crystal during startup |
-| `CONFIG_ESP_SYSTEM_RTC_EXT_XTAL_BOOTSTRAP_CYCLES` | 500 | Extra bootstrap for slow-starting crystal |
-| `CONFIG_RTC_XTAL_CAL_RETRY` | 3 | More calibration attempts before RC fallback |
 | `CONFIG_ESP_TASK_WDT_PANIC` | y | WDT timeout → panic → reboot (feeds OTA rollback counter) |
 
 **Already correct at IDF defaults (verified, no override needed):**

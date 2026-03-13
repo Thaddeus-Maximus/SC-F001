@@ -173,45 +173,6 @@ int8_t pack_sensors() {
 	return ret;
 }
 
-/*esp_err_t sensors_init() {
-    gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << sensor_pins[0]) | (1ULL << sensor_pins[1]),
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_ANYEDGE,
-    };
-    ESP_ERROR_CHECK(gpio_config(&io_conf));
-
-    sensor_event_queue = xQueueCreate(16, sizeof(sensor_event_t));
-    if (!sensor_event_queue) {
-        ESP_LOGE(TAG, "Failed to create sensor queue");
-        return ESP_FAIL;
-    }
-
-    // Install ISR service
-    ESP_ERROR_CHECK(gpio_install_isr_service(0));
-
-    for (uint8_t i = 0; i < N_SENSORS; i++) {
-        ESP_ERROR_CHECK(gpio_isr_handler_add(sensor_pins[i], sensor_isr_handler, INT2VOIDP(sensor_pins[i])));
-    	sensor_stable_state[i] = !gpio_get_level(sensor_pins[i]);
-    }
-
-    xTaskCreate(sensor_debounce_task, "SENSORS", 3072, NULL, 6, NULL);
-
-	return ESP_OK;
-}
-
-esp_err_t sensors_stop() {
-    for (uint8_t i = 0; i < N_SENSORS; i++) {
-        gpio_isr_handler_remove(sensor_pins[i]);
-    }
-    gpio_uninstall_isr_service();
-    vQueueDelete(sensor_event_queue);
-    
-	return ESP_OK;
-}*/
-
 // Public API
 bool get_sensor(sensor_t i) {
     return sensor_stable_state[i];

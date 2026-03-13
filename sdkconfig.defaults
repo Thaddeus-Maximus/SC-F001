@@ -2,24 +2,10 @@
 # These are applied during "idf.py reconfigure" and take precedence over IDF defaults.
 # Do NOT override settings that are managed by idf.py menuconfig interactively.
 
-# Use external 32kHz crystal for the RTC slow clock (GPIO32/33 on the PCB).
-# This gives accurate timekeeping across deep sleep instead of the +/-5% internal RC.
-CONFIG_RTC_CLK_SRC_EXT_CRYS=y
-
-# Enable additional drive current for the external 32kHz crystal.
-# Required for high-ESR tuning-fork crystals (e.g. CM315D32768DZFT ~70kΩ ESR, CL=12.5pF).
-# Without this the ESP32 oscillator can't drive the crystal reliably.
-# V2 injects extra current only during the oscillation startup window.
-CONFIG_ESP32_RTC_EXT_CRYST_ADDIT_CURRENT_V2=y
-
-# Increase bootstrap cycles for high-ESR crystal.
-# Default of 5 is insufficient; 500 gives the oscillator enough time to build amplitude.
-CONFIG_ESP_SYSTEM_RTC_EXT_XTAL_BOOTSTRAP_CYCLES=500
-CONFIG_ESP32_RTC_XTAL_BOOTSTRAP_CYCLES=500
-
-# Allow more calibration retries before falling back to RC oscillator.
-CONFIG_RTC_XTAL_CAL_RETRY=3
-CONFIG_ESP32_RTC_XTAL_CAL_RETRY=3
+# 32kHz external crystal (GPIO32/33) is on the PCB but NOT used.
+# Deep sleep is disabled (soft idle instead), so RTC slow clock accuracy is irrelevant.
+# Time tracking uses esp_timer (40MHz APB crystal, ~20ppm).
+# Let the RTC slow clock use the default internal RC oscillator.
 
 # --- Safety & Panic ---
 

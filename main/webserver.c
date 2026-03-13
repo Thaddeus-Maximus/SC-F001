@@ -39,6 +39,7 @@
 
 #include "webpage.h"
 #include "webserver.h"
+#include "comms_events.h"
 
 #include "esp_partition.h"
 
@@ -1017,6 +1018,7 @@ static esp_err_t try_connect_sta(const char *ssid, const char *pass, bool reset_
     }
 
     s_wifi_running = true;
+    if (comms_event_group) xEventGroupSetBits(comms_event_group, WIFI_READY_BIT);
     return ESP_OK;
 }
 
@@ -1099,6 +1101,7 @@ static esp_err_t launch_soft_ap(void) {
     ESP_LOGI(TAG, "SoftAP ready. SSID: %s, Channel: %d, Password: %s",
              wifi_config.ap.ssid, wifi_config.ap.channel, placeholder);
     ESP_LOGI(TAG, "Access at: http://%s.local or http://192.168.4.1", HOSTNAME);
+    if (comms_event_group) xEventGroupSetBits(comms_event_group, WIFI_READY_BIT);
     return ESP_OK;
 }
 
@@ -1124,6 +1127,7 @@ esp_err_t webserver_stop(void) {
         esp_wifi_stop();
         s_wifi_running = false;
     }
+    if (comms_event_group) xEventGroupClearBits(comms_event_group, WIFI_READY_BIT);
     return ESP_OK;
 }
 

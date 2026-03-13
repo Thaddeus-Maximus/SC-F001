@@ -40,6 +40,9 @@ bool test_log_full_partition(void);
 bool test_log_read_after_write(void);
 bool test_log_multiple_types(void);
 
+// Write timing benchmark (not a pass/fail test — prints min/max/avg report)
+void test_log_write_timing(void);
+
 // Helper functions for testing
 void print_test_results(test_result_t* results, int num_tests);
 int count_passed_tests(test_result_t* results, int num_tests);

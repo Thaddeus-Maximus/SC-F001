@@ -44,7 +44,9 @@ static uint64_t rtc_hw_time_us(void)
 
 uint64_t last_activity_tick = 0;
 
-// RTC_DATA_ATTR keeps these in RTC memory; persists across software resets (panics, WDT)
+// RTC_DATA_ATTR keeps these in RTC memory; persists across software resets (panics, WDT).
+// AUDIT: no init path zeroes these — rtc_restore_time() recovers via RTC HW counter,
+// rtc_set_s() is only called explicitly by the user. Verified 2026-03-12.
 RTC_DATA_ATTR int64_t  next_alarm_time_s = -1;
 RTC_DATA_ATTR bool     rtc_set           = false;
 RTC_DATA_ATTR int64_t  sync_unix_us      = 0;   // Unix time in µs at last rtc_set_s() call
@@ -160,22 +162,14 @@ int64_t rtc_get_s_in_day(void)
     return rtc_get_s() % 86400UL;
 }
 
-esp_sleep_wakeup_cause_t rtc_wakeup_cause(void)
-{
-    esp_sleep_wakeup_cause_t c = esp_sleep_get_wakeup_cause();
-    switch (c) {
-        case ESP_SLEEP_WAKEUP_EXT0:  ESP_LOGI("RTC", "Wakeup: GPIO"); break;
-        case ESP_SLEEP_WAKEUP_TIMER: ESP_LOGI("RTC", "Wakeup: timer"); break;
-        default:                     ESP_LOGI("RTC", "Wakeup: normal boot"); break;
-    }
-    return c;
-}
-
 /* -------------------------------------------------------------------------- */
 /*  Unified periodic update                                                   */
 /* -------------------------------------------------------------------------- */
 void rtc_check_shutdown_timer(void)
 {
+    // Unsigned subtraction handles TickType_t (uint32_t) wraparound correctly:
+    // e.g. if tick wrapped from 0xFFFFFFFE to 5, elapsed = 5 - 0xFFFFFFFE = 7.
+    // At 1ms/tick, uint32_t wraps after ~49.7 days — well beyond the 180s timeout.
     TickType_t elapsed = xTaskGetTickCount() - last_activity_tick;
     if (elapsed * portTICK_PERIOD_MS >= POWER_INACTIVITY_TIMEOUT_MS)
         soft_idle_enter();
