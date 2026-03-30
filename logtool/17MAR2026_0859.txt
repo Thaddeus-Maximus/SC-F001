@@ -1,0 +1,3 @@
+Reading storage-16MAR2026-1728.bin ...
+Log offsets: tail=16384  head=4329920
+Parsed 70748 entries

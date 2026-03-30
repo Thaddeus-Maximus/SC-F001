@@ -13,21 +13,21 @@
 **GPIO Map:**
 | GPIO | Function |
 |------|----------|
-| 13 | Button interrupt (active low, pull-up) — also EXT0 wakeup |
+| 13 | Button interrupt (active low, pull-up) |
 | 14 | Jack position sensor / encoder |
 | 16 | Drive encoder |
 | 19 | Aux sensor 2 (reserved) |
 | 21/22 | I2C SDA/SCL (400kHz) → TCA9555 I/O expander |
 | 25 | 433MHz RF receiver (RMT input) |
-| 26 | Solar charger bulk enable (RTC GPIO, holds across deep sleep) |
+| 26 | Solar charger bulk enable (RTC GPIO) |
 | 27 | Safety sensor (active low) |
-| 32/33 | External 32.768 kHz RTC crystal (standard watch crystal, 2¹⁵ Hz) |
+| 32/33 | External 32.768 kHz RTC crystal (on PCB, not used — see RTC section) |
 | 36 (VP) | ADC: drive current sense |
 | 39 (VN) | ADC: battery voltage |
 | 34 | ADC: jack current sense |
 | 35 | ADC: aux current sense |
 
-**TCA9555 (I2C at 0x20):**
+**TCA9555 (I2C at 0x21):**
 - Port 0 (input): 2 physical buttons + 2 additional inputs
 - Port 1 (output): 3× H-bridge relay pairs (DRIVE, JACK, AUX) + LEDs
 
@@ -42,23 +42,25 @@
 
 ```
 app_main()
-├── rtc_xtal_init()         RTC crystal + EXT0 wakeup + sleep wakeup check
+├── rtc_xtal_init()         Button GPIO setup
 ├── i2c_init()              TCA9555 init (relays off, LEDs off)
 ├── adc_init()              ADC1 calibration (12dB attenuation, line-fit)
-├── storage_init()          Flash params + circular log buffer
+├── storage_init()          Flash params
+├── log_init()              Circular log buffer
 ├── solar_run_fsm()         (called in main loop too)
 ├── uart_init()             Serial JSON API task
+├── sensors_init()          GPIO ISR setup for sensors/encoders
+├── fsm_init()              Control FSM task (priority 10, 20ms tick)
 ├── rf_433_init()           433MHz RMT receiver task
 ├── bt_hid_init()           BLE HID host scanner task
-├── fsm_init()              Control FSM task (priority 10, 20ms tick)
 └── webserver_init()        WiFi softAP + HTTP + mDNS + DNS
 
 Main loop (50ms):
     i2c_poll_buttons()
     fsm_request() based on button events
     solar_run_fsm()
-    driveLEDs() status animation
-    rtc_check_shutdown_timer() → deep sleep on inactivity (180s)
+    drive_leds() status animation
+    rtc_check_shutdown_timer() → soft idle on inactivity (180s)
 ```
 
 **FreeRTOS Tasks:**
@@ -82,13 +84,13 @@ Main loop (50ms):
 | `power_mgmt.c/h` | ADC reading, e-fuse thermal algorithm, battery voltage |
 | `sensors.c/h` | GPIO ISR-based sensor debouncing, encoder counters |
 | `i2c.c/h` | TCA9555 relay/LED/button control |
-| `storage.c/h` | 47-param NVM table + circular binary log buffer |
+| `storage.c/h` | 48-param NVM table + circular binary log buffer |
 | `comms.c/h` | Unified GET/POST JSON API (shared by HTTP and UART) |
 | `webserver.c/h` | WiFi softAP, HTTP server, embedded gzip webpage |
 | `uart_comms.c/h` | Serial JSON interface (115200 8N1) |
 | `rf_433.c/h` | 433MHz OOK receiver, keycode learn/match |
 | `bt_hid.c/h` | BLE HID host, media remote button mapping |
-| `rtc.c/h` | Unix time, harvest alarms, deep sleep scheduling |
+| `rtc.c/h` | Unix time, harvest alarms, soft idle, inactivity timer |
 | `solar.c/h` | Simple FLOAT/BULK solar charge state machine |
 | `sc_err.h` | Error code definitions |
 | `log_test.c/h` | Flash log unit tests |
@@ -109,8 +111,7 @@ STATE_DRIVE_END_DELAY       (1s)
 STATE_JACK_DOWN             (reverse until e-fuse/sensor)
 → back to STATE_IDLE
 
-STATE_UNDO_JACK_START       (emergency: reverse jack immediately)
-STATE_UNDO_JACK             (run until e-fuse/sensor)
+STATE_UNDO_JACK_START       (emergency: reverse jack, run until e-fuse/sensor)
 → back to STATE_IDLE
 
 CAL_JACK_DELAY / CAL_JACK_MOVE          (jack calibration sequence)
@@ -128,7 +129,7 @@ CAL_DRIVE_DELAY / CAL_DRIVE_MOVE        (drive calibration sequence)
 2. `process_battery_voltage()` — ADC → EMA
 3. `sensors_check()` — drain ISR queue, update counters/debounce
 4. State machine transitions (timer + sensor + efuse checks)
-5. `driveRelays()` — write relay output from current state
+5. `drive_relays()` — write relay output from current state
 6. `send_fsm_log()` — 39-byte timestamped entry to flash
 
 ---
@@ -169,12 +170,14 @@ Safety break → immediate `STATE_UNDO_JACK_START`.
 |----------|--------|-------------|
 | `/` | GET | Embedded gzip HTML webpage |
 | `/get` | GET | JSON system status |
-| `/set` | POST | JSON commands + parameter updates |
+| `/post` | POST | JSON commands + parameter updates |
 | `/log` | GET | Binary log download (4B JSON len + JSON + 8B offsets + log data) |
+| `/ota` | POST | Firmware update upload |
 
 ### UART (115200 8N1)
 - `GET` → same as HTTP GET /get
-- `POST: {json}` → same as HTTP POST /set
+- `POST: {json}` → same as HTTP POST /post
+- `RTCDEBUG` → dump RTC timekeeping state (time, backup, sleep entry, clock source)
 - `HELP` → command reference
 - Shares `comms_handle_get()` / `comms_handle_post()` with HTTP
 
@@ -198,7 +201,7 @@ Safety break → immediate `STATE_UNDO_JACK_START`.
 
 **Flash partition "storage":**
 ```
-0x0000 – 0x0FFF   Parameters (4 sectors, CRC32-protected, 47 params)
+0x0000 – 0x0FFF   Parameters (4 sectors, CRC32-protected, 48 params)
 0x1000 – end      Circular log buffer (head/tail tracked)
 ```
 
@@ -226,31 +229,24 @@ Safety break → immediate `STATE_UNDO_JACK_START`.
 
 ---
 
-## RTC & 32.768 kHz Crystal
+## RTC & Timekeeping
 
-**Crystal:** Standard 32.768 kHz (32768 Hz = 2¹⁵ Hz) tuning-fork watch crystal on GPIO32/GPIO33. This frequency is universal for RTCs because it divides to exactly 1 Hz with a 15-bit binary counter.
+**Time source:** `esp_timer` (40 MHz APB crystal, ~20 ppm accuracy). The external 32.768 kHz crystal on GPIO32/33 is present on the PCB but **not used** — deep sleep is disabled (soft idle instead), so RTC slow clock accuracy is irrelevant. The RTC slow clock uses the default internal RC oscillator.
 
-**sdkconfig.defaults settings:**
-- `CONFIG_RTC_CLK_SRC_EXT_CRYS=y` — selects the external crystal as the RTC slow clock source instead of the internal ~150 kHz RC oscillator
-- `CONFIG_ESP32_RTC_EXT_CRYST_ADDIT_CURRENT_V2=y` — enables extra drive current during the crystal startup window; required for high-ESR tuning-fork crystals (e.g. CM315D32768DZFT ~70 kΩ ESR)
+**`rtc_xtal_init()` in `rtc.c`:** Configures the button GPIO (GPIO13); no crystal bootstrap or sleep wakeup sources.
 
-**Known startup failure mode:** On power-on, the ESP32 bootloader attempts to calibrate the crystal. If it fails to detect oscillation within its calibration window, it logs `W: 32 kHz XTAL not found, switching to internal 150 kHz oscillator` and falls back to the RC oscillator. The RC oscillator has ±5% accuracy, producing up to ~180 s/hr of RTC drift — this completely breaks harvest scheduling.
+**Time persistence across resets:** `sync_unix_us` and `sync_rtc_us` are `RTC_DATA_ATTR` (survive software resets — panics, WDT). On restart, `rtc_restore_time()` recovers time via the RTC hardware counter (which runs in the RTC domain and survives resets). RC oscillator drift (~±5%) is negligible over a <30s crash restart (~1.5s worst case).
 
-**Firmware mitigation (`rtc_xtal_init()` in `rtc.c`):** If `rtc_clk_slow_src_get()` does not return `SOC_RTC_SLOW_CLK_SRC_XTAL32K` at startup, the code applies a manual bootstrap: `rtc_clk_32k_bootstrap(20000)` (~600 ms of extra drive current at 32 kHz cycles), waits 500 ms for oscillation to stabilise, then calls `rtc_clk_slow_src_set(SOC_RTC_SLOW_CLK_SRC_XTAL32K)` to switch explicitly. Success or failure is logged via `ESP_LOGI/LOGE`.
-
-**Diagnosing crystal issues:** Run `RTCDEBUG` over UART and check `slow_clk_src`. It reports either `XTAL32K (OK)` or `NOT XTAL32K — check crystal!`. The `logtool/rtc_test.py` script automates this and runs multi-cycle drift tests.
-
-**Time persistence across deep sleep:** `rtc_backup_s` and `rtc_sleep_entry_s` are `RTC_DATA_ATTR` (survive deep sleep). On wakeup, `rtc_restore_time()` adds exactly `DEEP_SLEEP_US / 1e6` seconds to `rtc_sleep_entry_s` to reconstruct the correct time without an NTP sync.
+**Diagnosing time issues:** Run `RTCDEBUG` over UART. Reports current time, sync time, elapsed since sync, next alarm, uptime, and soft idle state.
 
 ---
 
 ## Power Management
 
-- **Battery voltage:** GPIO39, divider → `V = raw × 0.00767 + 0.4`
+- **Battery voltage:** GPIO39, divider → `V = raw × V_SENS_K + V_SENS_OFFSET` (defaults: K=0.00766̄, offset=0.4)
 - **Solar charger:** GPIO26 (RTC hold) — FLOAT/BULK FSM, bulk for 20s when V < 5V for 5s
-- **Inactivity shutdown:** 180s → deep sleep
-- **Deep sleep wakeup:** RTC timer (120s), RTC alarm (next harvest), EXT0 GPIO13 (button)
-- **RTC_DATA_ATTR:** FSM state, errors, alarm times, charge state — survive deep sleep
+- **Inactivity shutdown:** 180s → **soft idle** (WiFi/BT off, LEDs off — not deep sleep). Button press exits soft idle.
+- **RTC_DATA_ATTR:** Sync timestamps, alarm times, charge state — survive software resets (panics, WDT)
 
 ---
 
@@ -270,8 +266,8 @@ SC_ERR_LOW_BATTERY   = 0x230  // Voltage below threshold
 
 ## Build System
 
-- **Framework:** ESP-IDF (>=4.1.0)
-- **Component deps** (`idf_component.yml`): `espressif/mdns`, `joltwallet/littlefs`, `esp-idf-lib/tca95x5`
+- **Framework:** ESP-IDF (>=5.0)
+- **Component deps** (`main/idf_component.yml`): `espressif/mdns ~1.9.1`
 - **IDF requires:** `driver`, `esp_http_server`, `esp_netif`, `lwip`, `json`, `esp_timer`, `esp_adc`, `app_update`, `esp_wifi`, `nvs_flash`, `mdns`, `bt`, `esp_hid`
 - **Webpage:** `webpage.html` → `webpage_compile.py` → `webpage_gzip.h` (embedded gzip binary). **Must re-run `webpage_compile.py` after any HTML edit before building.**
 - **Version:** `version.h.in` filled by CMake from git tags → `FIRMWARE_VERSION`, `BUILD_DATE`

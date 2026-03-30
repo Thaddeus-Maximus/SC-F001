@@ -114,7 +114,7 @@ def show_plots(entries: list, title: str = "SC-F001 Log"):
     add_crash_lines(ax3)
     ax3.grid(True, alpha=0.3)
 
-    ax3.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+    ax3.xaxis.set_major_formatter(mdates.AutoDateFormatter(ax3.xaxis.get_major_locator()))
     fig.autofmt_xdate()
     plt.tight_layout()
     plt.show()
@@ -151,7 +151,7 @@ def live_plot(url: str, interval_s: float = 2.0):
     }
     axes[1].legend(fontsize=8, loc='upper right')
     axes[3].legend(fontsize=8, loc='upper right')
-    axes[3].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+    axes[3].xaxis.set_major_formatter(mdates.AutoDateFormatter(axes[3].xaxis.get_major_locator()))
 
     state = {'current_tail': 0, 'first': True}
 
