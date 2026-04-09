@@ -14,7 +14,11 @@
       "WebFetch(domain:docs.espressif.com)",
       "Bash(curl -s \"https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/clk_tree.html\" | sed 's/<script[^>]*>.*<\\\\/script>//g; s/<style[^>]*>.*<\\\\/style>//g; s/<[^>]*>//g; s/&amp;/\\\\&/g; s/&lt;/</g; s/&gt;/>/g; s/&nbsp;/ /g; s/&quot;/\"/g; s/&#39;/'\"'\"'/g' | tr -s ' \\\\n' | grep -v '^[[:space:]]*$' 2>&1 | head -2000)",
       "Bash(find /c/data/stockcropper-sw/SC-F001/main -name \"*.c\" -o -name \"*.h\" | xargs grep -l \"soft_idle_enter\\\\|soft_idle_exit\" 2>/dev/null)",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "Bash(ls -la \"C:\\\\data\\\\stockcropper-sw\\\\SC-F001\"/*.bin)",
+      "Bash(ls -la \"C:\\\\data\\\\stockcropper-sw\\\\SC-F001\"/logs/*.bin)",
+      "Bash(python3:*)",
+      "Bash(ls:*)"
     ]
   }
 }

@@ -179,6 +179,10 @@ uint32_t log_get_size(void);
 
 esp_err_t factory_reset();
 
+// Hardware identity (NVS, survives factory reset)
+uint16_t hw_get_board_rev(void);
+esp_err_t hw_set_board_rev(uint16_t rev);
+
 // Test/debug functions
 esp_err_t write_dummy_log_1(void);
 esp_err_t write_dummy_log_2(void);

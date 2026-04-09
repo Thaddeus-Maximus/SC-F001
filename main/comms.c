@@ -39,15 +39,42 @@ cJSON* comms_handle_get(void) {
     cJSON_AddNumberToObject(root, "voltage", get_battery_V());
     cJSON_AddNumberToObject(root, "remaining_dist", fsm_get_remaining_distance());
     cJSON_AddNumberToObject(root, "next_alarm", (double)rtc_get_next_alarm_s());
-    
+    cJSON_AddNumberToObject(root, "board_rev", hw_get_board_rev());
+    cJSON_AddNumberToObject(root, "fsm_error", fsm_get_error());
+
+    // Structured error flags (match LED error code bits)
+    cJSON *errors = cJSON_CreateObject();
+    bool efuse_trip = efuse_get(BRIDGE_AUX) || efuse_get(BRIDGE_JACK) || efuse_get(BRIDGE_DRIVE);
+    float bat_v = get_battery_V();
+    float low_v = get_param_value_t(PARAM_LOW_PROTECTION_V).f32;
+    bool low_bat = (bat_v > 0 && bat_v < low_v);
+    bool safety_trip = !get_is_safe();
+    bool leash_hit = (fsm_get_remaining_distance() <= 0);
+
+    cJSON_AddBoolToObject(errors, "efuse_aux",   efuse_get(BRIDGE_AUX) != 0);
+    cJSON_AddBoolToObject(errors, "efuse_jack",  efuse_get(BRIDGE_JACK) != 0);
+    cJSON_AddBoolToObject(errors, "efuse_drive", efuse_get(BRIDGE_DRIVE) != 0);
+    cJSON_AddBoolToObject(errors, "low_battery", low_bat);
+    cJSON_AddBoolToObject(errors, "rtc_not_set", !rtc_is_set());
+    cJSON_AddBoolToObject(errors, "safety_trip", safety_trip);
+    cJSON_AddBoolToObject(errors, "leash_hit",   leash_hit);
+    // LED error code: bit0=efuse/battery, bit1=RTC, bit2=safety/leash
+    uint8_t led_code = 0;
+    if (efuse_trip || low_bat)      led_code |= 0b001;
+    if (!rtc_is_set())              led_code |= 0b010;
+    if (safety_trip || leash_hit)   led_code |= 0b100;
+    if (fsm_get_error() != 0 && led_code == 0) led_code = 0b111;
+    cJSON_AddNumberToObject(errors, "led_code", led_code);
+    cJSON_AddItemToObject(root, "errors", errors);
+
+    // Status message array
     cJSON *msg_array = cJSON_CreateArray();
     if (msg_array == NULL) {
         ESP_LOGE(TAG, "Failed to create msg array");
         cJSON_Delete(root);
         return NULL;
     }
-    
-    // Add state message
+
     switch(fsm_get_state()) {
         case STATE_IDLE:
             cJSON_AddItemToArray(msg_array, cJSON_CreateString("IDLE"));
@@ -59,29 +86,22 @@ cJSON* comms_handle_get(void) {
             cJSON_AddItemToArray(msg_array, cJSON_CreateString("MOVING..."));
             break;
     }
-    
-    // Add warning/error messages
-    if (fsm_get_remaining_distance() <= 0) {
+
+    if (leash_hit)
         cJSON_AddItemToArray(msg_array, cJSON_CreateString("DISTANCE LIMIT HIT"));
-    }
-    if (efuse_get(BRIDGE_AUX)) {
+    if (efuse_get(BRIDGE_AUX))
         cJSON_AddItemToArray(msg_array, cJSON_CreateString("AUX EFUSE TRIP"));
-    }
-    if (efuse_get(BRIDGE_JACK)) {
+    if (efuse_get(BRIDGE_JACK))
         cJSON_AddItemToArray(msg_array, cJSON_CreateString("JACK EFUSE TRIP"));
-    }
-    if (efuse_get(BRIDGE_DRIVE)) {
+    if (efuse_get(BRIDGE_DRIVE))
         cJSON_AddItemToArray(msg_array, cJSON_CreateString("DRIVE EFUSE TRIP"));
-    }
-    if (!rtc_is_set()) {
+    if (low_bat)
+        cJSON_AddItemToArray(msg_array, cJSON_CreateString("LOW BATTERY"));
+    if (!rtc_is_set())
         cJSON_AddItemToArray(msg_array, cJSON_CreateString("CLOCK NOT SET"));
-    }
-    
-    if (!get_is_safe()) {
+    if (safety_trip)
         cJSON_AddItemToArray(msg_array, cJSON_CreateString("SAFETY SENSOR BREAK"));
-    }
-    
-    
+
     cJSON_AddItemToObject(root, "msg", msg_array);
     
     // Add parameters object
@@ -290,6 +310,20 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
             
             *response_json = response;
             return ESP_OK;
+        }
+        else if (strcmp(cmd_str, "set_board_rev") == 0) {
+            cJSON *rev = cJSON_GetObjectItem(root, "board_rev");
+            if (cJSON_IsNumber(rev)) {
+                uint16_t r = (uint16_t)cJSON_GetNumberValue(rev);
+                if (hw_set_board_rev(r) == ESP_OK) {
+                    ESP_LOGI(TAG, "Board rev set to %u", r);
+                    cmd_executed = true;
+                } else {
+                    error_msg = "Failed to write board_rev to NVS";
+                }
+            } else {
+                error_msg = "set_board_rev requires board_rev parameter";
+            }
         }
         else {
             ESP_LOGW(TAG, "Unknown command: %s", cmd_str);

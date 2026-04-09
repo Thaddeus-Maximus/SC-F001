@@ -17,9 +17,9 @@
 
 typedef enum {
 	SENSOR_SAFETY = 0, // IO27
-	SENSOR_JACK   = 1, // IO14
-	SENSOR_DRIVE  = 2, // IO16 on V4
-	SENSOR_AUX2   = 3, // IO19 on V4
+	SENSOR_DRIVE  = 1, // IO14
+	SENSOR_JACK   = 2, // IO16
+	SENSOR_AUX2   = 3, // IO19
 	N_SENSORS     = 4
 } sensor_t;
 

@@ -10,6 +10,7 @@
 #include "esp_log.h"
 #include "endian.h"
 #include "control_fsm.h"
+#include "sc_err.h"
 #include "power_mgmt.h"
 #include "rtc.h"
 #include "sensors.h"
@@ -69,61 +70,81 @@ esp_err_t send_bat_log() {
 }
 
 
-typedef enum {
-	LED_STATE_DRIVING,
-	LED_STATE_ERROR,
-	LED_STATE_AWAKE,
-	LED_STATE_CANCELLING,
-	LED_STATE_ERRORED,
-	LED_STATE_START1,
-	LED_STATE_START2,
-	LED_STATE_START3,
-	LED_STATE_START4,
-	LED_STATE_BOOTING
-} led_state_t;
+// --- LED Status Indicators ---
+// See docs/button_behavior.md for button LED feedback.
+// Status LEDs:
+//   IDLE:        LED1 blinks 0.5Hz (1s on / 1s off)
+//   ERROR:       5Hz rapid blink 1s, then hold error code 2s (3s cycle)
+//     Error code bits: LED1=efuse, LED2=RTC/battery, LED3=safety/leash/FSM
+//   WATERFALL:   001→011→111→110→100→000, ~1 cycle/s (moving, delays)
+//   CALIBRATING: all LEDs flash 1Hz (500ms on / 500ms off)
+//   UNDO:        solid all LEDs on
+//   BOOTING:     LED1 solid
 
-void drive_leds(led_state_t state) {
-	uint8_t patterns[5][12] = {
-		{1,3,7,6,4,0},
-		{0b101,0b001},
-		{1,1,1,1,1,1, 1,1,1,3},
-		{4,2},
-		{0b001, 0b101},
-	};
-	switch(state) {
-		case LED_STATE_DRIVING:
-			i2c_set_led1(patterns[state][(esp_timer_get_time()/100000) % 6]);
+// LED error code bits: LED1=efuse/battery, LED2=RTC, LED3=safety/leash
+static uint8_t error_code_from_state(void) {
+    uint8_t code = 0;
+    if (efuse_get(BRIDGE_JACK)  != EFUSE_OK ||
+        efuse_get(BRIDGE_AUX)   != EFUSE_OK ||
+        efuse_get(BRIDGE_DRIVE) != EFUSE_OK)   code |= 0b001;  // LED1: efuse
+    float bat_v = get_battery_V();
+    float low_v = get_param_value_t(PARAM_LOW_PROTECTION_V).f32;
+    if (bat_v > 0 && bat_v < low_v)            code |= 0b001;  // LED1: low battery
+    if (!rtc_is_set())                          code |= 0b010;  // LED2: RTC not set
+    esp_err_t fe = fsm_get_error();
+    if (fe == SC_ERR_SAFETY_TRIP)               code |= 0b100;  // LED3: safety
+    if (fe == SC_ERR_LEASH_HIT)                 code |= 0b100;  // LED3: leash
+    if (fe != ESP_OK && code == 0)              code = 0b111;    // unknown error
+    return code;
+}
+
+typedef enum {
+	LED_IDLE,
+	LED_ERROR,
+	LED_WATERFALL,
+	LED_CALIBRATING,
+	LED_UNDO,
+	LED_BOOTING
+} led_mode_t;
+
+void drive_leds(led_mode_t mode) {
+	static const uint8_t waterfall[] = {0b001, 0b011, 0b111, 0b110, 0b100, 0b000};
+	int64_t now_us = esp_timer_get_time();
+
+	switch (mode) {
+		case LED_IDLE:
+			// 0.5Hz: 1s on, 1s off
+			i2c_set_led1((now_us / 1000000) % 2 ? 0b000 : 0b001);
 			break;
-		case LED_STATE_ERROR:
-			//ESP_LOGE(TAG, "SOME SORT OF ERROR");
-			i2c_set_led1(patterns[state][(esp_timer_get_time()/1000000) % 2]);
+
+		case LED_ERROR: {
+			// 3s cycle: 1s rapid blink (5Hz) then 2s hold error code
+			int64_t phase_us = now_us % 3000000;
+			if (phase_us < 1000000) {
+				// Rapid blink at 5Hz (100ms per half-cycle)
+				i2c_set_led1((phase_us / 100000) % 2 ? 0b000 : 0b111);
+			} else {
+				i2c_set_led1(error_code_from_state());
+			}
 			break;
-		case LED_STATE_AWAKE:
-			i2c_set_led1(patterns[state][(esp_timer_get_time()/200000) % 10]);
+		}
+
+		case LED_WATERFALL:
+			// ~1 cycle/s: 6 steps at ~167ms each
+			i2c_set_led1(waterfall[(now_us / 167000) % 6]);
 			break;
-		case LED_STATE_CANCELLING:
-			i2c_set_led1(patterns[state][(esp_timer_get_time()/200000) % 2]);
+
+		case LED_CALIBRATING:
+			// 1Hz: 500ms on, 500ms off
+			i2c_set_led1((now_us / 500000) % 2 ? 0b000 : 0b111);
 			break;
-		
-		case LED_STATE_ERRORED:
-			i2c_set_led1(patterns[state][(esp_timer_get_time()/200000) % 2]);
-			break;
-			
-		case LED_STATE_BOOTING:
-			i2c_set_led1(0b001);
-			break;
-			
-		case LED_STATE_START1:
-			i2c_set_led1(0b000);
-			break;
-		case LED_STATE_START2:
-			i2c_set_led1(0b001);
-			break;
-		case LED_STATE_START3:
-			i2c_set_led1(0b011);
-			break;
-		case LED_STATE_START4:
+
+		case LED_UNDO:
 			i2c_set_led1(0b111);
+			break;
+
+		case LED_BOOTING:
+			i2c_set_led1(0b001);
 			break;
 	}
 }
@@ -135,15 +156,13 @@ void app_main(void) {esp_task_wdt_add(NULL);
     ESP_LOGI(TAG, "Branch: %s", FIRMWARE_BRANCH);
     ESP_LOGI(TAG, "Built: %s", BUILD_DATE);
     
-    // TODO: Confirm whether external RTC crystal can be dropped (see TODO.md #13)
-    if (rtc_xtal_init() != ESP_OK) ESP_LOGE(TAG, "RTC FAILED");
-    rtc_restore_time();  // Recover time from RTC domain if we crashed
-
-    // Critical inits — retry up to 3 times, then reboot (feeds OTA rollback counter)
+    // I2C first so we can light the LED immediately
     init_critical("I2C", i2c_init);
+    drive_leds(LED_BOOTING);  // LED on ASAP after I2C is up
     i2c_post();  // verify TCA9555 responds
     i2c_set_relays((relay_port_t){.raw=0});
-    drive_leds(LED_STATE_BOOTING);
+
+    if (rtc_xtal_init() != ESP_OK) ESP_LOGE(TAG, "RTC FAILED");
     
     
     // Factory reset: cold boot + button held for 10s
@@ -203,6 +222,7 @@ void app_main(void) {esp_task_wdt_add(NULL);
     // Critical inits — retry up to 3 times, then reboot
     init_critical("ADC", adc_init);
     init_critical("STORAGE", storage_init);
+    rtc_restore_time();  // After NVS is up: try RTC_DATA_ATTR, then NVS fallback
     init_critical("LOG", log_init);
 
     // POST checks — verify hardware is responding correctly
@@ -293,6 +313,9 @@ void app_main(void) {esp_task_wdt_add(NULL);
     esp_ota_mark_app_valid_cancel_rollback();
 
     /*** MAIN LOOP ***/
+    uint8_t tap_count = 0;
+    int64_t tap_window_start = 0;
+
     TickType_t xLastWakeTime = xTaskGetTickCount();
     const TickType_t xFrequency = pdMS_TO_TICKS(50);
 
@@ -333,21 +356,70 @@ void app_main(void) {esp_task_wdt_add(NULL);
         	rtc_reset_shutdown_timer();
         	soft_idle_exit();
         }
-        
-        // TODO: Make sure all ISRs are clean (very tight, no blocking functions)
-        	
-        switch (fsm_get_state()) {
+
+        // --- Button logic: triple-tap, hold-to-reboot, cancel/stop ---
+        // See docs/button_behavior.md for full spec.
+        fsm_state_t cur_state = fsm_get_state();
+        bool btn_pressed  = i2c_get_button_state(0);
+        bool btn_tripped  = i2c_get_button_tripped(0);
+        bool btn_released = i2c_get_button_released(0);
+        int64_t btn_held  = i2c_get_button_ms(0);
+
+        // Hold-to-reboot (active in IDLE and CALIBRATE states only)
+        bool hold_reboot_active = (cur_state == STATE_IDLE ||
+            cur_state == STATE_CALIBRATE_JACK_DELAY ||
+            cur_state == STATE_CALIBRATE_JACK_MOVE ||
+            cur_state == STATE_CALIBRATE_DRIVE_DELAY ||
+            cur_state == STATE_CALIBRATE_DRIVE_MOVE);
+
+        if (hold_reboot_active && btn_pressed && btn_held > 3000) {
+            // Flash all LEDs then reboot
+            ESP_LOGW(TAG, "Hold-to-reboot triggered");
+            rtc_save_time();
+            for (int i = 0; i < 6; i++) {
+                i2c_set_led1(i % 2 ? 0b000 : 0b111);
+                vTaskDelay(pdMS_TO_TICKS(150));
+            }
+            esp_restart();
+        }
+
+        // LED feedback while holding: off → 1 → 1+2 → 1+2+3
+        if (hold_reboot_active && btn_pressed && btn_held > 100) {
+            if (btn_held > 2250)      i2c_set_led1(0b111);
+            else if (btn_held > 1500) i2c_set_led1(0b011);
+            else if (btn_held > 750)  i2c_set_led1(0b001);
+            else                      i2c_set_led1(0b000);
+        }
+
+        // Tap processing — uses release edge so it doesn't conflict with hold
+        switch (cur_state) {
 			case STATE_IDLE:
-        		// LED cue for user
-        		if (i2c_get_button_ms(0) > 1600){
-        			drive_leds(LED_STATE_START4);
-				} else if (i2c_get_button_ms(0) > 1100){
-        			drive_leds(LED_STATE_START3);
-				} else if (i2c_get_button_ms(0) > 600){
-        			drive_leds(LED_STATE_START2);
-        		} else if (i2c_get_button_ms(0) > 100){
-        			drive_leds(LED_STATE_START1);
-        		} else {
+        		// Triple-tap to start (count on release, ignore long presses)
+        		if (btn_released && btn_held < 1000) {
+        		    tap_count++;
+        		    if (tap_count == 1) tap_window_start = esp_timer_get_time();
+        		    ESP_LOGI(TAG, "Tap %d/3", tap_count);
+        		    if (tap_count >= 3) {
+        		        ESP_LOGI(TAG, "Triple-tap → START");
+        		        tap_count = 0;
+        		        fsm_request(FSM_CMD_START);
+        		    }
+        		}
+
+        		// Tap window LED feedback + expiry
+        		if (tap_count > 0) {
+        		    if (esp_timer_get_time() - tap_window_start > 2000000) {
+        		        ESP_LOGI(TAG, "Tap window expired at %d/3", tap_count);
+        		        tap_count = 0;  // window expired
+        		    } else if (!btn_pressed) {
+        		        uint8_t led = (tap_count >= 2) ? 0b011 : 0b001;
+        		        i2c_set_led1(led);
+        		        break;  // skip default LED while showing tap feedback
+        		    }
+        		}
+
+        		// Default idle LEDs (only when not holding or tap-counting)
+        		if (!btn_pressed && tap_count == 0) {
 					if (
 						rtc_is_set() &&
 						efuse_get(BRIDGE_JACK)==EFUSE_OK &&
@@ -355,63 +427,51 @@ void app_main(void) {esp_task_wdt_add(NULL);
 						efuse_get(BRIDGE_DRIVE)==EFUSE_OK &&
 						fsm_get_error() == ESP_OK
 					) {
-        				drive_leds(LED_STATE_AWAKE);
-        			} else {
-        				drive_leds(LED_STATE_ERROR);
-        			}
-        			
-        			/*int8_t state = 0b001;
-        			if (get_is_safe()) state |= 0b010;
-        			if (get_sensor(SENSOR_SAFETY)) state |= 0b100;
-        			i2c_set_led1(state);*/
-				}
-				
+	    				drive_leds(LED_IDLE);
+	    			} else {
+	    				drive_leds(LED_ERROR);
+	    			}
+	    		}
+
 				// when not actively moving we log at a low frequency (every 120s)
 				if ((esp_timer_get_time() > last_bat_log_time + 120000000ULL))
 				  send_bat_log();
-				
-				if(i2c_get_button_ms(0) > 2100)
-        			fsm_request(FSM_CMD_START);
         		break;
-			//case STATE_UNDO_JACK:
+
 			case STATE_UNDO_JACK_START:
-				// it's running the jack, but undoing
-				//send_log();
-        		drive_leds(LED_STATE_CANCELLING);
-				if (i2c_get_button_tripped(0)) {
-					ESP_LOGI(TAG, "AAAAH STOP!!!");
+        		drive_leds(LED_UNDO);
+				if (btn_tripped) {
+					ESP_LOGI(TAG, "STOP");
         			fsm_request(FSM_CMD_STOP);
 				}
         		break;
-        		
+
         	case STATE_CALIBRATE_JACK_DELAY:
-        		//send_log();
-        		if (i2c_get_button_tripped(0))
+        		drive_leds(LED_CALIBRATING);
+        		if (btn_tripped)
 	        		fsm_request(FSM_CMD_CALIBRATE_JACK_START);
         		break;
         	case STATE_CALIBRATE_JACK_MOVE:
-        		//send_log();
-        		if (i2c_get_button_tripped(0))
+        		drive_leds(LED_CALIBRATING);
+        		if (btn_tripped)
 	        		fsm_request(FSM_CMD_CALIBRATE_JACK_END);
         		break;
-        		
-        		
         	case STATE_CALIBRATE_DRIVE_DELAY:
-        		//send_log();
-        		if (i2c_get_button_tripped(0))
+        		drive_leds(LED_CALIBRATING);
+        		if (btn_tripped)
 	        		fsm_request(FSM_CMD_CALIBRATE_DRIVE_START);
         		break;
         	case STATE_CALIBRATE_DRIVE_MOVE:
-        		//send_log();
-        		if (i2c_get_button_tripped(0))
+        		drive_leds(LED_CALIBRATING);
+        		if (btn_tripped)
 	        		fsm_request(FSM_CMD_CALIBRATE_DRIVE_END);
         		break;
-        		
+
 			default:
-				// it's running in every other case
-				//send_log();
-        		drive_leds(LED_STATE_DRIVING);
-				if (i2c_get_button_tripped(0)) {
+				// Moving — any press cancels
+        		drive_leds(LED_WATERFALL);
+				if (btn_tripped) {
+					ESP_LOGI(TAG, "UNDO");
         			fsm_request(FSM_CMD_UNDO);
 				}
         		break;

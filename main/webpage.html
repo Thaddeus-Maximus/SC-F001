@@ -219,7 +219,7 @@ black: #2f2f2f
     
     <br/>
     <br/>
-    <details>
+    <details open>
     <summary>REMOTE CONTROL</summary>
     <br/>
     <button class="sqbtn"
@@ -265,9 +265,10 @@ black: #2f2f2f
     </details>
     <br/>
 
-    <details open>
+    <details>
     <summary>WiFi Settings</summary>
     <table>
+        <!-- STA mode disabled pending network stack fixes
         <tr>
             <td>Network SSID</td>
             <td><input type="text" id="PARAM_NET_SSID" onchange="markChanged(this)"/></td>
@@ -276,6 +277,7 @@ black: #2f2f2f
             <td>Network Password</td>
             <td><input type="text" id="PARAM_NET_PASS" onchange="markChanged(this)"/></td>
         </tr>
+        -->
         <tr>
             <td>AP SSID</td>
             <td><input type="text" id="PARAM_WIFI_SSID" onchange="markChanged(this)"/></td>
@@ -845,9 +847,29 @@ black: #2f2f2f
         		if (driftS > 300) showDesyncModal(Math.round(driftS / 60));
         	}
         
-            // Update message
-            if (data.msg !== undefined) {
-                ge('msg').value = data.msg;
+            // Update message + error flags in single msg field
+            {
+                const state = Array.isArray(data.msg) ? data.msg[0] || '' : (data.msg || '');
+                const flags = [];
+                if (data.errors) {
+                    const e = data.errors;
+                    if (e.efuse_drive) flags.push('DRIVE EFUSE');
+                    if (e.efuse_jack)  flags.push('JACK EFUSE');
+                    if (e.efuse_aux)   flags.push('AUX EFUSE');
+                    if (e.low_battery) flags.push('LOW BATTERY');
+                    if (e.rtc_not_set) flags.push('CLOCK NOT SET');
+                    if (e.safety_trip) flags.push('SAFETY BREAK');
+                    if (e.leash_hit)   flags.push('LEASH LIMIT');
+                }
+                const msgEl = ge('msg');
+                if (flags.length > 0) {
+                    const bin = (data.errors.led_code >>> 0).toString(2).padStart(3,'0');
+                    msgEl.value = state + ' [' + bin + '] ' + flags.join(' | ');
+                    msgEl.style.color = '#c33';
+                } else {
+                    msgEl.value = state;
+                    msgEl.style.color = '';
+                }
             }
             
             // Update voltage (read-only)

@@ -838,6 +838,8 @@ static esp_err_t start_http_server(void) {
     config.server_port = 80;
     config.max_open_sockets = 7;
     config.lru_purge_enable = true;
+    config.recv_wait_timeout = 10;  // seconds (default 5)
+    config.send_wait_timeout = 30;  // seconds (default 5) — log download needs headroom in STA mode
     config.uri_match_fn = httpd_uri_match_wildcard; // enable wildcarding
     
     esp_err_t err = httpd_start(&http_server_instance, &config);
@@ -1106,18 +1108,19 @@ static esp_err_t launch_soft_ap(void) {
 }
 
 /* STA-first startup: try NET_SSID, fall back to softAP on failure/empty. */
+/* TODO: STA mode disabled pending network stack fixes */
 static esp_err_t start_wifi(bool reset_wdt) {
-    char *net_ssid = get_param_string(PARAM_NET_SSID);
-    if (net_ssid && strlen(net_ssid) > 0) {
-        char *net_pass = get_param_string(PARAM_NET_PASS);
-        ESP_LOGI(TAG, "Trying STA connection to '%s'...", net_ssid);
-        if (try_connect_sta(net_ssid, net_pass, reset_wdt) == ESP_OK) {
-            ESP_LOGI(TAG, "STA connected — HTTP server running");
-            return ESP_OK;
-        }
-        ESP_LOGW(TAG, "STA failed — falling back to softAP");
-        /* try_connect_sta already called esp_wifi_stop() on failure */
-    }
+    // char *net_ssid = get_param_string(PARAM_NET_SSID);
+    // if (net_ssid && strlen(net_ssid) > 0) {
+    //     char *net_pass = get_param_string(PARAM_NET_PASS);
+    //     ESP_LOGI(TAG, "Trying STA connection to '%s'...", net_ssid);
+    //     if (try_connect_sta(net_ssid, net_pass, reset_wdt) == ESP_OK) {
+    //         ESP_LOGI(TAG, "STA connected — HTTP server running");
+    //         return ESP_OK;
+    //     }
+    //     ESP_LOGW(TAG, "STA failed — falling back to softAP");
+    //     /* try_connect_sta already called esp_wifi_stop() on failure */
+    // }
     return launch_soft_ap();
 }
 

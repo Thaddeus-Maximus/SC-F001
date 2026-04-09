@@ -1,0 +1,340 @@
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:7176
+load:0x40078000,len:15564
+ho 0 tail 12 room 4
+load:0x40080400,len:4
+--- 0x40080400: _init at ??:?
+
+load:0x40080404,len:3904
+entry 0x40080640
+I (31) boot: ESP-IDF v5.3.1-dirty 2nd stage bootloader
+I (31) boot: compile time Apr  8 2026 18:33:23
+I (31) boot: Multicore bootloader
+I (36) boot: chip revision: v3.1
+I (40) boot.esp32: SPI Speed      : 40MHz
+I (44) boot.esp32: SPI Mode       : DIO
+I (49) boot.esp32: SPI Flash Size : 8MB
+I (53) boot: Enabling RNG early entropy source...
+I (59) boot: Partition Table:
+I (62) boot: ## Label            Usage          Type ST Offset   Length
+I (70) boot:  0 nvs              WiFi data        01 02 00009000 00004000
+I (77) boot:  1 otadata          OTA data         01 00 0000d000 00002000
+I (85) boot:  2 phy_init         RF data          01 01 0000f000 00001000
+I (92) boot:  3 ota_0            OTA app          00 10 00010000 00180000
+I (100) boot:  4 ota_1            OTA app          00 11 00190000 00180000
+I (107) boot:  5 post_test        Unknown data     01 42 00310000 00001000
+I (115) boot:  6 params           Unknown data     01 40 00311000 00004000
+I (122) boot:  7 log              Unknown data     01 41 00315000 004cd000
+I (130) boot: End of partition table
+I (134) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=410f0h (266480) map
+I (234) esp_image: segment 1: paddr=00051118 vaddr=3ff80000 size=00004h (     4) load
+I (234) esp_image: segment 2: paddr=00051124 vaddr=3ffbdb60 size=0643ch ( 25660) load
+I (249) esp_image: segment 3: paddr=00057568 vaddr=40080000 size=08ab0h ( 35504) load
+I (263) esp_image: segment 4: paddr=00060020 vaddr=400d0020 size=10019ch (1048988) map
+I (623) esp_image: segment 5: paddr=001601c4 vaddr=40088ab0 size=11654h ( 71252) load
+I (651) esp_image: segment 6: paddr=00171820 vaddr=50000000 size=0004ch (    76) load
+I (665) boot: Loaded app from partition at offset 0x10000
+I (665) boot: Disabling RNG early entropy source...
+I (677) cpu_start: Multicore app
+I (686) cpu_start: Pro cpu start user code
+I (686) cpu_start: cpu freq: 160000000 Hz
+I (686) app_init: Application information:
+I (689) app_init: Project name:     SC-F001
+I (694) app_init: App version:      837ec18-dirty
+I (699) app_init: Compile time:     Apr  8 2026 18:35:08
+I (705) app_init: ELF file SHA256:  9ee6b4528...
+I (710) app_init: ESP-IDF:          v5.3.1-dirty
+I (715) efuse_init: Min chip rev:     v0.0
+I (720) efuse_init: Max chip rev:     v3.99 
+I (725) efuse_init: Chip rev:         v3.1
+I (730) heap_init: Initializing. RAM available for dynamic allocation:
+I (737) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (743) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (749) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (756) heap_init: At 3FFCDD08 len 000122F8 (72 KiB): DRAM
+I (762) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (768) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (774) heap_init: At 4009A104 len 00005EFC (23 KiB): IRAM
+I (782) spi_flash: detected chip: generic
+I (785) spi_flash: flash io: dio
+W (789) i2c: This driver is an old driver, please migrate your application code to adapt `driver/i2c_master.h`
+I (801) coexist: coex firmware version: 4482466
+I (806) main_task: Started on CPU0
+I (816) main_task: Calling app_main()
+I (816) MAIN: Firmware: V_837ec18-dirty (2026-04-08 23:35:02)
+I (816) MAIN: Version: 837ec18-dirty
+I (816) MAIN: Branch: main
+I (826) MAIN: Built: 2026-04-08 23:35:02
+I (826) I2C: POST: TCA9555 OK (port0=0x0123)
+I (836) STORAGE: Initializing storage system...
+I (876) STORAGE: Params partition found: size=16384 bytes
+I (876) STORAGE: Log init: scanning 1229 sectors with bisection
+I (896) STORAGE: Log system initialized (bisection). Head: 11704, Tail: 0
+I (896) STORAGE: Log writer task started
+I (896) STORAGE: Log writer task created successfully
+W (906) POWER: POST: ADC ISENS3 may be frozen (both reads = 1891)
+I (906) POWER: POST: ADC OK (BAT=286/286, I1=1894/1898, I2=1890/1900, I3=1891/1891)
+I (936) STORAGE: POST: flash
+
+========================================
+  UART JSON Interface Ready
+========================================
+Type 'HELP' for available commands
+Type 'GET' to see system status
+
+> I (946) UART: UART interface started
+I (946) gpio: GPIO[14]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 
+I (956) gpio: GPIO[16]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 
+I (966) gpio: GPIO[19]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 
+I (976) gpio: GPIO[27]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 
+I (986) gpio: GPIO[25]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (996) RF: RF receiver task started on core 0
+I (996) BTDM_INIT: BT controller compile version [b022216]
+I (1006) BTDM_INIT: Bluetooth MAC: 94:54:c5:38:c4:3a
+I (1016) phy_init: phy_version 4830,54550f7,Jun 20 2024,14:22:08
+E rmt: hw buffer too small, received symbols truncated
+I (1416) BT_HID: Found saved BDA in NVS ï¿½ï¿½ï¿½ will try direct reconnect first
+I (1416) BT_HID: Trying saved device c7:a3:e8:b2:b1:ec ...
+I (1426) BT_HID: BLE HID host initialised
+I (1426) WEBSERVER: Initializing webserver...
+I (1426) WEBSERVER: AP LAUNCHING
+I (1446) wifi:wifi driver task: 3ffe35b4, prio:23, stack:6656, core=0
+I (1456) wifi:wifi firmware version: ccaebfa
+I (1466) wifi:wifi certification version: v7.0
+I (1466) wifi:config NVS flash: enabled
+I (1466) wifi:config nano formating: disabled
+I (1466) wifi:Init data frame dynamic rx buffer num: 32
+I (1476) wifi:Init static rx mgmt buffer num: 5
+I (1476) wifi:Init management short buffer num: 32
+I (1476) wifi:Init dynamic tx buffer num: 32
+I (1486) wifi:Init static rx buffer size: 1600
+I (1486) wifi:Init static rx buffer num: 10
+I (1496) wifi:Init dynamic rx buffer num: 32
+I (1496) wifi_init: rx ba win: 6
+I (1496) wifi_init: accept mbox: 6
+I (1506) wifi_init: tcpip mbox: 32
+I (1506) wifi_init: udp mbox: 6
+I (1516) wifi_init: tcp mbox: 6
+I (1516) wifi_init: tcp tx win: 5760
+I (1516) wifi_init: tcp rx win: 5760
+I (1526) wifi_init: tcp mss: 1440
+I (1536) wifi:mode : softAP (94:54:c5:38:c4:39)
+I (1546) wifi:Total power save buffer number: 16
+I (1546) wifi:Init max length of beacon: 752/752
+I (1546) wifi:Init max length of beacon: 752/752
+I (1556) esp_netif_lwip: DHCP server started on interface WIFI_AP_DEF with IP: 192.168.4.1
+I (1556) DNS_SERVER: DNS server started on port 53
+I (1566) mdns_mem: mDNS task will be created from internal RAM
+I (1566) WEBSERVER: SoftAP ready. SSID: sc.local, Channel: 6, Password: password
+I (1576) WEBSERVER: Access at: http://sc.local.local or http://192.168.4.1
+I (1586) WEBSERVER: STARTING HTTP
+I (1596) WEBSERVER: HTTP server started successfully
+I (1596) WEBSERVER: Registered URI handler: /
+I (1596) WEBSERVER: Registered URI handler: /get
+I (1606) WEBSERVER: Registered URI handler: /post
+I (1606) WEBSERVER: Registered URI handler: /log
+I (1616) WEBSERVER: Registered URI handler: /ota
+I (1616) WEBSERVER: Registered URI handler: /*
+I (1626) WEBSERVER: Webserver initialization complete
+E rmt: hw buffer too small, received symbols truncated
+I (3276) wifi:new:<6,1>, old:<6,1>, ap:<6,1>, sta:<255,255>, prof:6, snd_ch_cfg:0x0
+I (3286) wifi:station: 34:2e:b7:aa:33:a4 join, AID=1, bgn, 40U
+I (3336) WEBSERVER: Station connected, AID=1
+I (3346) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2
+E rmt: hw buffer too small, received symbols truncated
+I (3676) wifi:<ba-add>idx:2 (ifx:1, 34:2e:b7:aa:33:a4), tid:0, ssn:12, winSize:64
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+W (4736) httpd_txrx: httpd_resp_send_err: 404 Not Found - Nothing matches the given URI
+E rmt: hw buffer too small, received symbols truncated
+I (5966) WEBSERVER: post_handler
+I (5966) WEBSERVER: POST: {"time":1775673577}
+I (5966) COMMS: Setting time to 1775673577
+I (5966) RTC: TIME unix=1775673577 src=SYNC uptime=5s
+I (5966) STORAGE: Wrote; Tail/Head are now 0/11725
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+W (11736) MAIN: Hold-to-reboot triggered
+I (12636) wifi:station: 34:2e:b7:aa:33:a4 leave, AID = 1, reason = 4, bss_flags is 756835, bss:0x3fff03b0
+I (12636) wifi:new:<6,0>, old:<6,1>, ap:<6,1>, sta:<255,255>, prof:6, snd_ch_cfg:0x0
+I (12646) wifi:<ba-del>idx:2, tid:0
+E (12646) wifi:NAN WiFi stop
+I (12646) WEBSERVER: Station disconnected, AID=1
+I (12656) WEBSERVER: STOPPING HTTP
+I (12756) WEBSERVER: HTTP server stopped
+I (12816) wifi:flush txq
+I (12816) wifi:stop sw txq
+I (12816) wifi:lmac stop hw txq
+ets Jul 29 2019 12:21:46
+
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:7176
+load:0x40078000,len:15564
+ho 0 tail 12 room 4
+load:0x40080400,len:4
+--- 0x40080400: _init at ??:?
+
+load:0x40080404,len:3904
+entry 0x40080640
+I (31) boot: ESP-IDF v5.3.1-dirty 2nd stage bootloader
+I (31) boot: compile time Apr  8 2026 18:33:23
+I (31) boot: Multicore bootloader
+I (36) boot: chip revision: v3.1
+I (40) boot.esp32: SPI Speed      : 40MHz
+I (44) boot.esp32: SPI Mode       : DIO
+I (49) boot.esp32: SPI Flash Size : 8MB
+I (53) boot: Enabling RNG early entropy source...
+I (59) boot: Partition Table:
+I (62) boot: ## Label            Usage          Type ST Offset   Length
+I (70) boot:  0 nvs              WiFi data        01 02 00009000 00004000
+I (77) boot:  1 otadata          OTA data         01 00 0000d000 00002000
+I (85) boot:  2 phy_init         RF data          01 01 0000f000 00001000
+I (92) boot:  3 ota_0            OTA app          00 10 00010000 00180000
+I (99) boot:  4 ota_1            OTA app          00 11 00190000 00180000
+I (107) boot:  5 post_test        Unknown data     01 42 00310000 00001000
+I (115) boot:  6 params           Unknown data     01 40 00311000 00004000
+I (122) boot:  7 log              Unknown data     01 41 00315000 004cd000
+I (130) boot: End of partition table
+I (134) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=410f0h (266480) map
+I (234) esp_image: segment 1: paddr=00051118 vaddr=3ff80000 size=00004h (     4) load
+I (234) esp_image: segment 2: paddr=00051124 vaddr=3ffbdb60 size=0643ch ( 25660) load
+I (249) esp_image: segment 3: paddr=00057568 vaddr=40080000 size=08ab0h ( 35504) load
+I (263) esp_image: segment 4: paddr=00060020 vaddr=400d0020 size=10019ch (1048988) map
+I (623) esp_image: segment 5: paddr=001601c4 vaddr=40088ab0 size=11654h ( 71252) load
+I (651) esp_image: segment 6: paddr=00171820 vaddr=50000000 size=0004ch (    76) load
+I (665) boot: Loaded app from partition at offset 0x10000
+I (665) boot: Disabling RNG early entropy source...
+I (677) cpu_start: Multicore app
+I (685) cpu_start: Pro cpu start user code
+I (686) cpu_start: cpu freq: 160000000 Hz
+I (686) app_init: Application information:
+I (688) app_init: Project name:     SC-F001
+I (693) app_init: App version:      837ec18-dirty
+I (699) app_init: Compile time:     Apr  8 2026 18:35:08
+I (705) app_init: ELF file SHA256:  9ee6b4528...
+I (710) app_init: ESP-IDF:          v5.3.1-dirty
+I (715) efuse_init: Min chip rev:     v0.0
+I (720) efuse_init: Max chip rev:     v3.99 
+I (725) efuse_init: Chip rev:         v3.1
+I (730) heap_init: Initializing. RAM available for dynamic allocation:
+I (737) heap_init: At 3FFAFF10 len 000000F0 (0 KiB): DRAM
+I (743) heap_init: At 3FFB6388 len 00001C78 (7 KiB): DRAM
+I (749) heap_init: At 3FFB9A20 len 00004108 (16 KiB): DRAM
+I (755) heap_init: At 3FFCDD08 len 000122F8 (72 KiB): DRAM
+I (761) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (768) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (774) heap_init: At 4009A104 len 00005EFC (23 KiB): IRAM
+I (782) spi_flash: detected chip: generic
+I (785) spi_flash: flash io: dio
+W (789) i2c: This driver is an old driver, please migrate your application code to adapt `driver/i2c_master.h`
+I (801) coexist: coex firmware version: 4482466
+I (806) main_task: Started on CPU0
+I (816) main_task: Calling app_main()
+I (816) MAIN: Firmware: V_837ec18-dirty (2026-04-08 23:35:02)
+I (816) MAIN: Version: 837ec18-dirty
+I (816) MAIN: Branch: main
+I (826) MAIN: Built: 2026-04-08 23:35:02
+I (826) I2C: POST: TCA9555 OK (port0=0x0123)
+I (836) STORAGE: Initializing storage system...
+I (876) STORAGE: Params partition found: size=16384 bytes
+I (876) STORAGE: Log init: scanning 1229 sectors with bisection
+I (896) STORAGE: Log system initialized (bisection). Head: 11725, Tail: 0
+I (896) STORAGE: Log writer task started
+I (896) STORAGE: Log writer task created successfully
+I (906) POWER: POST: ADC OK (BAT=286/287, I1=1890/1898, I2=1895/1889, I3=1895/1891)
+I (926) STORAGE: POST: flash
+
+========================================
+  UART JSON Interface Ready
+========================================
+Type 'HELP' for available commands
+Type 'GET' to see system status
+
+> I (936) UART: UART interface started
+I (936) gpio: GPIO[14]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 
+I (946) gpio: GPIO[16]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 
+I (956) gpio: GPIO[19]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 
+I (966) gpio: GPIO[27]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 
+I (976) gpio: GPIO[25]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (986) RF: RF receiver task started on core 0
+I (996) BTDM_INIT: BT controller compile version [b022216]
+I (996) BTDM_INIT: Bluetooth MAC: 94:54:c5:38:c4:3a
+I (1006) phy_init: phy_version 4830,54550f7,Jun 20 2024,14:22:08
+E rmt: hw buffer too small, received symbols truncated
+I (1416) BT_HID: Found saved BDA in NVS ï¿½ï¿½ï¿½ will try direct reconnect first
+I (1416) BT_HID: Trying saved device c7:a3:e8:b2:b1:ec ...
+I (1426) BT_HID: BLE HID host initialised
+I (1426) WEBSERVER: Initializing webserver...
+I (1426) WEBSERVER: AP LAUNCHING
+I (1446) wifi:wifi driver task: 3ffe35b4, prio:23, stack:6656, core=0
+I (1456) wifi:wifi firmware version: ccaebfa
+I (1456) wifi:wifi certification version: v7.0
+I (1456) wifi:config NVS flash: enabled
+I (1456) wifi:config nano formating: disabled
+I (1466) wifi:Init data frame dynamic rx buffer num: 32
+I (1466) wifi:Init static rx mgmt buffer num: 5
+I (1476) wifi:Init management short buffer num: 32
+I (1476) wifi:Init dynamic tx buffer num: 32
+I (1486) wifi:Init static rx buffer size: 1600
+I (1486) wifi:Init static rx buffer num: 10
+I (1486) wifi:Init dynamic rx buffer num: 32
+I (1496) wifi_init: rx ba win: 6
+I (1496) wifi_init: accept mbox: 6
+I (1506) wifi_init: tcpip mbox: 32
+I (1506) wifi_init: udp mbox: 6
+I (1506) wifi_init: tcp mbox: 6
+I (1516) wifi_init: tcp tx win: 5760
+I (1516) wifi_init: tcp rx win: 5760
+I (1526) wifi_init: tcp mss: 1440
+I (1536) wifi:mode : softAP (94:54:c5:38:c4:39)
+I (1546) wifi:Total power save buffer number: 16
+I (1546) wifi:Init max length of beacon: 752/752
+I (1546) wifi:Init max length of beacon: 752/752
+I (1556) esp_netif_lwip: DHCP server started on interface WIFI_AP_DEF with IP: 192.168.4.1
+I (1556) DNS_SERVER: DNS server started on port 53
+I (1566) mdns_mem: mDNS task will be created from internal RAM
+I (1566) WEBSERVER: SoftAP ready. SSID: sc.local, Channel: 6, Password: password
+I (1576) WEBSERVER: Access at: http://sc.local.local or http://192.168.4.1
+I (1586) WEBSERVER: STARTING HTTP
+I (1596) WEBSERVER: HTTP server started successfully
+I (1596) WEBSERVER: Registered URI handler: /
+I (1596) WEBSERVER: Registered URI handler: /get
+I (1606) WEBSERVER: Registered URI handler: /post
+I (1606) WEBSERVER: Registered URI handler: /log
+I (1616) WEBSERVER: Registered URI handler: /ota
+I (1616) WEBSERVER: Registered URI handler: /*
+I (1626) WEBSERVER: Webserver initialization complete
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+I (10646) wifi:new:<6,1>, old:<6,1>, ap:<6,1>, sta:<255,255>, prof:6, snd_ch_cfg:0x0
+I (10646) wifi:station: 34:2e:b7:aa:33:a4 join, AID=1, bgn, 40U
+I (10706) WEBSERVER: Station connected, AID=1
+I (10706) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+W (12866) httpd_txrx: httpd_resp_send_err: 404 Not Found - Nothing matches the given URI
+I (13246) wifi:<ba-add>idx:2 (ifx:1, 34:2e:b7:aa:33:a4), tid:0, ssn:109, winSize:64
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated
+E rmt: hw buffer too small, received symbols truncated

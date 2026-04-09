@@ -58,6 +58,11 @@ def _normalize_source(raw: str) -> tuple:
     if raw.endswith('.bin'):
         return False, raw
     if raw.startswith('http://') or raw.startswith('https://'):
+        # Append /log if URL has no path (or just /)
+        from urllib.parse import urlparse
+        p = urlparse(raw)
+        if p.path in ('', '/'):
+            raw = raw.rstrip('/') + '/log'
         return True, raw
     return True, f'http://{raw}/log'
 

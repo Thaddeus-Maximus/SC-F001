@@ -5,7 +5,9 @@
 # 32kHz external crystal (GPIO32/33) is on the PCB but NOT used.
 # Deep sleep is disabled (soft idle instead), so RTC slow clock accuracy is irrelevant.
 # Time tracking uses esp_timer (40MHz APB crystal, ~20ppm).
-# Let the RTC slow clock use the default internal RC oscillator.
+# Use internal 150kHz RC oscillator — avoids failed XTAL probe on boot which can
+# corrupt RTC slow memory (wipes RTC_DATA_ATTR variables like rtc_set, sync_unix_us).
+CONFIG_RTC_CLK_SRC_INT_RC=y
 
 # --- Safety & Panic ---
 

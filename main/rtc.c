@@ -27,6 +27,7 @@
 #include "soc/rtc.h"
 #include "solar.h"
 #include "storage.h"
+#include "nvs.h"
 #include "webserver.h"
 #include "bt_hid.h"
 
@@ -127,27 +128,49 @@ void rtc_set_s(int64_t tv_sec)
              (long long)(esp_timer_get_time() / 1000000ULL));
 }
 
+#define RTC_NVS_NAMESPACE "hw"
+#define RTC_NVS_KEY       "rtc_time"
+
 void rtc_save_time(void)
 {
-    // No-op: time is always derivable from sync_unix_us + rtc_hw_time_us() delta,
-    // both of which survive deep sleep and crashes via RTC_DATA_ATTR / RTC hardware.
+    if (!rtc_set) return;
+    int64_t now = rtc_get_s();
+    nvs_handle_t h;
+    if (nvs_open(RTC_NVS_NAMESPACE, NVS_READWRITE, &h) == ESP_OK) {
+        nvs_set_i64(h, RTC_NVS_KEY, now);
+        nvs_commit(h);
+        nvs_close(h);
+        ESP_LOGI("RTC", "Saved time to NVS: %lld", (long long)now);
+    }
 }
 
 void rtc_restore_time(void)
 {
-    if (!rtc_set) return;
-    // Recover time via RTC hardware counter (survives panics/WDT resets via RTC domain).
-    // RC drift during a <30s crash restart is ~1.5s worst case — acceptable.
-    int64_t t = (sync_unix_us + (int64_t)(rtc_hw_time_us() - sync_rtc_us)) / 1000000LL;
-    // Anchor esp_timer tracking to recovered time — APB timer resets on every boot.
-    sync_unix_us = t * 1000000LL;
-    sync_esp_us  = (uint64_t)esp_timer_get_time();
-    // Re-sync the stdlib clock (gettimeofday) for gmtime_r() etc.
-    settimeofday(&(struct timeval){.tv_sec = t, .tv_usec = 0}, NULL);
+    // Try RTC_DATA_ATTR first (survives SW reset if RTC memory is intact)
+    if (rtc_set) {
+        int64_t t = (sync_unix_us + (int64_t)(rtc_hw_time_us() - sync_rtc_us)) / 1000000LL;
+        sync_unix_us = t * 1000000LL;
+        sync_esp_us  = (uint64_t)esp_timer_get_time();
+        settimeofday(&(struct timeval){.tv_sec = t, .tv_usec = 0}, NULL);
+        ESP_LOGI("RTC", "TIME unix=%lld src=RTC_MEM uptime=%llds",
+                 (long long)t, (long long)(esp_timer_get_time() / 1000000ULL));
+        return;
+    }
 
-    ESP_LOGI("RTC", "TIME unix=%lld src=CRASH uptime=%llds",
-             (long long)t,
-             (long long)(esp_timer_get_time() / 1000000ULL));
+    // Fall back to NVS (survives any reset type)
+    nvs_handle_t h;
+    int64_t saved = 0;
+    if (nvs_open(RTC_NVS_NAMESPACE, NVS_READONLY, &h) == ESP_OK) {
+        if (nvs_get_i64(h, RTC_NVS_KEY, &saved) == ESP_OK && saved > 0) {
+            nvs_close(h);
+            // Time will be slightly stale (by the reboot duration), but close enough
+            rtc_set_s(saved);
+            ESP_LOGI("RTC", "TIME unix=%lld src=NVS uptime=%llds",
+                     (long long)saved, (long long)(esp_timer_get_time() / 1000000ULL));
+            return;
+        }
+        nvs_close(h);
+    }
 }
 
 int64_t rtc_get_ms(void)

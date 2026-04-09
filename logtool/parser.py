@@ -330,9 +330,13 @@ def parse_response(blob: bytes, fsm_states: dict = None) -> tuple:
     if len(blob) < 8:
         raise ValueError("Response too short")
 
+    # Detect HTML response (device served webpage instead of binary log)
+    if blob[:5] in (b'<!DOC', b'<!doc', b'<html', b'<HTML'):
+        raise ValueError("Got HTML instead of binary log — check URL resolves to /log endpoint")
+
     json_len = struct.unpack_from('>I', blob, 0)[0]
     if json_len > 65536 or len(blob) < 4 + json_len + 8:
-        raise ValueError(f"Invalid json_len {json_len}")
+        raise ValueError(f"Invalid json_len {json_len} (expected binary log format, got {blob[:20]})")
 
     json_bytes = blob[4 : 4 + json_len]
     meta = json.loads(json_bytes.decode('utf-8'))

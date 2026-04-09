@@ -44,8 +44,8 @@ int64_t rtc_get_s (void);
 int64_t rtc_get_ms(void);
 void rtc_set_s(int64_t);
 
-void rtc_save_time(void);    // No-op: time is always live via rtc_get_s()
-void rtc_restore_time(void); // Re-syncs stdlib clock on boot; emits TIME log marker
+void rtc_save_time(void);    // Writes current time to NVS (call before esp_restart)
+void rtc_restore_time(void); // Recovers time from RTC memory or NVS; requires NVS init first
 
 void    rtc_schedule_next_alarm(void);
 int64_t rtc_get_next_alarm_s();

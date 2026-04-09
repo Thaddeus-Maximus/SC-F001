@@ -14,8 +14,8 @@
 | GPIO | Function |
 |------|----------|
 | 13 | Button interrupt (active low, pull-up) |
-| 14 | Jack position sensor / encoder |
-| 16 | Drive encoder |
+| 14 | Drive encoder |
+| 16 | Jack position sensor |
 | 19 | Aux sensor 2 (reserved) |
 | 21/22 | I2C SDA/SCL (400kHz) → TCA9555 I/O expander |
 | 25 | 433MHz RF receiver (RMT input) |
@@ -199,11 +199,15 @@ Safety break → immediate `STATE_UNDO_JACK_START`.
 
 ## Storage Layout
 
-**Flash partition "storage":**
-```
-0x0000 – 0x0FFF   Parameters (4 sectors, CRC32-protected, 48 params)
-0x1000 – end      Circular log buffer (head/tail tracked)
-```
+**Flash partitions (8MB flash):**
+
+| Partition | Offset | Size | Purpose |
+|-----------|--------|------|---------|
+| post_test | 0x310000 | 4K | Power-on self-test scratch sector |
+| params | 0x311000 | 16K | CRC32-protected parameter storage (48 params) |
+| log | 0x315000 | ~4.9MB | Circular binary log buffer (head/tail tracked) |
+
+Also includes NVS partition (0x9000, 16K) for WiFi/BT config, board revision, and RTC time backup.
 
 **Log entry format (39 bytes typical):**
 ```
@@ -235,9 +239,63 @@ Safety break → immediate `STATE_UNDO_JACK_START`.
 
 **`rtc_xtal_init()` in `rtc.c`:** Configures the button GPIO (GPIO13); no crystal bootstrap or sleep wakeup sources.
 
-**Time persistence across resets:** `sync_unix_us` and `sync_rtc_us` are `RTC_DATA_ATTR` (survive software resets — panics, WDT). On restart, `rtc_restore_time()` recovers time via the RTC hardware counter (which runs in the RTC domain and survives resets). RC oscillator drift (~±5%) is negligible over a <30s crash restart (~1.5s worst case).
+**Time persistence across resets:** `rtc_save_time()` writes the current unix timestamp to NVS (namespace `"hw"`, key `"rtc_time"`). On boot, `rtc_restore_time()` tries `RTC_DATA_ATTR` first, then falls back to NVS. This ensures time survives software resets even when the bootloader reloads RTC slow memory. The saved time will be stale by the reboot duration (~2s), which is acceptable.
 
 **Diagnosing time issues:** Run `RTCDEBUG` over UART. Reports current time, sync time, elapsed since sync, next alarm, uptime, and soft idle state.
+
+---
+
+## Button & LED Behavior
+
+Single physical button (button 0 via TCA9555 I2C expander) controls all interactions. All logic lives in the main loop (50ms tick) in `main.c`.
+
+### Button Actions by State
+
+**IDLE — Triple-tap to start:**
+- 3 taps within a 2-second window triggers `FSM_CMD_START`
+- Start fires immediately on the 3rd tap
+- LED feedback: 1 tap → LED 1, 2 taps → LED 1+2, 3 taps → LED 1+2+3 (then start)
+- LEDs persist until next tap or window expiry; counter resets on expiry
+
+**IDLE / CALIBRATE — 3-second hold to reboot:**
+- Saves RTC time to NVS, then calls `esp_restart()`
+- LED progression: off (0–750ms) → LED 1 (750–1500ms) → LED 1+2 (1500–2250ms) → LED 1+2+3 (2250–3000ms) → flash all (6× at 150ms) → reboot
+
+**Moving states** — any tap sends `FSM_CMD_UNDO`
+
+**UNDO state (UNDO_JACK_START)** — any tap sends `FSM_CMD_STOP` (emergency stop)
+
+**Calibration states** — tap advances through calibration steps (unchanged)
+
+**Factory reset** — power cycle with GPIO13 held for 10 seconds. Resets all params and erases log/post_test partitions. Preserves NVS (board_rev, BT pairing, RTC time). Only triggers on `ESP_RST_POWERON` or `ESP_RST_EXT`.
+
+### LED Status Indicators
+
+| State | Pattern | Timing |
+|-------|---------|--------|
+| Idle | LED1 blink | 0.5Hz (1s on / 1s off) |
+| Error | Rapid all-blink → error code hold | 5Hz for 1s, then code for 2s (3s cycle) |
+| Moving / delays | Waterfall 001→011→111→110→100→000 | ~1 cycle/s (167ms per step) |
+| Calibrating | All LEDs flash | 1Hz (500ms on / 500ms off) |
+| Undo | All LEDs solid on | Continuous |
+| Booting | LED1 solid | Until init complete |
+
+**Error code bits (during 2s hold phase):**
+
+| LED Pattern | Meaning |
+|-------------|---------|
+| 001 (LED1) | Efuse tripped (any bridge) or low battery |
+| 010 (LED2) | RTC/clock not set |
+| 100 (LED3) | Safety sensor break or leash limit hit |
+| 111 (all) | Unknown FSM error (fallback) |
+
+Error codes are also shown on the web interface status field with individual flag names.
+
+### Implementation Details
+
+- Tap detection uses **release edge** (`i2c_get_button_released()`) with `btn_held < 1000ms` guard (long presses don't count as taps)
+- 2-second tap window starts on first tap, fixed duration (not reset by subsequent taps)
+- All button state sampled once per tick: `btn_pressed`, `btn_tripped`, `btn_released`, `btn_held`
 
 ---
 

@@ -15,7 +15,7 @@
 
 static const char* TAG = "SENS";
 
-uint8_t sensor_pins[N_SENSORS] = {GPIO_NUM_27, GPIO_NUM_14, GPIO_NUM_16, GPIO_NUM_19};
+uint8_t sensor_pins[N_SENSORS] = {GPIO_NUM_27, GPIO_NUM_14, GPIO_NUM_16, GPIO_NUM_19}; // SAFETY, DRIVE, JACK, AUX2
 
 volatile int16_t sensor_count[N_SENSORS] = {0};
 static volatile uint64_t sensor_last_isr_time[N_SENSORS] = {0};
@@ -60,8 +60,10 @@ static void IRAM_ATTR sensor_isr_handler(void* arg) {
 
 esp_err_t sensors_init() {
 	
+	 uint64_t pin_mask = 0;
+	 for (uint8_t i = 0; i < N_SENSORS; i++) pin_mask |= (1ULL << sensor_pins[i]);
 	 gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << sensor_pins[0]) | (1ULL << sensor_pins[1]),
+        .pin_bit_mask = pin_mask,
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_ENABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,

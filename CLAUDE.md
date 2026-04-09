@@ -26,6 +26,7 @@ See `README.md` for full project documentation (hardware, architecture, protocol
 | Setting | Value | Why |
 |---------|-------|-----|
 | `CONFIG_ESP_TASK_WDT_PANIC` | y | WDT timeout → panic → reboot (feeds OTA rollback counter) |
+| `CONFIG_RTC_CLK_SRC_INT_RC` | y | Use internal 150kHz RC oscillator — no external 32kHz crystal. Avoids failed XTAL probe that corrupts RTC slow memory. |
 
 **Already correct at IDF defaults (verified, no override needed):**
 | Setting | Value | Status |
@@ -88,10 +89,10 @@ All fields optional. `parameters` is a flat object of param key → value.
 - `cancel_btn` calls `location.reload()`
 
 **Sections (top to bottom):**
-1. Status display (voltage, state, distance, etc.) — auto-updated from `data`
+1. Status display (voltage, state, distance, error flags) — auto-updated from `data`
 2. Schedule settings (`<details>`) — MOVE_START / MOVE_END / NUM_MOVES
-3. Remote Control (`<details>`) — jog buttons + RF programming
-4. **WiFi Settings** (`<details open>`) — NET_SSID, NET_PASS, WIFI_SSID, WIFI_PASS with dedicated `applyWifiSettings()` button
+3. Remote Control (`<details open>`) — jog buttons + RF programming
+4. **WiFi Settings** (`<details>`) — WIFI_SSID, WIFI_PASS (STA mode disabled: NET_SSID/NET_PASS inputs commented out)
 5. **DANGER ZONE** (`<details>`) — calibration, version, OTA upload, log download, auto-generated parameter table, REBOOT/SLEEP
 
 **`updateParamTable()`:**

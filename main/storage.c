@@ -11,6 +11,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "nvs_flash.h"
+#include "nvs.h"
 #include "version.h"
 
 #define TAG "STORAGE"
@@ -558,6 +559,40 @@ esp_err_t factory_reset(void) {
 
     ESP_LOGI(TAG, "Factory reset complete");
     return ESP_OK;
+}
+
+// ============================================================================
+// HARDWARE IDENTITY (separate NVS namespace, survives factory reset)
+// ============================================================================
+#define HW_NVS_NAMESPACE "hw"
+#define HW_NVS_BOARD_REV "board_rev"
+
+static uint16_t cached_board_rev = 0;
+static bool board_rev_loaded = false;
+
+uint16_t hw_get_board_rev(void) {
+    if (board_rev_loaded) return cached_board_rev;
+    nvs_handle_t h;
+    if (nvs_open(HW_NVS_NAMESPACE, NVS_READONLY, &h) == ESP_OK) {
+        nvs_get_u16(h, HW_NVS_BOARD_REV, &cached_board_rev);
+        nvs_close(h);
+    }
+    board_rev_loaded = true;
+    return cached_board_rev;
+}
+
+esp_err_t hw_set_board_rev(uint16_t rev) {
+    nvs_handle_t h;
+    esp_err_t err = nvs_open(HW_NVS_NAMESPACE, NVS_READWRITE, &h);
+    if (err != ESP_OK) return err;
+    err = nvs_set_u16(h, HW_NVS_BOARD_REV, rev);
+    if (err == ESP_OK) err = nvs_commit(h);
+    nvs_close(h);
+    if (err == ESP_OK) {
+        cached_board_rev = rev;
+        board_rev_loaded = true;
+    }
+    return err;
 }
 
 // ============================================================================
