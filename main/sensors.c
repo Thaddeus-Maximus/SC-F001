@@ -1,4 +1,5 @@
 #include "sensors.h"
+#include "board_config.h"
 #include "esp_log.h"
 #include "esp_task_wdt.h"
 #include "driver/gpio.h"
@@ -15,7 +16,13 @@
 
 static const char* TAG = "SENS";
 
-uint8_t sensor_pins[N_SENSORS] = {GPIO_NUM_27, GPIO_NUM_14, GPIO_NUM_16, GPIO_NUM_19}; // SAFETY, DRIVE, JACK, AUX2
+#ifdef BOARD_V5
+// V5 labels 2/3/4/1 → IO14/16/19/27 → SAFETY/JACK/DRIVE/nc
+// Array order matches sensor_t: SAFETY, DRIVE, JACK, AUX2
+uint8_t sensor_pins[N_SENSORS] = {GPIO_NUM_14, GPIO_NUM_19, GPIO_NUM_16, GPIO_NUM_27};
+#else // BOARD_V4
+uint8_t sensor_pins[N_SENSORS] = {GPIO_NUM_27, GPIO_NUM_14, GPIO_NUM_16, GPIO_NUM_19};
+#endif
 
 volatile int16_t sensor_count[N_SENSORS] = {0};
 static volatile uint64_t sensor_last_isr_time[N_SENSORS] = {0};

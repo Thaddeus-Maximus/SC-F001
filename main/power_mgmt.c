@@ -27,6 +27,7 @@
 #include "esp_adc/adc_cali_scheme.h"
 #include "esp_timer.h"
 #include "driver/gpio.h"
+#include "board_config.h"
 #include "control_fsm.h"
 #include "i2c.h"
 #include "sensors.h"
@@ -38,11 +39,23 @@
 
 #define TAG "POWER"
 
-// === GPIO Pin Definitions === 
+// === GPIO Pin Definitions ===
+#ifdef BOARD_V5
+// V5: single ACS37220LEZATR-100B3 for all motors.
+//   GPIO34 (ADC1_CH6) = VOUT (main current reading)
+//   GPIO36 / VP (ADC1_CH0) = VOC (OC-threshold sense, diagnostic)
+//   GPIO39 / VN = FAULT (digital, active-low, open-drain — external pull-up on board)
+//   GPIO35 (ADC1_CH7) = battery voltage (moved from GPIO39)
+#define PIN_V_ISENS_MAIN  ADC_CHANNEL_6   // GPIO34
+#define PIN_V_VOC         ADC_CHANNEL_0   // GPIO36 / VP
+#define PIN_V_BATTERY     ADC_CHANNEL_7   // GPIO35
+#define PIN_FAULT_GPIO    GPIO_NUM_39     // digital input
+#else // BOARD_V4
 #define PIN_V_ISENS1  ADC_CHANNEL_0   // GPIO36 / VP
 #define PIN_V_ISENS2  ADC_CHANNEL_6   // GPIO34
 #define PIN_V_ISENS3  ADC_CHANNEL_7   // GPIO35
 #define PIN_V_BATTERY ADC_CHANNEL_3   // GPIO39 / VN
+#endif
 #define PIN_V_SENS_BAT PIN_V_BATTERY
 
 // map from relay number to bridge
@@ -163,10 +176,27 @@ esp_err_t adc_init() {
         .bitwidth = ADC_BITWIDTH_12,
     };
 
+#ifdef BOARD_V5
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PIN_V_ISENS_MAIN, &chan_cfg));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PIN_V_VOC,        &chan_cfg));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PIN_V_SENS_BAT,   &chan_cfg));
+
+    // FAULT is open-drain on the sensor; ESP32 GPIO39 has no internal pull —
+    // V5 board MUST provide an external pull-up to VDD.
+    gpio_config_t fault_cfg = {
+        .pin_bit_mask = 1ULL << PIN_FAULT_GPIO,
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    ESP_ERROR_CHECK(gpio_config(&fault_cfg));
+#else
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PIN_V_ISENS1, &chan_cfg));
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PIN_V_ISENS2, &chan_cfg));
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PIN_V_ISENS3, &chan_cfg));
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc1_handle, PIN_V_SENS_BAT, &chan_cfg));
+#endif
 
     // Line fitting calibration (modern scheme)
     adc_cali_line_fitting_config_t cali_cfg = {
@@ -176,16 +206,32 @@ esp_err_t adc_init() {
     };
     ESP_ERROR_CHECK(adc_cali_create_scheme_line_fitting(&cali_cfg, &adc_cali_handle));
 
+#ifdef BOARD_V5
+    // Diagnostic: log configured VOC — resistor on board sets OC threshold.
+    // Datasheet: VVOC [V] = RL_VOC [Ω] × 1e-5, linear 0.33–0.66 V on 3.3V variant.
+    int voc_raw = 0, voc_mv = 0;
+    if (adc_oneshot_read(adc1_handle, PIN_V_VOC, &voc_raw) == ESP_OK &&
+        adc_cali_raw_to_voltage(adc_cali_handle, voc_raw, &voc_mv) == ESP_OK) {
+        ESP_LOGI(TAG, "ACS37220 VOC = %d mV (OC threshold config)", voc_mv);
+    }
+#endif
+
 	return ESP_OK;
 }
 
 esp_err_t adc_post(void) {
-    // Read all 4 channels twice with a short delay; flag if frozen or wildly out of range
+#ifdef BOARD_V5
+    const adc_channel_t channels[] = { PIN_V_ISENS_MAIN, PIN_V_SENS_BAT };
+    const char *names[] = { "ISENS", "BATTERY" };
+    const int n = 2;
+#else
     const adc_channel_t channels[] = { PIN_V_ISENS1, PIN_V_ISENS2, PIN_V_ISENS3, PIN_V_SENS_BAT };
     const char *names[] = { "ISENS1", "ISENS2", "ISENS3", "BATTERY" };
+    const int n = 4;
+#endif
     int first[4], second[4];
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < n; i++) {
         if (adc_oneshot_read(adc1_handle, channels[i], &first[i]) != ESP_OK) {
             ESP_LOGE(TAG, "POST: ADC read failed on %s", names[i]);
             return ESP_FAIL;
@@ -194,23 +240,28 @@ esp_err_t adc_post(void) {
 
     vTaskDelay(pdMS_TO_TICKS(5));
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < n; i++) {
         if (adc_oneshot_read(adc1_handle, channels[i], &second[i]) != ESP_OK) {
             ESP_LOGE(TAG, "POST: ADC read failed on %s (2nd)", names[i]);
             return ESP_FAIL;
         }
     }
 
-    // Check for frozen ADC (identical readings on noise-bearing current sense channels)
-    for (int i = 0; i < 3; i++) {  // only current sense, not battery (battery can be stable)
+    // Frozen-ADC check on current-sense channels only (battery can legitimately be stable)
+    for (int i = 0; i < n - 1; i++) {
         if (first[i] == second[i] && first[i] != 0) {
             ESP_LOGW(TAG, "POST: ADC %s may be frozen (both reads = %d)", names[i], first[i]);
-            // Warning only — a truly stuck ADC will trip efuse protections anyway
         }
     }
 
+#ifdef BOARD_V5
+    ESP_LOGI(TAG, "POST: ADC OK (BAT=%d/%d, I=%d/%d) FAULT=%d",
+             first[1], second[1], first[0], second[0],
+             gpio_get_level(PIN_FAULT_GPIO));
+#else
     ESP_LOGI(TAG, "POST: ADC OK (BAT=%d/%d, I1=%d/%d, I2=%d/%d, I3=%d/%d)",
              first[3], second[3], first[0], second[0], first[1], second[1], first[2], second[2]);
+#endif
     return ESP_OK;
 }
 
@@ -269,14 +320,79 @@ bool get_bridge_spike(bridge_t bridge, float threshold) {
 	return true;
 }
 
+#ifdef BOARD_V5
+// V5 has a single current sensor shared by all bridges. Cache the read
+// per fsm tick so three process_bridge_current() calls in the same tick
+// don't hit the ADC three times.
+static int64_t v5_isens_cache_time = INT64_MIN;
+static int     v5_isens_mv_cache   = 0;
+static bool    v5_isens_cache_ok   = false;
+
+static bool v5_read_isens_mv(int *out_mv) {
+    if (v5_isens_cache_time != fsm_now) {
+        v5_isens_cache_time = fsm_now;
+        int raw = 0;
+        int mv  = 0;
+        v5_isens_cache_ok = (adc_oneshot_read(adc1_handle, PIN_V_ISENS_MAIN, &raw) == ESP_OK) &&
+                            (adc_cali_raw_to_voltage(adc_cali_handle, raw, &mv) == ESP_OK);
+        v5_isens_mv_cache = mv;
+    }
+    *out_mv = v5_isens_mv_cache;
+    return v5_isens_cache_ok;
+}
+
+static bool v5_bridge_is_active(bridge_t b) {
+    switch (b) {
+        case BRIDGE_DRIVE: return last_relay_state.bridges.DRIVE != BRIDGE_OFF;
+        case BRIDGE_JACK:  return last_relay_state.bridges.JACK  != BRIDGE_OFF;
+        case BRIDGE_AUX:   return last_relay_state.bridges.AUX   != BRIDGE_OFF;
+        default:           return false;
+    }
+}
+
+static bool v5_any_bridge_active(void) {
+    return v5_bridge_is_active(BRIDGE_DRIVE) ||
+           v5_bridge_is_active(BRIDGE_JACK)  ||
+           v5_bridge_is_active(BRIDGE_AUX);
+}
+#endif
+
 esp_err_t process_bridge_current(bridge_t bridge) {
     if (bridge < 0 || bridge >= NUM_BRIDGES) return ESP_ERR_INVALID_ARG;
-    
+
+    isens_channel_t *channel = &isens[bridge];
+
+#ifdef BOARD_V5
+    int voltage_mv = 0;
+    if (!v5_read_isens_mv(&voltage_mv)) {
+        return 0;
+    }
+
+    float last_current = channel->raw_current;
+    channel->raw_current = NAN;
+
+    // Single ACS37220LEZATR-100B3 for all motors: 13.2 mV/A, Vqvo=1.65 V.
+    // Sign convention matches the old V4 DRIVE wiring (ACS37220 oriented such
+    // that forward motor current gives negative delta from Vqvo).
+    float measured_A = -(voltage_mv - 1650.0f) / 13.2f;
+
+    // Per-bridge attribution:
+    //   - bridge active and alone      → it owns the entire reading
+    //   - bridge active, others active → attribute full reading to each active
+    //       bridge (worst-case; protects hardware). Jack/drive are mutually
+    //       exclusive per design, so this only affects drive+aux overlap.
+    //   - bridge OFF                   → no current from this bridge
+    // TODO(V5): better drive+aux simultaneous attribution (e.g. subtract the
+    //           quieter bridge's nominal draw from the total).
+    if (v5_bridge_is_active(bridge)) {
+        channel->raw_current = measured_A;
+    } else {
+        channel->raw_current = 0.0f;
+    }
+#else
 	int adc_raw = 0;
     int voltage_mv = 0;
-    
-    isens_channel_t *channel = &isens[bridge];
-    
+
     adc_channel_t pin;
     switch(bridge) {
         case BRIDGE_DRIVE: pin = PIN_V_ISENS1; break;
@@ -291,10 +407,10 @@ esp_err_t process_bridge_current(bridge_t bridge) {
     if (adc_cali_raw_to_voltage(adc_cali_handle, adc_raw, &voltage_mv) != ESP_OK) {
         return 0;
     }
-    
+
     float last_current = channel->raw_current;
     channel->raw_current = NAN;
-    
+
     switch (bridge) {
         case BRIDGE_JACK:
         case BRIDGE_AUX:
@@ -307,6 +423,7 @@ esp_err_t process_bridge_current(bridge_t bridge) {
             break;
         default: break;
     }
+#endif
     
     if (!channel->ema_init) {
         channel->ema_current = channel->raw_current;
@@ -326,7 +443,14 @@ esp_err_t process_bridge_current(bridge_t bridge) {
     }
 
     // === AUTO-ZERO LEARNING PHASE ===
-    if (fsm_now > channel->az_enable_time) {
+    // On V5, the single ADC reads aggregate motor current. A channel's
+    // "quiet" periods are when ALL bridges are off — not just this one.
+#ifdef BOARD_V5
+    bool az_allowed = (fsm_now > channel->az_enable_time) && !v5_any_bridge_active();
+#else
+    bool az_allowed = (fsm_now > channel->az_enable_time);
+#endif
+    if (az_allowed) {
 		//ESP_LOGI(TAG, "AZING %d", bridge);
 		float db = get_param_value_t(PARAM_ADC_DB_IAZ).f32;
         if (isnan(db) || fabsf(channel->ema_current) <= db) {
@@ -448,6 +572,16 @@ float get_battery_V(void)
 	if (ema_battery_init)
 		return ema_battery;
     return get_raw_battery_voltage();
+}
+
+bool get_hw_overcurrent_fault(void)
+{
+#ifdef BOARD_V5
+    // ACS37220 FAULT is active-low, open-drain, not latched.
+    return gpio_get_level(PIN_FAULT_GPIO) == 0;
+#else
+    return false;
+#endif
 }
 
 efuse_trip_t efuse_get(bridge_t bridge)

@@ -30,6 +30,10 @@ float get_bridge_A(bridge_t bridge);
 float get_bridge_raw_A(bridge_t bridge);
 float get_battery_V();
 
+// V5 only: hardware overcurrent FAULT line from the ACS37220 (active when true).
+// Always false on V4.
+bool get_hw_overcurrent_fault(void);
+
 void disable_autozero(bridge_t bridge);
 bool get_bridge_overcurrent(bridge_t bridge, float threshold);
 bool get_bridge_spike(bridge_t bridge, float threshold);
