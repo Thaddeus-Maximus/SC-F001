@@ -11,10 +11,13 @@
 
 #define NUM_RF_BUTTONS 8
 
-int64_t receive_keycode(void);
-
 esp_err_t rf_433_init();
 esp_err_t rf_433_stop();
+
+/* Consume-once peek of the most recently decoded raw code. Returns 0 if
+ * none has arrived since the last call. Used by the bring-up RF.WATCH
+ * stage; does not interfere with the normal decode/dispatch path. */
+uint32_t rf_433_peek_latest(void);
 
 void rf_433_learn_keycode(uint8_t index);
 void rf_433_cancel_learn_keycode();

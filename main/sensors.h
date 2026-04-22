@@ -27,6 +27,11 @@ void reset_sensor_counter(sensor_t i);
 void set_sensor_counter(sensor_t i, int16_t to);
 int16_t get_sensor_counter(sensor_t i);
 
+/* Raw ISR-level edge count. Bumped on every GPIO transition by the
+ * sensor ISR regardless of whether sensors_check() is running; safe to
+ * read during bring-up while the FSM task is paused. */
+uint32_t get_sensor_isr_edges(sensor_t i);
+
 bool get_sensor(sensor_t i);
 bool get_is_safe(void);
 

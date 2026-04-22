@@ -13,6 +13,7 @@
 #include "endian.h"
 #include "esp_ota_ops.h"
 #include "esp_timer.h"
+#include "bringup.h"
 #include "power_mgmt.h"
 #include "rf_433.h"
 #include "rtc.h"
@@ -65,11 +66,13 @@ char http_buffer[4096];
 /* Handler to serve the HTML page */
 static esp_err_t root_get_handler(httpd_req_t *req) {
     //ESP_LOGI(TAG, "root_get_handler");
-    
+
     if (req == NULL) {
         ESP_LOGE(TAG, "Null request pointer");
         return ESP_FAIL;
     }
+
+    bringup_notify_http_request();
     
     // Send the HTML response
     esp_err_t err = httpd_resp_set_type(req, "text/html");

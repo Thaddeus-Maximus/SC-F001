@@ -1,0 +1,375 @@
+17:18:21.245  Connecting to COM3 @ 115200 ...
+17:18:21.251  -> BU.BEGIN
+17:18:21.252  <- symbols truncated
+17:18:21.252  <- E rmt: hsbu�symbols truncated
+17:18:21.253  <- E rmt: hsbu�symbols truncated
+17:18:21.254  <- E rmt: hsbu�symbols truncated
+17:18:21.255  <- E rmt: hsbu�symbols truncated
+17:18:21.255  <- E rmt: hsbu�symbols truncated
+17:18:21.258  <- E rmt: hsbu�symbols truncated
+17:18:21.258  <- E rmt: hsbu�symbols truncated
+17:18:21.260  <- E rmt: hsbu�symbols truncated
+17:18:21.260  <- E rmt: hsbu�symbols truncated
+17:18:21.261  <- E rmt: hsbu�symbols truncated
+17:18:21.262  <- E rmt: hsbu�symbols truncated
+17:18:21.263  <- E rmt: hsbu�symbols truncated
+17:18:21.275  <- E rmt: hsbu�symbols truncated
+17:18:21.275  <- E rmt: hsbu�symbols truncated
+17:18:21.276  <- E rmt: hsbu�symbols truncated
+17:18:21.278  <- E rmt: hsbu�symbols truncated
+17:18:21.278  <- E rmt: hsbu�symbols truncated
+17:18:21.278  <- E rmt: hsbu�symbols truncated
+17:18:21.279  <- E rmt: hsbu�symbols truncated
+17:18:21.280  <- E rmt: hsbu�symbols truncated
+17:18:21.280  <- E rmt: hsbu�symbols truncated
+17:18:21.281  <- E rmt: hsbu�symbols truncated
+17:18:21.282  <- E rmt: hsbu�symbols truncated
+17:18:21.283  <- E rmt: hsbu�symbols truncated
+17:18:21.283  <- E rmt: hsbu�symbols truncated
+17:18:21.285  <- E rmt: hsbu�symbols truncated
+17:18:21.286  <- E rmt: hsbu�symbols truncated
+17:18:21.288  <- E rmt: hsbu�symbols truncated
+17:18:21.289  <- E rmt: hsbu�symbols truncated
+17:18:21.290  <- E rmt: hsbu�symbols truncated
+17:18:21.291  <- E rmt: hsbu�symbols truncated
+17:18:21.292  <- E rmt: hsbu�symbols truncated
+17:18:21.409  <- E rmt: hsbu�symbols truncated
+17:18:21.409  <- E rmt: hsbu�symbols truncated
+17:18:21.410  <- E rmt: hsbu�symbols truncated
+17:18:21.412  <- E rmt: hsbu�ɲ��� small, received symbols truncated
+17:18:21.413  <- BU.BEGIN
+17:18:21.413  <- 
+17:18:21.413  <- BU.OK begin fw=a775999-dirty board=V5 t=0.00
+17:18:21.414  -> BU.INFO
+17:18:21.414  <- E rmt: hw buffer too small, received symbols truncated
+17:18:21.637  <- E rmt: hw buffer too small, received symbols truncated
+17:18:21.637  <- BU.OK info reset=SW heap=84048 min_heap=67828 fw=a775999-dirty build=2026-04-22 21:25:54
+17:18:23.380  -> BU.FLASH
+17:18:23.381  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.381  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.381  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.381  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.381  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.381  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.382  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.382  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.382  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.382  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.382  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.383  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.383  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.383  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.383  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.383  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.383  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.383  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.383  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.383  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.384  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.384  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.384  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.384  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.434  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.434  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.434  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.434  <- E rmt: hw buffer too small, received symbols truncated
+17:18:23.434  <- BU.OK flash post_part=roundtrip log_head=175 log_tail=0 partitions_size=4128768
+17:18:27.978  -> BU.SENSORS.WATCH 0
+17:18:27.979  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.979  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.979  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.979  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.979  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.979  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.979  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.979  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.979  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.980  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.980  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.980  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.980  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.981  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.981  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.981  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.981  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.981  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.981  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.981  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.981  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.981  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.982  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.982  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.982  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.982  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.982  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.983  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.983  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.983  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.983  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.983  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.984  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.984  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.984  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.984  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.985  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.985  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.985  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.985  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.985  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.985  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.985  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.985  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.985  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.986  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.986  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.986  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.986  <- E rmt: hw buffer too small, received symbols truncated
+17:18:27.986  <- E rmt: hw buffer too small, received symbols truncated
+17:18:28.033  <- E rmt: hw buffer too small, received symbols truncated
+17:18:28.033  <- E rmt: hw buffer too small, received symbols truncated
+17:18:28.033  <- E rmt: hw buffer too small, received symbols truncated
+17:18:28.033  <- E rmt: hw buffer too small, received symbols truncated
+17:18:28.457  <- E rmt: hw buffer too small, received symbols truncated
+17:18:28.457  <- E rmt: hw buffer too small, received symbols truncated
+17:18:28.457  <- E rmt: hw buffer too small, received symbols truncated
+17:18:28.457  <- E rmt: hw buffer too small, received symbols truncated
+17:18:28.457  <- E rmt: hw buffer too small, received symbols truncated
+17:18:28.973  <- E rmt: hw buffer too small, received symbols truncated
+17:18:28.973  <- E rmt: hw buffer too small, received symbols truncated
+17:18:29.485  <- E rmt: hw buffer too small, received symbols truncated
+17:18:29.485  <- E rmt: hw buffer too small, received symbols truncated
+17:18:29.885  <- E rmt: hw buffer too small, received symbols truncated
+17:18:29.885  <- E rmt: hw buffer too small, received symbols truncated
+17:18:29.885  <- E rmt: hw buffer too small, received symbols truncated
+17:18:29.885  <- E rmt: hw buffer too small, received symbols truncated
+17:18:30.395  <- E rmt: hw buffer too small, received symbols truncated
+17:18:30.395  <- E rmt: hw buffer too small, received symbols truncated
+17:18:30.395  <- E rmt: hw buffer too small, received symbols truncated
+17:18:30.395  <- E rmt: hw buffer too small, received symbols truncated
+17:18:30.395  <- E rmt: hw buffer too small, received symbols truncated
+17:18:30.910  <- E rmt: hw buffer too small, received symbols truncated
+17:18:30.910  <- E rmt: hw buffer too small, received symbols truncated
+17:18:31.405  <- E rmt: hw buffer too small, received symbols truncated
+17:18:31.405  <- E rmt: hw buffer too small, received symbols truncated
+17:18:31.405  <- E rmt: hw buffer too small, received symbols truncated
+17:18:31.405  <- E rmt: hw buffer too small, received symbols truncated
+17:18:31.911  <- E rmt: hw buffer too small, received symbols truncated
+17:18:31.911  <- E rmt: hw buffer too small, received symbols truncated
+17:18:31.911  <- E rmt: hw buffer too small, received symbols truncated
+17:18:31.911  <- E rmt: hw buffer too small, received symbols truncated
+17:18:32.414  <- E rmt: hw buffer too small, received symbols truncated
+17:18:32.414  <- E rmt: hw buffer too small, received symbols truncated
+17:18:32.414  <- E rmt: hw buffer too small, received symbols truncated
+17:18:32.753  <- E rmt: hw buffer too small, received symbols truncated
+17:18:32.753  <- E rmt: hw buffer too small, received symbols truncated
+17:18:32.753  <- E rmt: hw buffer too small, received symbols truncated
+17:18:32.753  <- E rmt: hw buffer too small, received symbols truncated
+17:18:33.082  <- E rmt: hw buffer too small, received symbols truncated
+17:18:33.082  <- E rmt: hw buffer too small, received symbols truncated
+17:18:33.082  <- E rmt: hw buffer too small, received symbols truncated
+17:18:33.082  <- E rmt: hw buffer too small, received symbols truncated
+17:18:33.082  <- E rmt: hw buffer too small, received symbols truncated
+17:18:33.228  <- E rmt: hw buffer too small, received symbols truncated
+17:18:33.228  <- E rmt: hw buffer too small, received symbols truncated
+17:18:33.228  <- E rmt: hw buffer too small, received symbols truncated
+17:18:33.228  <- E rmt: hw buffer too small, received symbols truncated
+17:18:33.741  <- E rmt: hw buffer too small, received symbols truncated
+17:18:33.741  <- BU.EVENT sensor name=SAFETY edge=make t=12.01
+17:18:33.741  <- BU.EVENT sensor name=SAFETY edge=break t=12.19
+17:18:33.742  <- E rmt: hw buffer too small, received symbols truncated
+17:18:33.742  <- BU.EVENT sensor name=SAFETY edge=make t=12.40
+17:18:34.199  <- BU.EVENT sensor name=SAFETY edge=break t=12.52
+17:18:34.199  <- E rmt: hw buffer too small, received symbols truncated
+17:18:34.200  <- E rmt: hw buffer too small, received symbols truncated
+17:18:34.200  <- E rmt: hw buffer too small, received symbols truncated
+17:18:34.707  <- E rmt: hw buffer too small, received symbols truncated
+17:18:34.707  <- E rmt: hw buffer too small, received symbols truncated
+17:18:34.707  <- E rmt: hw buffer too small, received symbols truncated
+17:18:34.893  -> 
+17:18:35.222  <- BU.OK sensors.watch sec=-1 SAFETY=both DRIVE=none JACK=none AUX=none
+17:18:39.477  -> BU.RELAY SENSORS ON 200
+17:18:39.478  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.478  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.478  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.478  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.479  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.479  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.479  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.479  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.479  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.479  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.479  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.479  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.480  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.480  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.480  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.480  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.480  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.480  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.480  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.480  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.480  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.480  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.481  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.481  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.481  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.481  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.481  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.755  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.755  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.755  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.755  <- E rmt: hw buffer too small, received symbols truncated
+17:18:39.755  <- BU.OK relay bridge=SENSORS ms=200
+17:18:41.493  -> BU.RELAY DRIVE FWD 1000
+17:18:41.493  <- E rmt: hw buffer too small, received symbols truncated
+17:18:41.494  <- E rmt: hw buffer too small, received symbols truncated
+17:18:41.494  <- E rmt: hw buffer too small, received symbols truncated
+17:18:41.494  <- E rmt: hw buffer too small, received symbols truncated
+17:18:41.891  <- E rmt: hw buffer too small, received symbols truncated
+17:18:41.891  <- E rmt: hw buffer too small, received symbols truncated
+17:18:41.891  <- E rmt: hw buffer too small, received symbols truncated
+17:18:41.891  <- E rmt: hw buffer too small, received symbols truncated
+17:18:41.891  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.123  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.123  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.123  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.123  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.123  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.264  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.264  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.264  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.265  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.461  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.461  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.461  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.461  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.461  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.626  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.626  <- E rmt: hw buffer too small, received symbols truncated
+17:18:42.626  <- E rmt: hw buffer too small, received symbols truncated
+17:18:43.135  <- BU.OK relay bridge=DRIVE dir=FWD ms=1000 I_before=+0.00 I_mid=+23.26 I_after=+0.00 heat=0.007 tripped=0 edges=0
+17:18:46.669  -> BU.RELAY DRIVE REV 1000
+17:18:46.669  <- E rmt: hw buffer too small, received symbols truncated
+17:18:46.669  <- E rmt: hw buffer too small, received symbols truncated
+17:18:46.669  <- E rmt: hw buffer too small, received symbols truncated
+17:18:46.670  <- E rmt: hw buffer too small, received symbols truncated
+17:18:46.670  <- E rmt: hw buffer too small, received symbols truncated
+17:18:46.670  <- E rmt: hw buffer too small, received symbols truncated
+17:18:46.670  <- E rmt: hw buffer too small, received symbols truncated
+17:18:46.818  <- E rmt: hw buffer too small, received symbols truncated
+17:18:46.818  <- E rmt: hw buffer too small, received symbols truncated
+17:18:46.818  <- E rmt: hw buffer too small, received symbols truncated
+17:18:46.818  <- E rmt: hw buffer too small, received symbols truncated
+17:18:46.818  <- E rmt: hw buffer too small, received symbols truncated
+17:18:47.148  <- E rmt: hw buffer too small, received symbols truncated
+17:18:47.148  <- E rmt: hw buffer too small, received symbols truncated
+17:18:47.148  <- E rmt: hw buffer too small, received symbols truncated
+17:18:47.148  <- E rmt: hw buffer too small, received symbols truncated
+17:18:47.515  <- E rmt: hw buffer too small, received symbols truncated
+17:18:47.515  <- E rmt: hw buffer too small, received symbols truncated
+17:18:47.515  <- E rmt: hw buffer too small, received symbols truncated
+17:18:47.515  <- E rmt: hw buffer too small, received symbols truncated
+17:18:47.515  <- E rmt: hw buffer too small, received symbols truncated
+17:18:47.694  <- E rmt: hw buffer too small, received symbols truncated
+17:18:47.694  <- E rmt: hw buffer too small, received symbols truncated
+17:18:47.694  <- E rmt: hw buffer too small, received symbols truncated
+17:18:47.694  <- E rmt: hw buffer too small, received symbols truncated
+17:18:48.205  <- E rmt: hw buffer too small, received symbols truncated
+17:18:48.205  <- BU.OK relay bridge=DRIVE dir=REV ms=1000 I_before=-0.01 I_mid=+23.70 I_after=-0.01 heat=0.014 tripped=0 edges=0
+17:19:42.142  -> BU.RELAY JACK UP 500
+17:19:42.142  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.143  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.143  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.143  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.143  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.144  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.144  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.144  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.144  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.144  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.144  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.145  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.145  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.145  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.145  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.145  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.145  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.145  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.145  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.146  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.146  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.146  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.146  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.147  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.147  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.147  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.147  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.147  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.147  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.147  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.147  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.147  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.147  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.148  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.148  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.148  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.148  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.149  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.149  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.149  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.149  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.149  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.150  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.150  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.150  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.150  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.150  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.150  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.150  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.150  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.150  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.151  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.151  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.151  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.151  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.152  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.152  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.152  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.152  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.152  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.153  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.153  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.153  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.153  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.153  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.153  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.153  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.153  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.153  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.154  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.154  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.154  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.154  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.154  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.155  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.155  <- ived symbols truncated
+17:19:42.155  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.155  <- E rmt: hw buffer too small, received symbols truncated
+17:19:42.155  <- E rmt: hw buffer too small, received symbols trunc truncated
+17:19:42.659  <- E rmt: hw buffer too small, received symbols truncated
+17:19:43.172  <- BU.OK relay bridge=JACK dir=UP ms=500 I_before=+0.00 I_mid=+0.08 I_after=-0.00 heat=0.000 tripped=0 edges=1
+17:19:43.176  -> BU.RELAY JACK DOWN 500
+17:19:43.176  <- E rmt: hw buffer too small, received symbols truncated
+17:19:43.176  <- E rmt: hw buffer too small, received symbols truncated
+17:19:43.688  <- E rmt: hw buffer too small, received symbols truncated
+17:19:43.688  <- E rmt: hw buffer too small, received symbols truncated
+17:19:43.688  <- E rmt: hw buffer too small, received symbols truncated
+17:19:44.190  <- E rmt: hw buffer too small, received symbols truncated
+17:19:44.190  <- BU.OK relay bridge=JACK dir=DOWN ms=500 I_before=-0.00 I_mid=-0.15 I_after=+0.00 heat=0.000 tripped=0 edges=0
+17:19:44.965  -> BU.RELAY AUX FWD 150
+17:19:44.965  <- E rmt: hw buffer too small, received symbols truncated
+17:19:45.243  <- E rmt: hw buffer too small, received symbols truncated
+17:19:45.244  <- E rmt: hw buffer too small, received symbols truncated
+17:19:45.244  <- E rmt: hw buffer too small, received symbols truncated
+17:19:45.750  <- BU.OK relay bridge=AUX dir=FWD ms=150 I_before=+0.00 I_mid=-2.88 I_after=+0.00 heat=0.010 tripped=0 edges=0
+17:19:47.689  -> BU.END

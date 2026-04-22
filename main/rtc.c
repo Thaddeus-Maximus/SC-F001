@@ -81,10 +81,12 @@ void soft_idle_enter(void)
 {
     if (in_soft_idle) return;
     in_soft_idle = true;
-    ESP_LOGI("RTC", "Entering soft idle (WiFi/BT off, LEDs off)");
+    ESP_LOGI("RTC", "Entering soft idle (WiFi/BT off, LEDs off, sensors off)");
     webserver_stop();
     bt_hid_stop();
     i2c_set_led1(0);
+    /* Drop P10 to kill sensor rail power while we're asleep. */
+    i2c_relays_sleep();
 }
 
 bool soft_idle_is_active(void)  { return in_soft_idle; }
@@ -95,6 +97,8 @@ void soft_idle_exit(void)
     if (!in_soft_idle) return;
     in_soft_idle = false;
     ESP_LOGI("RTC", "Exiting soft idle");
+    /* Bring sensor rail back before anything else tries to read sensors. */
+    i2c_relays_idle();
     webserver_restart_wifi();
     bt_hid_resume();
     rtc_reset_shutdown_timer();

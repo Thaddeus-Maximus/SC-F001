@@ -13,6 +13,7 @@
 #include "esp_timer.h"
 #include "i2c.h"
 #include "power_mgmt.h"
+#include "bringup.h"
 #include "rtc_wdt.h"
 #include "driver/gpio.h"
 #include "sc_err.h"
@@ -63,6 +64,10 @@ volatile bool start_running_request = false;
 
 fsm_state_t fsm_get_state() {
 	return current_state;
+}
+
+bool fsm_is_idle(void) {
+	return current_state == STATE_IDLE;
 }
 
 static int64_t timer_end = 0;
@@ -186,9 +191,15 @@ void control_task(void *param) {
     while (enabled) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
         fsm_now = esp_timer_get_time();
-        
+
+        /* Bring-up tool owns the relays and ADCs while active — skip. */
+        if (bringup_mode_is_active()) {
+            esp_task_wdt_reset();
+            continue;
+        }
+
         bool log = false;
-        
+
         /**** READ INPUTS ****/
         for (uint8_t i = 0; i < N_BRIDGES; i++) {
 			process_bridge_current(i);

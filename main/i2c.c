@@ -68,6 +68,14 @@ esp_err_t i2c_set_relays(relay_port_t states) {
     return tca_write_word_8(TCA_REG_OUTPUT1, states.raw);
 }
 
+esp_err_t i2c_relays_idle(void) {
+    return i2c_set_relays((relay_port_t){.bridges = {.SENSORS = 1}});
+}
+
+esp_err_t i2c_relays_sleep(void) {
+    return i2c_set_relays((relay_port_t){.raw = 0});
+}
+
 esp_err_t i2c_set_led1(uint8_t state) {
 	// push 3 LSB to top
 	return tca_write_word_8(TCA_REG_OUTPUT0, state<<5);

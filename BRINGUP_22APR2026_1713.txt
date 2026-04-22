@@ -1,0 +1,367 @@
+17:13:09.734  == Flashing COM3 ==
+17:13:09.736    flashing from D:\SC\SC-F001\build
+17:13:09.737    files: [('0x1000', 'bootloader/bootloader.bin'), ('0x10000', 'SC-F001.bin'), ('0x8000', 'partition_table/partition-table.bin'), ('0xd000', 'ota_data_initial.bin')]
+17:13:34.882  == Flash complete ==
+17:13:36.383  Connecting to COM3 @ 115200 ...
+17:13:36.389  -> BU.BEGIN
+17:13:36.895  <- BU.BEGIN
+17:13:36.895  <- 
+17:13:36.895  <- BU.OK begin fw=a775999-dirty board=V5 t=0.00
+17:13:36.897  -> BU.INFO
+17:13:36.897  <- E rmt: hw buffer too small, received symbols truncated
+17:13:36.897  <- E rmt: hw buffer too small, received symbols truncated
+17:13:36.897  <- E rmt: hw buffer too small, received symbols truncated
+17:13:37.412  <- BU.OK info reset=POWERON heap=68276 min_heap=67772 fw=a775999-dirty build=2026-04-22 21:25:54
+17:13:50.053  -> BU.FLASH
+17:13:50.053  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.054  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.054  <- [0;32mI (4419) BT_HID: Found 0 HID device(s)[0m
+17:13:50.054  <- [0;32mI (4419) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:13:50.054  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.055  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.055  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.055  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.055  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.056  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.056  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.056  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.056  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.056  <- [0;32mI (6419) BT_HID: Scanning for HID devices (3s)...[0m
+17:13:50.056  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.056  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.056  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.056  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.057  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.057  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.057  <- [0;32mI (9429) BT_HID: Found 0 HID device(s)[0m
+17:13:50.057  <- [0;32mI (9429) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:13:50.057  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.058  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.058  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.058  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.058  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.058  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.058  <- [0;32mI (11429) BT_HID: Scanning for HID devices (3s)...[0m
+17:13:50.058  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.058  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.058  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.059  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.059  <- [0;32mI (14439) BT_HID: Found 0 HID device(s)[0m
+17:13:50.059  <- [0;32mI (14439) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:13:50.059  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.085  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.085  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.085  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.086  <- E rmt: hw buffer too small, received symbols truncated
+17:13:50.593  <- BU.OK flash post_part=roundtrip log_head=164 log_tail=0 partitions_size=4128768
+17:13:52.197  -> BU.I2C
+17:13:52.198  <- E rmt: hw buffer too small, received symbols truncated
+17:13:52.198  <- E rmt: hw buffer too small, received symbols truncated
+17:13:52.709  <- [0;32mI (16439) BT_HID: Scanning for HID devices (3s)...[0m
+17:13:52.709  <- E rmt: hw buffer too small, received symbols truncated
+17:13:52.709  <- [0;32mI (17459) I2C: POST: TCA9555 OK (port0=0x0123)[0m
+17:13:52.709  <- BU.OK i2c tca9555=ack
+17:13:52.710  -> BU.LED 0
+17:13:53.226  <- BU.OK led mask=0
+17:13:53.477  -> BU.LED 1
+17:13:53.477  <- E rmt: hw buffer too small, received symbols truncated
+17:13:53.983  <- E rmt: hw buffer too small, received symbols truncated
+17:13:53.983  <- E rmt: hw buffer too small, received symbols truncated
+17:13:53.983  <- BU.OK led mask=1
+17:13:54.233  -> BU.LED 3
+17:13:54.233  <- E rmt: hw buffer too small, received symbols truncated
+17:13:54.439  <- E rmt: hw buffer too small, received symbols truncated
+17:13:54.439  <- [0;32mI (19449) BT_HID: Found 0 HID device(s)[0m
+17:13:54.439  <- [0;32mI (19449) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:13:54.439  <- BU.OK led mask=3
+17:13:54.690  -> BU.LED 7
+17:13:54.690  <- E rmt: hw buffer too small, received symbols truncated
+17:13:55.193  <- E rmt: hw buffer too small, received symbols truncated
+17:13:55.193  <- BU.OK led mask=7
+17:13:55.444  -> BU.LED 6
+17:13:55.444  <- E rmt: hw buffer too small, received symbols truncated
+17:13:55.959  <- BU.OK led mask=6
+17:13:56.209  -> BU.LED 4
+17:13:56.209  <- E rmt: hw buffer too small, received symbols truncated
+17:13:56.535  <- E rmt: hw buffer too small, received symbols truncated
+17:13:56.536  <- E rmt: hw buffer too small, received symbols truncated
+17:13:56.536  <- E rmt: hw buffer too small, received symbols truncated
+17:13:56.536  <- [0;32mI (21449) BT_HID: Scanning for HID devices (3s)...[0m
+17:13:56.536  <- BU.OK led mask=4
+17:13:56.787  -> BU.LED 0
+17:13:57.251  <- E rmt: hw buffer too small, received symbols truncated
+17:13:57.251  <- BU.OK led mask=0
+17:13:57.502  -> BU.LED 1
+17:13:57.502  <- E rmt: hw buffer too small, received symbols truncated
+17:13:57.502  <- E rmt: hw buffer too small, received symbols truncated
+17:13:57.502  <- E rmt: hw buffer too small, received symbols truncated
+17:13:57.984  <- E rmt: hw buffer too small, received symbols truncated
+17:13:57.984  <- E rmt: hw buffer too small, received symbols truncated
+17:13:57.984  <- E rmt: hw buffer too small, received symbols truncated
+17:13:57.984  <- BU.OK led mask=1
+17:13:58.234  -> BU.LED 3
+17:13:58.234  <- E rmt: hw buffer too small, received symbols truncated
+17:13:58.744  <- E rmt: hw buffer too small, received symbols truncated
+17:13:58.744  <- BU.OK led mask=3
+17:13:58.994  -> BU.LED 7
+17:13:59.509  <- BU.OK led mask=7
+17:13:59.760  -> BU.LED 6
+17:13:59.760  <- [0;32mI (24459) BT_HID: Found 0 HID device(s)[0m
+17:13:59.760  <- [0;32mI (24459) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:14:00.261  <- E rmt: hw buffer too small, received symbols truncated
+17:14:00.261  <- E rmt: hw buffer too small, received symbols truncated
+17:14:00.261  <- BU.OK led mask=6
+17:14:00.512  -> BU.LED 4
+17:14:00.512  <- E rmt: hw buffer too small, received symbols truncated
+17:14:01.014  <- BU.OK led mask=4
+17:14:01.264  -> BU.LED 0
+17:14:01.465  <- E rmt: hw buffer too small, received symbols truncated
+17:14:01.465  <- E rmt: hw buffer too small, received symbols truncated
+17:14:01.465  <- [0;32mI (26459) BT_HID: Scanning for HID devices (3s)...[0m
+17:14:01.465  <- BU.OK led mask=0
+17:14:01.716  -> BU.LED 1
+17:14:01.716  <- E rmt: hw buffer too small, received symbols truncated
+17:14:02.084  <- E rmt: hw buffer too small, received symbols truncated
+17:14:02.084  <- E rmt: hw buffer too small, received symbols truncated
+17:14:02.084  <- E rmt: hw buffer too small, received symbols truncated
+17:14:02.084  <- BU.OK led mask=1
+17:14:02.335  -> BU.LED 3
+17:14:02.335  <- E rmt: hw buffer too small, received symbols truncated
+17:14:02.849  <- E rmt: hw buffer too small, received symbols truncated
+17:14:02.849  <- E rmt: hw buffer too small, received symbols truncated
+17:14:02.849  <- E rmt: hw buffer too small, received symbols truncated
+17:14:02.849  <- BU.OK led mask=3
+17:14:03.099  -> BU.LED 7
+17:14:03.099  <- E rmt: hw buffer too small, received symbols truncated
+17:14:03.602  <- BU.OK led mask=7
+17:14:03.852  -> BU.LED 6
+17:14:03.852  <- E rmt: hw buffer too small, received symbols truncated
+17:14:03.852  <- E rmt: hw buffer too small, received symbols truncated
+17:14:04.237  <- E rmt: hw buffer too small, received symbols truncated
+17:14:04.237  <- E rmt: hw buffer too small, received symbols truncated
+17:14:04.237  <- BU.OK led mask=6
+17:14:04.489  -> BU.LED 4
+17:14:04.489  <- [0;32mI (29469) BT_HID: Found 0 HID device(s)[0m
+17:14:04.489  <- [0;32mI (29469) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:14:04.839  <- E rmt: hw buffer too small, received symbols truncated
+17:14:04.839  <- BU.OK led mask=4
+17:14:05.090  -> BU.LED 0
+17:14:05.090  <- E rmt: hw buffer too small, received symbols truncated
+17:14:05.090  <- E rmt: hw buffer too small, received symbols truncated
+17:14:05.090  <- E rmt: hw buffer too small, received symbols truncated
+17:14:05.596  <- E rmt: hw buffer too small, received symbols truncated
+17:14:05.596  <- E rmt: hw buffer too small, received symbols truncated
+17:14:05.596  <- BU.OK led mask=0
+17:14:05.847  -> BU.LED 1
+17:14:05.847  <- E rmt: hw buffer too small, received symbols truncated
+17:14:05.847  <- E rmt: hw buffer too small, received symbols truncated
+17:14:06.360  <- E rmt: hw buffer too small, received symbols truncated
+17:14:06.360  <- E rmt: hw buffer too small, received symbols truncated
+17:14:06.360  <- BU.OK led mask=1
+17:14:06.612  -> BU.LED 3
+17:14:06.612  <- E rmt: hw buffer too small, received symbols truncated
+17:14:06.612  <- [0;32mI (31469) BT_HID: Scanning for HID devices (3s)...[0m
+17:14:07.125  <- BU.OK led mask=3
+17:14:07.376  -> BU.LED 7
+17:14:07.878  <- BU.OK led mask=7
+17:14:08.128  -> BU.LED 0
+17:14:08.128  <- E rmt: hw buffer too small, received symbols truncated
+17:14:08.623  <- E rmt: hw buffer too small, received symbols truncated
+17:14:08.623  <- E rmt: hw buffer too small, received symbols truncated
+17:14:08.623  <- BU.OK led mask=0
+17:14:12.509  -> BU.ADC
+17:14:12.510  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.510  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.510  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.511  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.511  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.511  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.511  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.511  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.511  <- [0;32mI (34479) BT_HID: Found 0 HID device(s)[0m
+17:14:12.511  <- [0;32mI (34479) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:14:12.511  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.512  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.512  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.512  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.512  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.513  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.513  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.513  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.513  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.513  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.513  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.513  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.513  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.513  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.514  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.514  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.514  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.514  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.514  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.515  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.515  <- [0;32mI (36479) BT_HID: Scanning for HID devices (3s)...[0m
+17:14:12.515  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.515  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.515  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.515  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.515  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.516  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.516  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.937  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.937  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.937  <- E rmt: hw buffer too small, received symbols truncated
+17:14:12.937  <- BU.OK adc bat_mv=1660 bat_V=12.690 isens_mv=1681 isens_A=-2.35 voc_mv=3139 fault=1
+17:14:15.451  -> BU.SENSORS.WATCH 0
+17:14:15.452  <- E rmt: hw buffer too small, received symbols truncated
+17:14:15.452  <- E rmt: hw buffer too small, received symbols truncated
+17:14:15.452  <- E rmt: hw buffer too small, received symbols truncated
+17:14:15.452  <- E rmt: hw buffer too small, received symbols truncated
+17:14:15.452  <- E rmt: hw buffer too small, received symbols truncated
+17:14:15.453  <- E rmt: hw buffer too small, received symbols truncated
+17:14:15.453  <- [0;32mI (39489) BT_HID: Found 0 HID device(s)[0m
+17:14:15.453  <- [0;32mI (39489) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:14:15.453  <- E rmt: hw buffer too small, received symbols truncated
+17:14:15.961  <- E rmt: hw buffer too small, received symbols truncated
+17:14:15.961  <- E rmt: hw buffer too small, received symbols truncated
+17:14:16.478  <- [0;32mI (41489) BT_HID: Scanning for HID devices (3s)...[0m
+17:14:16.980  <- E rmt: hw buffer too small, received symbols truncated
+17:14:17.483  <- E rmt: hw buffer too small, received symbols truncated
+17:14:17.483  <- E rmt: hw buffer too small, received symbols truncated
+17:14:17.984  <- E rmt: hw buffer too small, received symbols truncated
+17:14:17.984  <- E rmt: hw buffer too small, received symbols truncated
+17:14:18.484  <- E rmt: hw buffer too small, received symbols truncated
+17:14:18.998  <- E rmt: hw buffer too small, received symbols truncated
+17:14:19.501  <- E rmt: hw buffer too small, received symbols truncated
+17:14:19.501  <- [0;32mI (44499) BT_HID: Found 0 HID device(s)[0m
+17:14:19.501  <- [0;32mI (44499) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:14:20.506  <- E rmt: hw buffer too small, received symbols truncated
+17:14:20.506  <- E rmt: hw buffer too small, received symbols truncated
+17:14:21.021  <- E rmt: hw buffer too small, received symbols truncated
+17:14:21.021  <- BU.EVENT sensor name=SAFETY edge=make t=44.18
+17:14:21.021  <- E rmt: hw buffer too small, received symbols truncated
+17:14:21.525  <- [0;32mI (46499) BT_HID: Scanning for HID devices (3s)...[0m
+17:14:21.525  <- E rmt: hw buffer too small, received symbols truncated
+17:14:21.525  <- E rmt: hw buffer too small, received symbols truncated
+17:14:22.028  <- BU.EVENT sensor name=SAFETY edge=break t=45.14
+17:14:22.028  <- E rmt: hw buffer too small, received symbols truncated
+17:14:23.049  <- E rmt: hw buffer too small, received symbols truncated
+17:14:24.567  <- [0;32mI (49509) BT_HID: Found 0 HID device(s)[0m
+17:14:24.567  <- [0;32mI (49509) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:14:24.638  -> 
+17:14:25.070  <- BU.OK sensors.watch sec=-1 SAFETY=both DRIVE=none JACK=none AUX=none
+17:14:30.613  -> BU.RELAY SENSORS ON 200
+17:14:30.614  <- E rmt: hw buffer too small, received symbols truncated
+17:14:30.614  <- E rmt: hw buffer too small, received symbols truncated
+17:14:30.614  <- E rmt: hw buffer too small, received symbols truncated
+17:14:30.614  <- E rmt: hw buffer too small, received symbols truncated
+17:14:30.615  <- [0;32mI (51509) BT_HID: Scanning for HID devices (3s)...[0m
+17:14:30.615  <- E rmt: hw buffer too small, received symbols truncated
+17:14:30.615  <- E rmt: hw buffer too small, received symbols truncated
+17:14:30.615  <- E rmt: hw buffer too small, received symbols truncated
+17:14:30.615  <- E rmt: hw buffer too small, received symbols truncated
+17:14:30.616  <- E rmt: hw buffer too small, received symbols truncated
+17:14:30.616  <- E rmt: hw buffer too small, received symbols truncated
+17:14:30.616  <- E rmt: hw buffer too small, received symbols truncated
+17:14:30.616  <- [0;32mI (54519) BT_HID: Found 0 HID device(s)[0m
+17:14:30.698  <- [0;32mI (54519)BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:14:30.698  <- E rmt: hw buffer too small, received symbols truncated
+17:14:30.698  <- E rmt: hw buffer too small, received symbols truncated
+17:14:30.698  <- E rmt: hw buffer too small, received symbols truncated
+17:14:31.210  <- E rmt: hw buffer too small, received symbols truncated
+17:14:31.210  <- E rmt: hw buffer too small, received symbols truncated
+17:14:31.210  <- BU.OK relay bridge=SENSORS ms=200
+17:14:32.797  -> BU.RELAY DRIVE FWD 1000
+17:14:32.797  <- E rmt: hw buffer too small, received symbols truncated
+17:14:32.797  <- E rmt: hw buffer too small, received symbols truncated
+17:14:32.798  <- E rmt: hw buffer too small, received symbols truncated
+17:14:32.798  <- [0;32mI (56519) BT_HID: Scanning for HID devices (3s)...[0m
+17:14:32.798  <- E rmt: hw buffer too small, received symbols truncated
+17:14:32.798  <- E rmt: hw buffer too small, received symbols truncated
+17:14:33.017  <- E rmt: hw buffer too small, received symbols truncated
+17:14:33.017  <- E rmt: hw buffer too small, received symbols truncated
+17:14:33.017  <- E rmt: hw buffer too small, received symbols truncated
+17:14:33.018  <- E rmt: hw buffer too small, received symbols truncated
+17:14:33.018  <- E rmt: hw buffer too small, received symbols truncated
+17:14:33.518  <- E rmt: hw buffer too small, received symbols truncated
+17:14:33.518  <- E rmt: hw buffer too small, received symbols truncated
+17:14:33.518  <- E rmt: hw buffer too small, received symbols truncated
+17:14:34.020  <- BU.OK relay bridge=DRIVE dir=FWD ms=1000 I_before=+0.00 I_mid=+14.32 I_after=-0.02 heat=0.003 tripped=0 edges=0
+17:14:38.934  -> BU.RELAY DRIVE REV 1000
+17:14:38.935  <- [0;32mI (59529) BT_HID: Found 0 HID device(s)[0m
+17:14:38.936  <- [0;32mI (59529) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:14:38.936  <- E rmt: hw buffer too small, received symbols truncated
+17:14:38.936  <- E rmt: hw buffer too small, received symbols truncated
+17:14:38.936  <- E rmt: hw buffer too small, received symbols truncated
+17:14:38.936  <- E rmt: hw buffer too small, received symbols truncated
+17:14:38.936  <- E rmt: hw buffer too small, received symbols truncated
+17:14:38.936  <- E rmt: hw buffer too small, received symbols truncated
+17:14:38.937  <- E rmt: hw buffer too small, received symbols truncated
+17:14:38.937  <- E rmt: hw buffer too small, received symbols truncated
+17:14:38.937  <- E rmt: hw buffer too small, received symbols truncated
+17:14:38.937  <- E rmt: hw buffer too small, received symbols truncated
+17:14:38.937  <- E rmt: hw buffer too small, received symbols truncated
+17:14:38.938  <- [0;32mI (61529) BT_HID: Scanning for HID devices (3s)...[0m
+17:14:38.938  <- E rmt: hw buffer too small, received symbols truncated
+17:14:38.938  <- E rmt: hw buffer too small, received symbols truncated
+17:14:38.938  <- E rmt: hw buffer too small, received symbols truncated
+17:14:39.309  <- E rmt: hw buffer too small, received symbols truncated
+17:14:39.309  <- E rmt: hw buffer too small, received symbols truncated
+17:14:39.309  <- E rmt: hw buffer too small, received symbols truncated
+17:14:39.309  <- E rmt: hw buffer too small, received symbols truncated
+17:14:39.309  <- [0;32mI (64539) BT_HID: Found 0 HID device(s)[0m
+17:14:39.823  <- [0;32mI (64539) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:14:39.823  <- E rmt: hw buffer too small, received symbols truncated
+17:14:40.323  <- BU.OK relay bridge=DRIVE dir=REV ms=1000 I_before=-0.02 I_mid=+24.45 I_after=-0.02 heat=0.010 tripped=0 edges=0
+17:14:44.246  -> BU.RELAY JACK UP 500
+17:14:44.246  <- E rmt: hw buffer too small, received symbols truncated
+17:14:44.247  <- E rmt: hw buffer too small, received symbols truncated
+17:14:44.247  <- E rmt: hw buffer too small, received symbols truncated
+17:14:44.247  <- E rmt: hw buffer too small, received symbols truncated
+17:14:44.247  <- E rmt: hw buffer too small, received symbols truncated
+17:14:44.248  <- E rmt: hw buffer too small, received symbols truncated
+17:14:44.248  <- E rmt: hw buffer too small, received symbols truncated
+17:14:44.248  <- E rmt: hw buffer too small, received symbols truncated
+17:14:44.248  <- [0;32mI (66539) BT_HID: Scanning for HID devices (3s)...[0m
+17:14:44.248  <- E rmt: hw buffer too small, received symbols truncated
+17:14:44.316  <- E rmt: hw buffer too small, received symbols truncated
+17:14:44.316  <- E rmt: hw buffer too small, received symbols truncated
+17:14:44.316  <- E rmt: hw buffer too small, received symbols truncated
+17:14:44.316  <- [0;32mI (69549) BT_HID: Found 0 HID device(s)[0m
+17:14:44.828  <- [0;32mI (69549) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:14:45.332  <- BU.OK relay bridge=JACK dir=UP ms=500 I_before=+0.00 I_mid=+0.45 I_after=-0.00 heat=0.000 tripped=0 edges=1
+17:14:46.158  -> BU.RELAY JACK DOWN 500
+17:14:46.158  <- E rmt: hw buffer too small, received symbols truncated
+17:14:46.158  <- E rmt: hw buffer too small, received symbols truncated
+17:14:46.670  <- E rmt: hw buffer too small, received symbols truncated
+17:14:46.670  <- [0;32mI (71549) BT_HID: Scanning for HID devices (3s)...[0m
+17:14:47.175  <- BU.OK relay bridge=JACK dir=DOWN ms=500 I_before=-0.00 I_mid=-0.61 I_after=-0.00 heat=0.000 tripped=0 edges=0
+17:14:50.429  -> BU.RELAY AUX FWD 150
+17:14:50.701  <- E rmt: hw buffer too small, received symbols truncated
+17:14:50.701  <- [0;32mI (74559) BT_HID: Found 0 HID device(s)[0m
+17:14:50.701  <- [0;32mI (74559) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:14:50.701  <- E rmt: hw buffer too small, received symbols truncated
+17:14:51.215  <- BU.OK relay bridge=AUX dir=FWD ms=150 I_before=+0.00 I_mid=-2.88 I_after=+0.00 heat=0.010 tripped=0 edges=0
+17:15:01.222  -> BU.END
+17:15:01.223  <- [0;32mI (76559) BT_HID: Scanning for HID devices (3s)...[0m
+17:15:01.223  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.223  <- [0;32mI (79569) BT_HID: Found 0 HID device(s)[0m
+17:15:01.223  <- [0;32mI (79569) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:15:01.223  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.223  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.223  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.223  <- [0;32mI (81569) BT_HID: Scanning for HID devices (3s)...[0m
+17:15:01.224  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.224  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.224  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.224  <- [0;32mI (84579) BT_HID: Found 0 HID device(s)[0m
+17:15:01.224  <- [0;32mI (84579) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:15:01.224  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.224  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.224  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.224  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.340  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.340  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.340  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.341  <- E rmt: hw buffer too small, received symbols truncated
+17:15:01.341  <- BU.OK end reboot t=84.83

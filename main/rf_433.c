@@ -43,6 +43,15 @@ bool controls_enabled = true;
 // Temporary storage for learned keycodes (not committed to params yet)
 static int64_t temp_keycodes[NUM_RF_BUTTONS] = {0};
 
+// Most recently decoded raw code, read-and-clear via rf_433_peek_latest().
+static volatile uint32_t latest_code = 0;
+
+uint32_t rf_433_peek_latest(void) {
+    uint32_t c = latest_code;
+    latest_code = 0;
+    return c;
+}
+
 // For rmt_rx_register_event_callbacks
 static bool rfrx_done(rmt_channel_handle_t channel, const rmt_rx_done_event_data_t *edata, void *udata) {
     BaseType_t high_task_wakeup = pdFALSE;
@@ -137,6 +146,7 @@ static void rf_433_receiver_task(void* param) {
                 
                 // If we got a valid code, process it
                 if (code) {
+                    latest_code = code;
                     ESP_LOGI(TAG, "GOT KEYCODE 0x%lx [%d]", (long) code, len);
                     
                     if (learn_flag >= 0) {

@@ -104,6 +104,7 @@ void  fsm_set_remaining_distance(float x);
 int8_t fsm_get_current_progress(int8_t remainder);
 
 fsm_state_t fsm_get_state();
+bool fsm_is_idle(void);
 
 int8_t get_bridge_state(bridge_t bridge);
 

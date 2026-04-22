@@ -1,5 +1,6 @@
 #include "uart_comms.h"
 #include "comms.h"
+#include "bringup.h"
 #include "cJSON.h"
 #include "driver/uart.h"
 #include "esp_log.h"
@@ -143,12 +144,20 @@ static void process_command(char *cmd) {
     while (*cmd == ' ' || *cmd == '\t') {
         cmd++;
     }
-    
+
     // Ignore empty commands
     if (*cmd == '\0') {
         return;
     }
-    
+
+    // Route bring-up traffic to the BU parser. BU.BEGIN flips the mode flag
+    // so the subsequent lines in the same session come here too.
+    if (bringup_mode_is_active() ||
+        strncasecmp(cmd, "BU.", 3) == 0) {
+        bringup_handle_line(cmd);
+        return;
+    }
+
     // Convert to uppercase for command matching
     char command[16] = {0};
     int i = 0;
@@ -208,36 +217,37 @@ void uart_event_task(void *pvParameters) {
         if (len > 0) {
             for (int i = 0; i < len; i++) {
                 char c = (char)data[i];
-                
-                // Echo character
-                printf("%c", c);
-                fflush(stdout);
-                
+                bool quiet = bringup_mode_is_active();
+
+                // Echo character (suppressed in bring-up mode — machine-parseable output)
+                if (!quiet) { printf("%c", c); fflush(stdout); }
+
                 // Handle backspace
                 if (c == '\b' || c == 127) {
                     if (cmd_pos > 0) {
                         cmd_pos--;
-                        printf(" \b"); // Clear character on screen
+                        if (!quiet) { printf(" \b"); fflush(stdout); }
+                    }
+                    continue;
+                }
+
+                // Handle newline/carriage return
+                if (c == '\n' || c == '\r') {
+                    cmd_buffer[cmd_pos] = '\0';
+                    if (!quiet) printf("\n");
+
+                    if (cmd_pos > 0) {
+                        process_command(cmd_buffer);
+                    }
+
+                    cmd_pos = 0;
+                    if (!bringup_mode_is_active()) {
+                        printf("\n> ");
                         fflush(stdout);
                     }
                     continue;
                 }
-                
-                // Handle newline/carriage return
-                if (c == '\n' || c == '\r') {
-                    cmd_buffer[cmd_pos] = '\0';
-                    printf("\n");
-                    
-                    if (cmd_pos > 0) {
-                        process_command(cmd_buffer);
-                    }
-                    
-                    cmd_pos = 0;
-                    printf("\n> ");
-                    fflush(stdout);
-                    continue;
-                }
-                
+
                 // Add to buffer if not full
                 if (cmd_pos < CMD_MAX_LEN - 1) {
                     cmd_buffer[cmd_pos++] = c;

@@ -1,0 +1,2 @@
+14:52:22.629  == Flashing COM3 ==
+14:52:22.631    erase_flash @ COM3

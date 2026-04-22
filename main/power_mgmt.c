@@ -584,6 +584,37 @@ bool get_hw_overcurrent_fault(void)
 #endif
 }
 
+static int read_mv_channel(adc_channel_t ch)
+{
+    int raw = 0, mv = 0;
+    if (adc_oneshot_read(adc1_handle, ch, &raw) != ESP_OK) return 0;
+    if (adc_cali_raw_to_voltage(adc_cali_handle, raw, &mv) != ESP_OK) return 0;
+    return mv;
+}
+
+int get_bat_raw_mv(void)
+{
+    return read_mv_channel(PIN_V_SENS_BAT);
+}
+
+int get_isens_raw_mv(void)
+{
+#ifdef BOARD_V5
+    return read_mv_channel(PIN_V_ISENS_MAIN);
+#else
+    return 0;
+#endif
+}
+
+int get_voc_raw_mv(void)
+{
+#ifdef BOARD_V5
+    return read_mv_channel(PIN_V_VOC);
+#else
+    return 0;
+#endif
+}
+
 efuse_trip_t efuse_get(bridge_t bridge)
 {
     if (bridge >= N_BRIDGES) return false;

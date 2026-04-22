@@ -1,0 +1,3171 @@
+17:19:48.899  Connecting to COM3 @ 115200 ...
+17:19:48.904  -> BU.BEGIN
+17:19:48.905  <- :3 [0m
+17:19:48.907  <- [0;32mI (969) g:3 [0m
+17:19:48.907  <- [0;32mI (969) g:3 [0m
+17:19:48.908  <- [0;32mI (969) g:3 [0m
+17:19:48.909  <- [0;32mI (969) g:3 [0m
+17:19:48.910  <- [0;32mI (969) g:3 [0m
+17:19:48.910  <- [0;32mI (969) g:3 [0m
+17:19:48.911  <- [0;32mI (969) g:3 [0m
+17:19:48.912  <- [0;32mI (969) g:3 [0m
+17:19:48.913  <- [0;32mI (969) g:3 [0m
+17:19:48.914  <- [0;32mI (969) g:3 [0m
+17:19:48.914  <- [0;32mI (969) g:3 [0m
+17:19:48.915  <- [0;32mI (969) g:3 [0m
+17:19:48.916  <- [0;32mI (969) g:3 [0m
+17:19:48.916  <- [0;32mI (969) g:3 [0m
+17:19:48.917  <- [0;32mI (969) g:3 [0m
+17:19:48.918  <- [0;32mI (969) g:3 [0m
+17:19:48.919  <- [0;32mI (969) g:3 [0m
+17:19:48.920  <- [0;32mI (969) g:3 [0m
+17:19:48.924  <- [0;32mI (969) g:3 [0m
+17:19:48.925  <- [0;32mI (969) g:3 [0m
+17:19:48.926  <- [0;32mI (969) g:3 [0m
+17:19:48.927  <- [0;32mI (969) g:3 [0m
+17:19:48.928  <- [0;32mI (969) g:3 [0m
+17:19:48.928  <- [0;32mI (969) g:3 [0m
+17:19:48.929  <- [0;32mI (969) g:3 [0m
+17:19:48.930  <- [0;32mI (969) g:3 [0m
+17:19:48.931  <- [0;32mI (969) g:3 [0m
+17:19:48.931  <- [0;32mI (969) g:3 [0m
+17:19:48.932  <- [0;32mI (969) g:3 [0m
+17:19:48.933  <- [0;32mI (969) g:3 [0m
+17:19:48.934  <- [0;32mI (969) g:3 [0m
+17:19:48.936  <- [0;32mI (969) g:3 [0m
+17:19:48.937  <- [0;32mI (969) g:3 [0m
+17:19:48.941  <- [0;32mI (969) g:3 [0m
+17:19:48.942  <- [0;32mI (969) g:3 [0m
+17:19:48.943  <- [0;32mI (969) g:3 [0m
+17:19:48.943  <- [0;32mI (969) g:3 [0m
+17:19:48.944  <- [0;32mI (969) g:3 [0m
+17:19:48.944  <- [0;32mI (969) g:3 [0m
+17:19:48.945  <- [0;32mI (969) g:3 [0m
+17:19:48.946  <- [0;32mI (969) g:3 [0m
+17:19:48.947  <- [0;32mI (969) g:3 [0m
+17:19:48.947  <- [0;32mI (969) g:3 [0m
+17:19:48.948  <- [0;32mI (969) g:3 [0m
+17:19:48.949  <- [0;32mI (969) g:3 [0m
+17:19:48.951  <- [0;32mI (969) g:3 [0m
+17:19:48.953  <- [0;32mI (969) g:3 [0m
+17:19:48.953  <- [0;32mI (969) g:3 [0m
+17:19:48.954  <- [0;32mI (969) g:3 [0m
+17:19:48.954  <- [0;32mI (969) g:3 [0m
+17:19:48.956  <- [0;32mI (969) g:3 [0m
+17:19:48.957  <- [0;32mI (969) g:3 [0m
+17:19:48.958  <- [0;32mI (969) g:3 [0m
+17:19:48.958  <- [0;32mI (969) g:3 [0m
+17:19:48.959  <- [0;32mI (969) g:3 [0m
+17:19:48.960  <- [0;32mI (969) g:3 [0m
+17:19:48.960  <- [0;32mI (969) g:3 [0m
+17:19:48.961  <- [0;32mI (969) g:3 [0m
+17:19:48.962  <- [0;32mI (969) g:3 [0m
+17:19:48.963  <- [0;32mI (969) g:3 [0m
+17:19:48.963  <- [0;32mI (969) g:3 [0m
+17:19:48.964  <- [0;32mI (969)  OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:3 [0m
+17:19:48.965  <- [0;32mI (989) gpio: GPIO[25]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+17:19:48.966  <- [0;32mI (989) RF: RF receiver task started on core 0[0m
+17:19:48.969  <- [0;32mI (999) BTDM_INIT: BT controller compile version [b022216][0m
+17:19:48.969  <- BU.BEGIN
+17:19:48.970  <- 
+17:19:48.970  <- BU.OK begin fw=a775999-dirty board=V5 t=0.00
+17:19:48.970  -> BU.INFO
+17:19:48.971  <- [0;32mI (1009) BTDM_INIT: Bluetooth MAC: 80:f3:da:65:dd:7e[0m
+17:19:49.057  <- [0;32mI (1019) phy_init: phy_version 4830,54550f7,Jun 20 2024,14:22:08[0m
+17:19:49.057  <- E rmt: hw buffer too small, received symbols truncated
+17:19:49.057  <- BU.OK info reset=SW heap=175036 min_heap=174988 fw=a775999-dirty build=2026-04-22 21:25:54
+17:19:52.709  -> BU.SENSORS.WATCH 0
+17:19:52.709  <- [0;33mW (1089) phy_init: saving new calibration data because of checksum failure, mode(0)[0m
+17:19:52.710  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.710  <- [0;32mI (1439) BT_HID: Scanning for HID devices (3s)...[0m
+17:19:52.711  <- [0;32mI (1439) BT_HID: BLE HID host initialised[0m
+17:19:52.711  <- [0;32mI (1439) WEBSERVER: Initializing webserver...[0m
+17:19:52.711  <- [0;32mI (1449) WEBSERVER: AP LAUNCHING[0m
+17:19:52.711  <- I (1459) wifi:wifi driver task: 3ffe2918, prio:23, stack:6656, core=0
+17:19:52.711  <- I (1459) wifi:wifi firmware version: ccaebfa
+17:19:52.711  <- I (1469) wifi:wifi certification version: v7.0
+17:19:52.711  <- I (1469) wifi:config NVS flash: enabled
+17:19:52.711  <- I (1469) wifi:config nano formating: disabled
+17:19:52.711  <- I (1469) wifi:Init data frame dynamic rx buffer num: 32
+17:19:52.711  <- I (1479) wifi:Init static rx mgmt buffer num: 5
+17:19:52.711  <- I (1479) wifi:Init management short buffer num: 32
+17:19:52.711  <- I (1479) wifi:Init dynamic tx buffer num: 32
+17:19:52.712  <- I (1489) wifi:Init static rx buffer size: 1600
+17:19:52.712  <- I (1489) wifi:Init static rx buffer num: 10
+17:19:52.712  <- I (1499) wifi:Init dynamic rx buffer num: 32
+17:19:52.712  <- [0;32mI (1499) wifi_init: rx ba win: 6[0m
+17:19:52.712  <- [0;32mI (1509) wifi_init: accept mbox: 6[0m
+17:19:52.712  <- [0;32mI (1509) wifi_init: tcpip mbox: 32[0m
+17:19:52.712  <- [0;32mI (1509) wifi_init: udp mbox: 6[0m
+17:19:52.712  <- [0;32mI (1519) wifi_init: tcp mbox: 6[0m
+17:19:52.712  <- [0;32mI (1519) wifi_init: tcp tx win: 5760[0m
+17:19:52.712  <- [0;32mI (1519) wifi_init: tcp rx win: 5760[0m
+17:19:52.712  <- [0;32mI (1529) wifi_init: tcp mss: 1440[0m
+17:19:52.713  <- I (1539) wifi:mode : softAP (80:f3:da:65:dd:7d)
+17:19:52.713  <- I (1549) wifi:Total power save buffer number: 16
+17:19:52.713  <- I (1549) wifi:Init max length of beacon: 752/752
+17:19:52.713  <- I (1549) wifi:Init max length of beacon: 752/752
+17:19:52.713  <- [0;32mI (1549) esp_netif_lwip: DHCP server started on interface WIFI_AP_DEF with IP: 192.168.4.1[0m
+17:19:52.713  <- [0;32mI (1559) DNS_SERVER: DNS server started on port 53[0m
+17:19:52.713  <- [0;32mI (1569) mdns_mem: mDNS task will be created from internal RAM[0m
+17:19:52.713  <- [0;32mI (1569) WEBSERVER: SoftAP ready. SSID: sc.local, Channel: 6, Password: password[0m
+17:19:52.713  <- [0;32mI (1579) WEBSERVER: Access at: http://sc.local.local or http://192.168.4.1[0m
+17:19:52.713  <- [0;32mI (1589) WEBSERVER: STARTING HTTP[0m
+17:19:52.713  <- [0;32mI (1599) WEBSERVER: HTTP server started successfully[0m
+17:19:52.713  <- [0;32mI (1599) WEBSERVER: Registered URI handler: /[0m
+17:19:52.714  <- [0;32mI (1599) WEBSERVER: Registered URI handler: /get[0m
+17:19:52.714  <- [0;32mI (1609) WEBSERVER: Registered URI handler: /post[0m
+17:19:52.714  <- [0;32mI (1609) WEBSERVER: Registered URI handler: /log[0m
+17:19:52.714  <- [0;32mI (1619) WEBSERVER: Registered URI handler: /ota[0m
+17:19:52.714  <- [0;E rmt: hw buffer too small, received symbols truncated
+17:19:52.714  <- 32mI (1619) WEBSERVER: Registered URI handler: /*[0m
+17:19:52.714  <- [0;32mI (1629) WEBSERVER: Webserver initialization complete[0m
+17:19:52.714  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.714  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.716  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.717  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.717  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.717  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.717  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.717  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.717  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.717  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.717  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.717  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.718  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.718  <- t: hw buffer too small, received symbols truncated
+17:19:52.718  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.718  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.835  <- E rmt: hw buffer too s too small, received symbols truncated
+17:19:52.835  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.835  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.835  <- E rmt: hw buffer too small, received symbols truncated
+17:19:52.835  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.079  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.079  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.079  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.079  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.079  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.313  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.313  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.313  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.313  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.567  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.567  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.567  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.567  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.567  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.773  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.773  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.774  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.774  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.979  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.979  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.979  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.979  <- E rmt: hw buffer too small, received symbols truncated
+17:19:53.979  <- E rmt: hw buffer too small, received symbols truncated
+17:19:54.196  -> 
+17:19:54.203  <- E rmt: hw buffer too small, received symbols truncated
+17:19:54.203  <- E rmt: hw buffer too small, received symbols truncated
+17:19:54.203  <- E rmt: hw buffer too small, received symbols truncated
+17:19:54.203  <- E rmt: hw buffer too small, received symbols truncated
+17:19:54.364  <- E rmt: hw buffer too small, received symbols truncated
+17:19:54.364  <- BU.OK sensors.watch sec=-1 SAFETY=none DRIVE=none JACK=none AUX=none
+17:20:10.885  -> BU.RELAY SENSORS ON 200
+17:20:10.885  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.885  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.885  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.886  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.886  <- [0;32mI (6449) BT_HID: Scanning for HID devices (3s)...[0m
+17:20:10.886  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.886  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.887  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.887  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.887  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.887  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.887  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.887  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.887  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.887  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.887  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.888  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.888  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.888  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.888  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.888  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.889  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.889  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.889  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.889  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.889  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.890  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.890  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.890  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.890  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.890  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.890  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.890  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.890  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.890  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.891  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.891  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.891  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.891  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.892  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.892  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.892  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.892  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.892  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.893  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.893  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.893  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.893  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.893  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.893  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.893  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.893  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.893  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.894  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.894  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.894  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.894  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.894  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.895  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.895  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.895  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.895  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.896  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.896  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.896  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.896  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.896  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.896  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.896  <- [0;32mI (9459) BT_HID: Found 0 HID device(s)[0m
+17:20:10.896  <- [0;32mI (9459) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:20:10.896  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.897  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.897  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.897  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.897  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.897  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.898  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.898  <- all, received symbols truncated
+17:20:10.898  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.898  <- E rmt: hw buffer too small, receiveeceived symbols truncated
+17:20:10.899  <- E rmt: hw buffer too small, receiveeceived symbols truncated
+17:20:10.899  <- E rmt: hw buffer too small, received symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.899  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.901  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.902  <- d symbols truncated
+17:20:10.903  <- d symbols truncated
+17:20:10.903  <- d symbols truncated
+17:20:10.903  <- d symbols truncated
+17:20:10.903  <- d symbols truncated
+17:20:10.903  <- d symbols truncated
+17:20:10.903  <- d symbols truncated
+17:20:10.903  <- d symbols truncated
+17:20:10.903  <- d symbols truncated
+17:20:10.903  <- d symbols truncated
+17:20:10.903  <- d symbols truncated
+17:20:10.903  <- d symbols truncated
+17:20:10.903  <- d symbols truncated
+17:20:10.903  <- d symbols truncated
+17:20:10.904  <- d symbols truncated
+17:20:10.904  <- d symbols truncated
+17:20:10.904  <- d symbols truncated
+17:20:10.904  <- d symbols truncated
+17:20:10.904  <- d symbols truncated
+17:20:10.904  <- d symbols truncated
+17:20:10.904  <- d symbols truncated
+17:20:10.904  <- d symbols truncated
+17:20:10.904  <- d symbols truncated
+17:20:10.904  <- d symbols truncated
+17:20:10.904  <- d symbols truncated
+17:20:10.904  <- d symbols truncated
+17:20:10.905  <- d symbols truncated
+17:20:10.905  <- d symbols truncated
+17:20:10.905  <- d symbols truncated
+17:20:10.905  <- d symbols truncated
+17:20:10.905  <- d symbols truncated
+17:20:10.905  <- d symbols truncated
+17:20:10.905  <- d symbols truncated
+17:20:10.905  <- d symbols truncated
+17:20:10.905  <- d symbols truncated
+17:20:10.905  <- d symbols truncated
+17:20:10.905  <- d symbols truncated
+17:20:10.905  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.906  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.907  <- d symbols truncated
+17:20:10.908  <- d symbols truncated
+17:20:10.908  <- d symbols truncated
+17:20:10.908  <- d symbols truncated
+17:20:10.908  <- d symbols truncated
+17:20:10.908  <- d symbols truncated
+17:20:10.908  <- d symbols truncated
+17:20:10.908  <- d symbols truncated
+17:20:10.908  <- d symbols truncated
+17:20:10.908  <- d symbols truncated
+17:20:10.908  <- d symbols truncated
+17:20:10.908  <- d symbols truncated
+17:20:10.908  <- d symbols truncated
+17:20:10.909  <- d symbols truncated
+17:20:10.909  <- d symbols truncated
+17:20:10.909  <- d symbols truncated
+17:20:10.909  <- d symbols truncated
+17:20:10.909  <- d symbols truncated
+17:20:10.909  <- d symbols truncated
+17:20:10.909  <- d symbols truncated
+17:20:10.909  <- d symbols truncated
+17:20:10.909  <- d symbols truncated
+17:20:10.909  <- d symbols truncated
+17:20:10.909  <- d symbols truncated
+17:20:10.909  <- d symbols truncated
+17:20:10.910  <- d symbols truncated
+17:20:10.910  <- d symbols truncated
+17:20:10.910  <- d symbols truncated
+17:20:10.910  <- d symbols truncated
+17:20:10.910  <- d symbols truncated
+17:20:10.910  <- d symbols truncated
+17:20:10.910  <- d symbols truncated
+17:20:10.910  <- d symbols truncated
+17:20:10.910  <- d symbols truncated
+17:20:10.910  <- d symbols truncated
+17:20:10.910  <- d symbols truncated
+17:20:10.910  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.911  <- d symbols truncated
+17:20:10.912  <- d symbols truncated
+17:20:10.912  <- d symbols truncated
+17:20:10.912  <- d symbols truncated
+17:20:10.912  <- d symbols truncated
+17:20:10.912  <- d symbols truncated
+17:20:10.912  <- d symbols truncated
+17:20:10.912  <- d symbols truncated
+17:20:10.912  <- d symbols truncated
+17:20:10.912  <- d symbols truncated
+17:20:10.912  <- d symbols truncated
+17:20:10.912  <- d symbols truncated
+17:20:10.912  <- d symbols truncated
+17:20:10.913  <- d symbols truncated
+17:20:10.913  <- d symbols truncated
+17:20:10.913  <- d symbols truncated
+17:20:10.913  <- d symbols truncated
+17:20:10.913  <- d symbols truncated
+17:20:10.913  <- d symbols truncated
+17:20:10.913  <- d symbols truncated
+17:20:10.913  <- d symbols truncated
+17:20:10.913  <- d symbols truncated
+17:20:10.913  <- d symbols truncated
+17:20:10.913  <- d symbols truncated
+17:20:10.913  <- d symbols truncated
+17:20:11.112  <- d symbols truncated
+17:20:11.112  <- d symbols truncated
+17:20:11.112  <- d symbols truncated
+17:20:11.112  <- d symbols truncated
+17:20:11.112  <- E rmt: hw buffer too small, received symbols truncated
+17:20:11.112  <- E rmt: hw buffer too small, received symbols truncated
+17:20:11.112  <- E rmt: hw buffer too small, received symbols truncated
+17:20:11.516  <- BU.OK relay bridge=SENSORS ms=200
+17:20:13.948  -> BU.RELAY DRIVE FWD 1000
+17:20:13.948  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.948  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.949  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.949  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.949  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.949  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.949  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.949  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.950  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.950  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.950  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.950  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.950  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.951  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.951  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.951  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.951  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.951  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.951  <- [0;32mI (24489) BT_HID: Found 0 HID device(s)[0m
+17:20:13.951  <- [0;32mI (24489) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:20:13.951  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.951  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.952  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.952  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.952  <- E rmt: hw buffer too small, received symbols truncated
+17:20:13.952  <- E rmt: hw buffer too small, received symbols truncated
+17:20:14.220  <- E rmt: hw buffer too small, received symbols truncated
+17:20:14.220  <- E rmt: hw buffer too small, received symbols truncated
+17:20:14.221  <- E rmt: hw buffer too small, received symbols truncated
+17:20:14.221  <- E rmt: hw buffer too small, received symbols truncated
+17:20:14.221  <- E rmt: hw buffer too small, received symbols truncated
+17:20:14.724  <- E rmt: hw buffer too small, received symbols truncated
+17:20:14.724  <- [0;32mI (26489) BT_HID: Scanning for HID devices (3s)...[0m
+17:20:15.116  <- E rmt: hw buffer too small, received symbols truncated
+17:20:15.116  <- E rmt: hw buffer too small, received symbols truncated
+17:20:15.116  <- BU.OK relay bridge=DRIVE dir=FWD ms=1000 I_before=+0.00 I_mid=+19.92 I_after=-0.02 heat=0.005 tripped=0 edges=0
+17:21:12.725  -> BU.RELAY DRIVE REV 1000
+17:21:12.726  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.726  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.726  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.726  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.726  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.727  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.727  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.727  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.727  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.728  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.728  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.728  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.728  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.728  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.729  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.729  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.729  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.729  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.729  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.729  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.729  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.729  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.729  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.730  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.730  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.730  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.730  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.731  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.731  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.731  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.731  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.731  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.731  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.731  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.731  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.731  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.731  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.732  <- [0;32mI (29499) BT_HID: Found 0 HID device(s)[0m
+17:21:12.732  <- [0;32mI (29499) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:21:12.732  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.732  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.733  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.733  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.733  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.733  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.733  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.734  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.734  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.734  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.734  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.734  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.734  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.734  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.734  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.734  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.735  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.735  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.735  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.735  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.736  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.736  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.736  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.736  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.736  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.737  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.737  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.737  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.737  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.737  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.737  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.737  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.737  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.738  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.738  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.738  <- l, received symbols truncated
+17:21:12.738  <- E rmt: hw buffer too small, recl, received symbols truncated
+17:21:12.738  <- E rmt: hw buffer too small, recl, received symbols truncated
+17:21:12.738  <- E rmt: hw buffer too small, recl, received symbols truncated
+17:21:12.739  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.739  <- eived symbols truncated
+17:21:12.739  <- eived symbols truncated
+17:21:12.739  <- eived symbols truncated
+17:21:12.739  <- eived symbols truncated
+17:21:12.739  <- eived symbols truncated
+17:21:12.739  <- eived symbols truncated
+17:21:12.739  <- eived symbols truncated
+17:21:12.739  <- eived symbols truncated
+17:21:12.740  <- eived symbols truncated
+17:21:12.740  <- eived symbols truncated
+17:21:12.740  <- eived symbols truncated
+17:21:12.740  <- eived symbols truncated
+17:21:12.740  <- eived symbols truncated
+17:21:12.740  <- eived symbols truncated
+17:21:12.740  <- eived symbols truncated
+17:21:12.740  <- eived symbols truncated
+17:21:12.740  <- eived symbols truncated
+17:21:12.740  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.741  <- eived symbols truncated
+17:21:12.742  <- eived symbols truncated
+17:21:12.742  <- eived symbols truncated
+17:21:12.742  <- eived symbols truncated
+17:21:12.742  <- eived symbols truncated
+17:21:12.742  <- eived symbols truncated
+17:21:12.742  <- eived symbols truncated
+17:21:12.742  <- eived symbols truncated
+17:21:12.742  <- eived symbols truncated
+17:21:12.742  <- eived symbols truncated
+17:21:12.742  <- eived symbols truncated
+17:21:12.743  <- eived symbols truncated
+17:21:12.743  <- eived symbols truncated
+17:21:12.743  <- eived symbols truncated
+17:21:12.743  <- eived symbols truncated
+17:21:12.743  <- eived symbols truncated
+17:21:12.743  <- eived symbols truncated
+17:21:12.743  <- eived symbols truncated
+17:21:12.743  <- eived symbols truncated
+17:21:12.743  <- eived symbols truncated
+17:21:12.743  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.744  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.745  <- eived symbols truncated
+17:21:12.746  <- eived symbols truncated
+17:21:12.746  <- eived symbols truncated
+17:21:12.746  <- eived symbols truncated
+17:21:12.746  <- eived symbols truncated
+17:21:12.746  <- eived symbols truncated
+17:21:12.746  <- eived symbols truncated
+17:21:12.746  <- eived symbols truncated
+17:21:12.746  <- eived symbols truncated
+17:21:12.746  <- eived symbols truncated
+17:21:12.746  <- eived symbols truncated
+17:21:12.747  <- eived symbols truncated
+17:21:12.747  <- eived symbols truncated
+17:21:12.747  <- eived symbols truncated
+17:21:12.747  <- eived symbols truncated
+17:21:12.747  <- eived symbols truncated
+17:21:12.747  <- eived symbols truncated
+17:21:12.747  <- eived symbols truncated
+17:21:12.747  <- eived symbols truncated
+17:21:12.747  <- eived symbols truncated
+17:21:12.747  <- eived symbols truncated
+17:21:12.747  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.748  <- eived symbols truncated
+17:21:12.749  <- eived symbols truncated
+17:21:12.749  <- eived symbols truncated
+17:21:12.749  <- eived symbols truncated
+17:21:12.749  <- eived symbols truncated
+17:21:12.749  <- eived symbols truncated
+17:21:12.749  <- eived symbols truncated
+17:21:12.749  <- eived symbols truncated
+17:21:12.749  <- eived symbols truncated
+17:21:12.749  <- eived symbols truncated
+17:21:12.749  <- eived symbols truncated
+17:21:12.750  <- eived symbols truncated
+17:21:12.750  <- eived symbols truncated
+17:21:12.750  <- eived symbols truncated
+17:21:12.750  <- eived symbols truncated
+17:21:12.750  <- eived symbols truncated
+17:21:12.750  <- eived symbols truncated
+17:21:12.750  <- eived symbols truncated
+17:21:12.750  <- eived symbols truncated
+17:21:12.750  <- eived symbols truncated
+17:21:12.750  <- eived symbols truncated
+17:21:12.750  <- eived symbols truncated
+17:21:12.750  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.751  <- eived symbols truncated
+17:21:12.752  <- eived symbols truncated
+17:21:12.752  <- eived symbols truncated
+17:21:12.752  <- eived symbols truncated
+17:21:12.752  <- eived symbols truncated
+17:21:12.752  <- eived symbols truncated
+17:21:12.752  <- eived symbols truncated
+17:21:12.752  <- eived symbols truncated
+17:21:12.752  <- eived symbols truncated
+17:21:12.752  <- eived symbols truncated
+17:21:12.752  <- eived symbols truncated
+17:21:12.753  <- eived symbols truncated
+17:21:12.753  <- eived symbols truncated
+17:21:12.753  <- eived symbols truncated
+17:21:12.753  <- eived symbols truncated
+17:21:12.753  <- eived symbols truncated
+17:21:12.753  <- eived symbols truncated
+17:21:12.753  <- eived symbols truncated
+17:21:12.753  <- eived symbols truncated
+17:21:12.753  <- eived symbols truncated
+17:21:12.753  <- eived symbols truncated
+17:21:12.754  <- eived symbols truncated
+17:21:12.754  <- eived symbols truncated
+17:21:12.754  <- eived symbols truncated
+17:21:12.754  <- eived symbols truncated
+17:21:12.754  <- eived symbols truncated
+17:21:12.754  <- eived symbols truncated
+17:21:12.754  <- eived symbols truncated
+17:21:12.754  <- eived symbols truncated
+17:21:12.754  <- eived symbols truncated
+17:21:12.754  <- eived symbols truncated
+17:21:12.755  <- eived symbols truncated
+17:21:12.755  <- eived symbols truncated
+17:21:12.755  <- eived symbols truncated
+17:21:12.755  <- eived symbols truncated
+17:21:12.755  <- eived symbols truncated
+17:21:12.755  <- eived symbols truncated
+17:21:12.755  <- eived symbols truncated
+17:21:12.755  <- eived symbols truncated
+17:21:12.755  <- eived symbols truncated
+17:21:12.755  <- eived symbols truncated
+17:21:12.755  <- eived symbols truncated
+17:21:12.756  <- eived symbols truncated
+17:21:12.756  <- eived symbols truncated
+17:21:12.756  <- eived symbols truncated
+17:21:12.756  <- eived symbols truncated
+17:21:12.756  <- eived symbols truncated
+17:21:12.756  <- eived symbols truncated
+17:21:12.756  <- eived symbols truncated
+17:21:12.756  <- eived symbols truncated
+17:21:12.756  <- eived symbols truncated
+17:21:12.756  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.757  <- eived symbols truncated
+17:21:12.758  <- eived symbols truncated
+17:21:12.758  <- eived symbols truncated
+17:21:12.758  <- eived symbols truncated
+17:21:12.758  <- eived symbols truncated
+17:21:12.758  <- eived symbols truncated
+17:21:12.758  <- eived symbols truncated
+17:21:12.758  <- eived symbols truncated
+17:21:12.758  <- eived symbols truncated
+17:21:12.758  <- eived symbols truncated
+17:21:12.758  <- eived symbols truncated
+17:21:12.758  <- eived symbols truncated
+17:21:12.758  <- eived symbols truncated
+17:21:12.758  <- eived symbols truncated
+17:21:12.759  <- eived symbols truncated
+17:21:12.759  <- eived symbols truncated
+17:21:12.759  <- eived symbols truncated
+17:21:12.759  <- eived symbols truncated
+17:21:12.759  <- eived symbols truncated
+17:21:12.759  <- eived symbols truncated
+17:21:12.759  <- eived symbols truncated
+17:21:12.759  <- eived symbols truncated
+17:21:12.759  <- eived symbols truncated
+17:21:12.759  <- eived symbols truncated
+17:21:12.760  <- eived symbols truncated
+17:21:12.760  <- eived symbols truncated
+17:21:12.760  <- eived symbols truncated
+17:21:12.760  <- eived symbols truncated
+17:21:12.760  <- eived symbols truncated
+17:21:12.760  <- eived symbols truncated
+17:21:12.760  <- eived symbols truncated
+17:21:12.760  <- eived symbols truncated
+17:21:12.760  <- eived symbols truncated
+17:21:12.760  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.761  <- eived symbols truncated
+17:21:12.762  <- eived symbols truncated
+17:21:12.762  <- eived symbols truncated
+17:21:12.762  <- eived symbols truncated
+17:21:12.762  <- eived symbols truncated
+17:21:12.762  <- eived symbols truncated
+17:21:12.762  <- eived symbols truncated
+17:21:12.762  <- eived symbols truncated
+17:21:12.762  <- eived symbols truncated
+17:21:12.762  <- eived symbols truncated
+17:21:12.762  <- eived symbols truncated
+17:21:12.762  <- eived symbols truncated
+17:21:12.762  <- eived symbols truncated
+17:21:12.763  <- eived symbols truncated
+17:21:12.763  <- eived symbols truncated
+17:21:12.763  <- eived symbols truncated
+17:21:12.763  <- eived symbols truncated
+17:21:12.763  <- eived symbols truncated
+17:21:12.763  <- eived symbols truncated
+17:21:12.763  <- eived symbols truncated
+17:21:12.763  <- eived symbols truncated
+17:21:12.763  <- eived symbols truncated
+17:21:12.763  <- eived symbols truncated
+17:21:12.764  <- eived symbols truncated
+17:21:12.764  <- eived symbols truncated
+17:21:12.764  <- eived symbols truncated
+17:21:12.764  <- eived symbols truncated
+17:21:12.764  <- eived symbols truncated
+17:21:12.764  <- eived symbols truncated
+17:21:12.764  <- eived symbols truncated
+17:21:12.764  <- eived symbols truncated
+17:21:12.764  <- eived symbols truncated
+17:21:12.764  <- eived symbols truncated
+17:21:12.764  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.765  <- eived symbols truncated
+17:21:12.766  <- eived symbols truncated
+17:21:12.766  <- eived symbols truncated
+17:21:12.766  <- eived symbols truncated
+17:21:12.766  <- eived symbols truncated
+17:21:12.766  <- eived symbols truncated
+17:21:12.766  <- eived symbols truncated
+17:21:12.766  <- eived symbols truncated
+17:21:12.766  <- eived symbols truncated
+17:21:12.766  <- eived symbols truncated
+17:21:12.766  <- eived symbols truncated
+17:21:12.767  <- eived symbols truncated
+17:21:12.767  <- eived symbols truncated
+17:21:12.767  <- eived symbols truncated
+17:21:12.767  <- eived symbols truncated
+17:21:12.767  <- eived symbols truncated
+17:21:12.767  <- eived symbols truncated
+17:21:12.767  <- eived symbols truncated
+17:21:12.767  <- eived symbols truncated
+17:21:12.767  <- eived symbols truncated
+17:21:12.767  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.768  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.769  <- eived symbols truncated
+17:21:12.770  <- eived symbols truncated
+17:21:12.770  <- eived symbols truncated
+17:21:12.770  <- eived symbols truncated
+17:21:12.770  <- eived symbols truncated
+17:21:12.770  <- eived symbols truncated
+17:21:12.770  <- eived symbols truncated
+17:21:12.770  <- eived symbols truncated
+17:21:12.770  <- eived symbols truncated
+17:21:12.770  <- eived symbols truncated
+17:21:12.770  <- eived symbols truncated
+17:21:12.771  <- eived symbols truncated
+17:21:12.771  <- eived symbols truncated
+17:21:12.771  <- eived symbols truncated
+17:21:12.771  <- eived symbols truncated
+17:21:12.771  <- eived symbols truncated
+17:21:12.771  <- eived symbols truncated
+17:21:12.771  <- eived symbols truncated
+17:21:12.771  <- eived symbols truncated
+17:21:12.771  <- eived symbols truncated
+17:21:12.771  <- eived symbols truncated
+17:21:12.771  <- eived symbols truncated
+17:21:12.771  <- eived symbols truncated
+17:21:12.771  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.772  <- eived symbols truncated
+17:21:12.773  <- eived symbols truncated
+17:21:12.773  <- eived symbols truncated
+17:21:12.773  <- eived symbols truncated
+17:21:12.773  <- eived symbols truncated
+17:21:12.773  <- eived symbols truncated
+17:21:12.773  <- eived symbols truncated
+17:21:12.773  <- eived symbols truncated
+17:21:12.773  <- eived symbols truncated
+17:21:12.773  <- eived symbols truncated
+17:21:12.773  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.774  <- eived symbols truncated
+17:21:12.776  <- eived symbols truncated
+17:21:12.776  <- eived symbols truncated
+17:21:12.776  <- eived symbols truncated
+17:21:12.776  <- eived symbols truncated
+17:21:12.776  <- eived symbols truncated
+17:21:12.776  <- eived symbols truncated
+17:21:12.776  <- eived symbols truncated
+17:21:12.776  <- eived symbols truncated
+17:21:12.776  <- eived symbols truncated
+17:21:12.776  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.777  <- eived symbols truncated
+17:21:12.778  <- eived symbols truncated
+17:21:12.778  <- eived symbols truncated
+17:21:12.778  <- eived symbols truncated
+17:21:12.778  <- eived symbols truncated
+17:21:12.778  <- eived symbols truncated
+17:21:12.778  <- eived symbols truncated
+17:21:12.778  <- eived symbols truncated
+17:21:12.778  <- eived symbols truncated
+17:21:12.778  <- eived symbols truncated
+17:21:12.778  <- eived symbols truncated
+17:21:12.778  <- eived symbols truncated
+17:21:12.779  <- eived symbols truncated
+17:21:12.779  <- eived symbols truncated
+17:21:12.779  <- eived symbols truncated
+17:21:12.779  <- eived symbols truncated
+17:21:12.779  <- eived symbols truncated
+17:21:12.779  <- eived symbols truncated
+17:21:12.779  <- eived symbols truncated
+17:21:12.779  <- eived symbols truncated
+17:21:12.779  <- eived symbols truncated
+17:21:12.779  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.780  <- eived symbols truncated
+17:21:12.781  <- eived symbols truncated
+17:21:12.781  <- eived symbols truncated
+17:21:12.781  <- eived symbols truncated
+17:21:12.781  <- eived symbols truncated
+17:21:12.781  <- eived symbols truncated
+17:21:12.781  <- eived symbols truncated
+17:21:12.781  <- eived symbols truncated
+17:21:12.781  <- eived symbols truncated
+17:21:12.781  <- eived symbols truncated
+17:21:12.781  <- eived symbols truncated
+17:21:12.781  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.782  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.783  <- eived symbols truncated
+17:21:12.784  <- eived symbols truncated
+17:21:12.784  <- eived symbols truncated
+17:21:12.784  <- eived symbols truncated
+17:21:12.784  <- eived symbols truncated
+17:21:12.784  <- eived symbols truncated
+17:21:12.784  <- eived symbols truncated
+17:21:12.784  <- eived symbols truncated
+17:21:12.784  <- eived symbols truncated
+17:21:12.784  <- eived symbols truncated
+17:21:12.784  <- eived symbols truncated
+17:21:12.784  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.785  <- eived symbols truncated
+17:21:12.786  <- eived symbols truncated
+17:21:12.786  <- eived symbols truncated
+17:21:12.786  <- eived symbols truncated
+17:21:12.786  <- eived symbols truncated
+17:21:12.786  <- eived symbols truncated
+17:21:12.786  <- eived symbols truncated
+17:21:12.786  <- eived symbols truncated
+17:21:12.786  <- eived symbols truncated
+17:21:12.786  <- eived symbols truncated
+17:21:12.786  <- eived symbols truncated
+17:21:12.787  <- eived symbols truncated
+17:21:12.787  <- eived symbols truncated
+17:21:12.787  <- eived symbols truncated
+17:21:12.787  <- eived symbols truncated
+17:21:12.787  <- eived symbols truncated
+17:21:12.787  <- eived symbols truncated
+17:21:12.787  <- eived symbols truncated
+17:21:12.787  <- eived symbols truncated
+17:21:12.787  <- eived symbols truncated
+17:21:12.787  <- eived symbols truncated
+17:21:12.788  <- eived symbols truncated
+17:21:12.788  <- eived symbols truncated
+17:21:12.788  <- eived symbols truncated
+17:21:12.788  <- eived symbols truncated
+17:21:12.788  <- eived symbols truncated
+17:21:12.788  <- eived symbols truncated
+17:21:12.788  <- eived symbols truncated
+17:21:12.788  <- eived symbols truncated
+17:21:12.788  <- eived symbols truncated
+17:21:12.788  <- eived symbols truncated
+17:21:12.788  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.789  <- eived symbols truncated
+17:21:12.790  <- eived symbols truncated
+17:21:12.790  <- eived symbols truncated
+17:21:12.790  <- eived symbols truncated
+17:21:12.790  <- eived symbols truncated
+17:21:12.790  <- eived symbols truncated
+17:21:12.790  <- eived symbols truncated
+17:21:12.790  <- eived symbols truncated
+17:21:12.790  <- eived symbols truncated
+17:21:12.790  <- eived symbols truncated
+17:21:12.790  <- eived symbols truncated
+17:21:12.791  <- eived symbols truncated
+17:21:12.791  <- eived symbols truncated
+17:21:12.791  <- eived symbols truncated
+17:21:12.791  <- eived symbols truncated
+17:21:12.791  <- eived symbols truncated
+17:21:12.791  <- eived symbols truncated
+17:21:12.791  <- eived symbols truncated
+17:21:12.791  <- eived symbols truncated
+17:21:12.791  <- eived symbols truncated
+17:21:12.791  <- eived symbols truncated
+17:21:12.791  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.792  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.793  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.794  <- eived symbols truncated
+17:21:12.795  <- eived symbols truncated
+17:21:12.795  <- eived symbols truncated
+17:21:12.795  <- eived symbols truncated
+17:21:12.795  <- eived symbols truncated
+17:21:12.795  <- eived symbols truncated
+17:21:12.795  <- eived symbols truncated
+17:21:12.795  <- eived symbols truncated
+17:21:12.795  <- eived symbols truncated
+17:21:12.795  <- eived symbols truncated
+17:21:12.795  <- eived symbols truncated
+17:21:12.796  <- eived symbols truncated
+17:21:12.796  <- eived symbols truncated
+17:21:12.796  <- eived symbols truncated
+17:21:12.796  <- eived symbols truncated
+17:21:12.796  <- eived symbols truncated
+17:21:12.796  <- eived symbols truncated
+17:21:12.796  <- eived symbols truncated
+17:21:12.796  <- eived symbols truncated
+17:21:12.796  <- eived symbols truncated
+17:21:12.796  <- eived symbols truncated
+17:21:12.796  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.797  <- eived symbols truncated
+17:21:12.798  <- eived symbols truncated
+17:21:12.798  <- eived symbols truncated
+17:21:12.798  <- eived symbols truncated
+17:21:12.798  <- eived symbols truncated
+17:21:12.798  <- eived symbols truncated
+17:21:12.798  <- eived symbols truncated
+17:21:12.798  <- eived symbols truncated
+17:21:12.798  <- eived symbols truncated
+17:21:12.798  <- eived symbols truncated
+17:21:12.798  <- eived symbols truncated
+17:21:12.799  <- eived symbols truncated
+17:21:12.799  <- eived symbols truncated
+17:21:12.799  <- eived symbols truncated
+17:21:12.799  <- eived symbols truncated
+17:21:12.799  <- eived symbols truncated
+17:21:12.799  <- eived symbols truncated
+17:21:12.799  <- eived symbols truncated
+17:21:12.799  <- eived symbols truncated
+17:21:12.799  <- eived symbols truncated
+17:21:12.799  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.800  <- eived symbols truncated
+17:21:12.801  <- eived symbols truncated
+17:21:12.801  <- eived symbols truncated
+17:21:12.801  <- eived symbols truncated
+17:21:12.801  <- eived symbols truncated
+17:21:12.801  <- eived symbols truncated
+17:21:12.801  <- eived symbols truncated
+17:21:12.801  <- eived symbols truncated
+17:21:12.801  <- eived symbols truncated
+17:21:12.801  <- eived symbols truncated
+17:21:12.801  <- eived symbols truncated
+17:21:12.802  <- eived symbols truncated
+17:21:12.802  <- eived symbols truncated
+17:21:12.802  <- eived symbols truncated
+17:21:12.802  <- eived symbols truncated
+17:21:12.802  <- eived symbols truncated
+17:21:12.802  <- eived symbols truncated
+17:21:12.802  <- eived symbols truncated
+17:21:12.802  <- eived symbols truncated
+17:21:12.802  <- eived symbols truncated
+17:21:12.802  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.803  <- eived symbols truncated
+17:21:12.804  <- eived symbols truncated
+17:21:12.804  <- eived symbols truncated
+17:21:12.804  <- eived symbols truncated
+17:21:12.804  <- eived symbols truncated
+17:21:12.804  <- eived symbols truncated
+17:21:12.804  <- eived symbols truncated
+17:21:12.804  <- eived symbols truncated
+17:21:12.804  <- eived symbols truncated
+17:21:12.804  <- eived symbols truncated
+17:21:12.804  <- eived symbols truncated
+17:21:12.805  <- eived symbols truncated
+17:21:12.805  <- eived symbols truncated
+17:21:12.805  <- eived symbols truncated
+17:21:12.805  <- eived symbols truncated
+17:21:12.805  <- eived symbols truncated
+17:21:12.805  <- eived symbols truncated
+17:21:12.805  <- eived symbols truncated
+17:21:12.805  <- eived symbols truncated
+17:21:12.805  <- eived symbols truncated
+17:21:12.805  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.806  <- eived symbols truncated
+17:21:12.807  <- eived symbols truncated
+17:21:12.807  <- eived symbols truncated
+17:21:12.807  <- eived symbols truncated
+17:21:12.807  <- eived symbols truncated
+17:21:12.807  <- eived symbols truncated
+17:21:12.807  <- eived symbols truncated
+17:21:12.807  <- eived symbols truncated
+17:21:12.807  <- eived symbols truncated
+17:21:12.807  <- eived symbols truncated
+17:21:12.807  <- eived symbols truncated
+17:21:12.808  <- eived symbols truncated
+17:21:12.808  <- eived symbols truncated
+17:21:12.808  <- eived symbols truncated
+17:21:12.808  <- eived symbols truncated
+17:21:12.808  <- eived symbols truncated
+17:21:12.808  <- eived symbols truncated
+17:21:12.808  <- eived symbols truncated
+17:21:12.808  <- eived symbols truncated
+17:21:12.808  <- eived symbols truncated
+17:21:12.808  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.809  <- eived symbols truncated
+17:21:12.810  <- eived symbols truncated
+17:21:12.810  <- eived symbols truncated
+17:21:12.810  <- eived symbols truncated
+17:21:12.810  <- eived symbols truncated
+17:21:12.810  <- eived symbols truncated
+17:21:12.810  <- eived symbols truncated
+17:21:12.810  <- eived symbols truncated
+17:21:12.810  <- eived symbols truncated
+17:21:12.810  <- eived symbols truncated
+17:21:12.810  <- eived symbols truncated
+17:21:12.811  <- eived symbols truncated
+17:21:12.811  <- eived symbols truncated
+17:21:12.811  <- eived symbols truncated
+17:21:12.811  <- eived symbols truncated
+17:21:12.811  <- eived symbols truncated
+17:21:12.811  <- eived symbols truncated
+17:21:12.811  <- eived symbols truncated
+17:21:12.811  <- eived symbols truncated
+17:21:12.811  <- eived symbols truncated
+17:21:12.811  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.812  <- eived symbols truncated
+17:21:12.813  <- eived symbols truncated
+17:21:12.813  <- eived symbols truncated
+17:21:12.813  <- eived symbols truncated
+17:21:12.813  <- eived symbols truncated
+17:21:12.813  <- eived symbols truncated
+17:21:12.813  <- eived symbols truncated
+17:21:12.813  <- eived symbols truncated
+17:21:12.813  <- eived symbols truncated
+17:21:12.813  <- eived symbols truncated
+17:21:12.813  <- eived symbols truncated
+17:21:12.814  <- eived symbols truncated
+17:21:12.814  <- eived symbols truncated
+17:21:12.814  <- eived symbols truncated
+17:21:12.814  <- eived symbols truncated
+17:21:12.814  <- eived symbols truncated
+17:21:12.814  <- eived symbols truncated
+17:21:12.814  <- eived symbols truncated
+17:21:12.814  <- eived symbols truncated
+17:21:12.814  <- eived symbols truncated
+17:21:12.814  <- eived symbols truncated
+17:21:12.814  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.815  <- eived symbols truncated
+17:21:12.816  <- eived symbols truncated
+17:21:12.816  <- eived symbols truncated
+17:21:12.816  <- eived symbols truncated
+17:21:12.816  <- eived symbols truncated
+17:21:12.816  <- eived symbols truncated
+17:21:12.816  <- eived symbols truncated
+17:21:12.816  <- eived symbols truncated
+17:21:12.816  <- eived symbols truncated
+17:21:12.816  <- eived symbols truncated
+17:21:12.816  <- eived symbols truncated
+17:21:12.817  <- eived symbols truncated
+17:21:12.817  <- eived symbols truncated
+17:21:12.817  <- eived symbols truncated
+17:21:12.817  <- eived symbols truncated
+17:21:12.817  <- eived symbols truncated
+17:21:12.817  <- eived symbols truncated
+17:21:12.817  <- eived symbols truncated
+17:21:12.817  <- eived symbols truncated
+17:21:12.817  <- eived symbols truncated
+17:21:12.817  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.818  <- eived symbols truncated
+17:21:12.819  <- eived symbols truncated
+17:21:12.819  <- eived symbols truncated
+17:21:12.819  <- eived symbols truncated
+17:21:12.819  <- eived symbols truncated
+17:21:12.819  <- eived symbols truncated
+17:21:12.819  <- eived symbols truncated
+17:21:12.819  <- eived symbols truncated
+17:21:12.819  <- eived symbols truncated
+17:21:12.819  <- eived symbols truncated
+17:21:12.819  <- eived symbols truncated
+17:21:12.820  <- eived symbols truncated
+17:21:12.820  <- eived symbols truncated
+17:21:12.820  <- eived symbols truncated
+17:21:12.820  <- eived symbols truncated
+17:21:12.820  <- eived symbols truncated
+17:21:12.820  <- eived symbols truncated
+17:21:12.820  <- eived symbols truncated
+17:21:12.820  <- eived symbols truncated
+17:21:12.820  <- eived symbols truncated
+17:21:12.820  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.821  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.822  <- eived symbols truncated
+17:21:12.823  <- eived symbols truncated
+17:21:12.823  <- eived symbols truncated
+17:21:12.823  <- eived symbols truncated
+17:21:12.823  <- eived symbols truncated
+17:21:12.823  <- eived symbols truncated
+17:21:12.823  <- eived symbols truncated
+17:21:12.823  <- eived symbols truncated
+17:21:12.823  <- eived symbols truncated
+17:21:12.823  <- eived symbols truncated
+17:21:12.823  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.824  <- eived symbols truncated
+17:21:12.825  <- eived symbols truncated
+17:21:12.825  <- eived symbols truncated
+17:21:12.825  <- eived symbols truncated
+17:21:12.825  <- eived symbols truncated
+17:21:12.825  <- eived symbols truncated
+17:21:12.825  <- eived symbols truncated
+17:21:12.825  <- eived symbols truncated
+17:21:12.825  <- eived symbols truncated
+17:21:12.825  <- eived symbols truncated
+17:21:12.825  <- eived symbols truncated
+17:21:12.825  <- eived symbols truncated
+17:21:12.825  <- eived symbols truncated
+17:21:12.825  <- eived symbols truncated
+17:21:12.826  <- eived symbols truncated
+17:21:12.826  <- eived symbols truncated
+17:21:12.826  <- eived symbols truncated
+17:21:12.826  <- eived symbols truncated
+17:21:12.826  <- eived symbols truncated
+17:21:12.826  <- eived symbols truncated
+17:21:12.826  <- eived symbols truncated
+17:21:12.826  <- eived symbols truncated
+17:21:12.826  <- eived symbols truncated
+17:21:12.826  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.827  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.828  <- eived symbols truncated
+17:21:12.829  <- eived symbols truncated
+17:21:12.829  <- eived symbols truncated
+17:21:12.829  <- eived symbols truncated
+17:21:12.829  <- eived symbols truncated
+17:21:12.829  <- eived symbols truncated
+17:21:12.829  <- eived symbols truncated
+17:21:12.829  <- eived symbols truncated
+17:21:12.829  <- eived symbols truncated
+17:21:12.829  <- eived symbols truncated
+17:21:12.829  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.830  <- eived symbols truncated
+17:21:12.831  <- eived symbols truncated
+17:21:12.831  <- eived symbols truncated
+17:21:12.831  <- eived symbols truncated
+17:21:12.831  <- eived symbols truncated
+17:21:12.831  <- eived symbols truncated
+17:21:12.831  <- eived symbols truncated
+17:21:12.831  <- eived symbols truncated
+17:21:12.831  <- eived symbols truncated
+17:21:12.831  <- eived symbols truncated
+17:21:12.831  <- eived symbols truncated
+17:21:12.831  <- eived symbols truncated
+17:21:12.831  <- eived symbols truncated
+17:21:12.831  <- eived symbols truncated
+17:21:12.832  <- eived symbols truncated
+17:21:12.832  <- eived symbols truncated
+17:21:12.832  <- eived symbols truncated
+17:21:12.832  <- eived symbols truncated
+17:21:12.832  <- eived symbols truncated
+17:21:12.832  <- eived symbols truncated
+17:21:12.832  <- eived symbols truncated
+17:21:12.832  <- eived symbols truncated
+17:21:12.832  <- eived symbols truncated
+17:21:12.832  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.833  <- eived symbols truncated
+17:21:12.834  <- eived symbols truncated
+17:21:12.834  <- eived symbols truncated
+17:21:12.834  <- eived symbols truncated
+17:21:12.834  <- eived symbols truncated
+17:21:12.834  <- eived symbols truncated
+17:21:12.834  <- eived symbols truncated
+17:21:12.834  <- eived symbols truncated
+17:21:12.834  <- eived symbols truncated
+17:21:12.834  <- eived symbols truncated
+17:21:12.834  <- eived symbols truncated
+17:21:12.834  <- eived symbols truncated
+17:21:12.834  <- eived symbols truncated
+17:21:12.835  <- eived symbols truncated
+17:21:12.835  <- eived symbols truncated
+17:21:12.835  <- eived symbols truncated
+17:21:12.835  <- eived symbols truncated
+17:21:12.835  <- eived symbols truncated
+17:21:12.835  <- eived symbols truncated
+17:21:12.835  <- eived symbols truncated
+17:21:12.835  <- eived symbols truncated
+17:21:12.835  <- eived symbols truncated
+17:21:12.835  <- eived symbols truncated
+17:21:12.836  <- eived symbols truncated
+17:21:12.836  <- eived symbols truncated
+17:21:12.836  <- eived symbols truncated
+17:21:12.836  <- eived symbols truncated
+17:21:12.836  <- eived symbols truncated
+17:21:12.836  <- eived symbols truncated
+17:21:12.836  <- eived symbols truncated
+17:21:12.836  <- eived symbols truncated
+17:21:12.836  <- eived symbols truncated
+17:21:12.836  <- eived symbols truncated
+17:21:12.837  <- eived symbols truncated
+17:21:12.837  <- eived symbols truncated
+17:21:12.837  <- eived symbols truncated
+17:21:12.837  <- eived symbols truncated
+17:21:12.837  <- eived symbols truncated
+17:21:12.837  <- eived symbols truncated
+17:21:12.837  <- eived symbols truncated
+17:21:12.837  <- eived symbols truncated
+17:21:12.837  <- eived symbols truncated
+17:21:12.837  <- eived symbols truncated
+17:21:12.837  <- eived symbols truncated
+17:21:12.837  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.838  <- eived symbols truncated
+17:21:12.839  <- eived symbols truncated
+17:21:12.839  <- eived symbols truncated
+17:21:12.839  <- eived symbols truncated
+17:21:12.839  <- eived symbols truncated
+17:21:12.839  <- eived symbols truncated
+17:21:12.839  <- eived symbols truncated
+17:21:12.839  <- eived symbols truncated
+17:21:12.839  <- eived symbols truncated
+17:21:12.839  <- eived symbols truncated
+17:21:12.839  <- eived symbols truncated
+17:21:12.840  <- eived symbols truncated
+17:21:12.840  <- eived symbols truncated
+17:21:12.840  <- eived symbols truncated
+17:21:12.840  <- eived symbols truncated
+17:21:12.840  <- eived symbols truncated
+17:21:12.840  <- eived symbols truncated
+17:21:12.840  <- eived symbols truncated
+17:21:12.840  <- eived symbols truncated
+17:21:12.840  <- eived symbols truncated
+17:21:12.840  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.841  <- eived symbols truncated
+17:21:12.842  <- eived symbols truncated
+17:21:12.842  <- eived symbols truncated
+17:21:12.842  <- eived symbols truncated
+17:21:12.842  <- eived symbols truncated
+17:21:12.842  <- eived symbols truncated
+17:21:12.842  <- eived symbols truncated
+17:21:12.842  <- eived symbols truncated
+17:21:12.842  <- eived symbols truncated
+17:21:12.842  <- eived symbols truncated
+17:21:12.842  <- eived symbols truncated
+17:21:12.843  <- eived symbols truncated
+17:21:12.843  <- eived symbols truncated
+17:21:12.843  <- eived symbols truncated
+17:21:12.843  <- eived symbols truncated
+17:21:12.843  <- eived symbols truncated
+17:21:12.843  <- eived symbols truncated
+17:21:12.843  <- eived symbols truncated
+17:21:12.843  <- eived symbols truncated
+17:21:12.843  <- eived symbols truncated
+17:21:12.843  <- eived symbols truncated
+17:21:12.843  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.844  <- eived symbols truncated
+17:21:12.845  <- eived symbols truncated
+17:21:12.845  <- eived symbols truncated
+17:21:12.845  <- eived symbols truncated
+17:21:12.845  <- eived symbols truncated
+17:21:12.845  <- eived symbols truncated
+17:21:12.845  <- eived symbols truncated
+17:21:12.845  <- eived symbols truncated
+17:21:12.845  <- eived symbols truncated
+17:21:12.845  <- eived symbols truncated
+17:21:12.845  <- eived symbols truncated
+17:21:12.846  <- eived symbols truncated
+17:21:12.846  <- eived symbols truncated
+17:21:12.846  <- eived symbols truncated
+17:21:12.846  <- eived symbols truncated
+17:21:12.846  <- eived symbols truncated
+17:21:12.846  <- eived symbols truncated
+17:21:12.846  <- eived symbols truncated
+17:21:12.846  <- eived symbols truncated
+17:21:12.846  <- eived symbols truncated
+17:21:12.846  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.847  <- eived symbols truncated
+17:21:12.848  <- eived symbols truncated
+17:21:12.848  <- eived symbols truncated
+17:21:12.848  <- eived symbols truncated
+17:21:12.848  <- eived symbols truncated
+17:21:12.848  <- eived symbols truncated
+17:21:12.848  <- eived symbols truncated
+17:21:12.848  <- eived symbols truncated
+17:21:12.848  <- eived symbols truncated
+17:21:12.848  <- eived symbols truncated
+17:21:12.848  <- eived symbols truncated
+17:21:12.848  <- eived symbols truncated
+17:21:12.848  <- eived symbols truncated
+17:21:12.849  <- eived symbols truncated
+17:21:12.849  <- eived symbols truncated
+17:21:12.849  <- eived symbols truncated
+17:21:12.849  <- eived symbols truncated
+17:21:12.849  <- eived symbols truncated
+17:21:12.849  <- eived symbols truncated
+17:21:12.849  <- eived symbols truncated
+17:21:12.849  <- eived symbols truncated
+17:21:12.849  <- eived symbols truncated
+17:21:12.849  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.850  <- eived symbols truncated
+17:21:12.851  <- eived symbols truncated
+17:21:12.851  <- eived symbols truncated
+17:21:12.851  <- eived symbols truncated
+17:21:12.851  <- eived symbols truncated
+17:21:12.851  <- eived symbols truncated
+17:21:12.851  <- eived symbols truncated
+17:21:12.851  <- eived symbols truncated
+17:21:12.851  <- eived symbols truncated
+17:21:12.851  <- eived symbols truncated
+17:21:12.851  <- eived symbols truncated
+17:21:12.852  <- eived symbols truncated
+17:21:12.852  <- eived symbols truncated
+17:21:12.852  <- eived symbols truncated
+17:21:12.852  <- eived symbols truncated
+17:21:12.852  <- eived symbols truncated
+17:21:12.852  <- eived symbols truncated
+17:21:12.852  <- eived symbols truncated
+17:21:12.852  <- eived symbols truncated
+17:21:12.852  <- eived symbols truncated
+17:21:12.852  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.853  <- eived symbols truncated
+17:21:12.854  <- eived symbols truncated
+17:21:12.854  <- eived symbols truncated
+17:21:12.854  <- eived symbols truncated
+17:21:12.854  <- eived symbols truncated
+17:21:12.854  <- eived symbols truncated
+17:21:12.854  <- eived symbols truncated
+17:21:12.854  <- eived symbols truncated
+17:21:12.854  <- eived symbols truncated
+17:21:12.854  <- eived symbols truncated
+17:21:12.854  <- eived symbols truncated
+17:21:12.855  <- eived symbols truncated
+17:21:12.855  <- eived symbols truncated
+17:21:12.855  <- eived symbols truncated
+17:21:12.855  <- eived symbols truncated
+17:21:12.855  <- eived symbols truncated
+17:21:12.855  <- eived symbols truncated
+17:21:12.855  <- eived symbols truncated
+17:21:12.855  <- eived symbols truncated
+17:21:12.855  <- eived symbols truncated
+17:21:12.855  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.856  <- eived symbols truncated
+17:21:12.857  <- eived symbols truncated
+17:21:12.857  <- eived symbols truncated
+17:21:12.857  <- eived symbols truncated
+17:21:12.857  <- eived symbols truncated
+17:21:12.857  <- eived symbols truncated
+17:21:12.857  <- eived symbols truncated
+17:21:12.857  <- eived symbols truncated
+17:21:12.857  <- eived symbols truncated
+17:21:12.857  <- eived symbols truncated
+17:21:12.857  <- eived symbols truncated
+17:21:12.858  <- eived symbols truncated
+17:21:12.858  <- eived symbols truncated
+17:21:12.858  <- eived symbols truncated
+17:21:12.858  <- eived symbols truncated
+17:21:12.858  <- eived symbols truncated
+17:21:12.858  <- eived symbols truncated
+17:21:12.858  <- eived symbols truncated
+17:21:12.858  <- eived symbols truncated
+17:21:12.858  <- eived symbols truncated
+17:21:12.858  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.859  <- eived symbols truncated
+17:21:12.860  <- eived symbols truncated
+17:21:12.860  <- eived symbols truncated
+17:21:12.860  <- eived symbols truncated
+17:21:12.860  <- eived symbols truncated
+17:21:12.860  <- eived symbols truncated
+17:21:12.860  <- eived symbols truncated
+17:21:12.860  <- eived symbols truncated
+17:21:12.860  <- eived symbols truncated
+17:21:12.860  <- eived symbols truncated
+17:21:12.860  <- eived symbols truncated
+17:21:12.861  <- eived symbols truncated
+17:21:12.861  <- eived symbols truncated
+17:21:12.861  <- eived symbols truncated
+17:21:12.861  <- eived symbols truncated
+17:21:12.861  <- eived symbols truncated
+17:21:12.861  <- eived symbols truncated
+17:21:12.861  <- eived symbols truncated
+17:21:12.861  <- eived symbols truncated
+17:21:12.861  <- eived symbols truncated
+17:21:12.861  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.862  <- eived symbols truncated
+17:21:12.863  <- eived symbols truncated
+17:21:12.863  <- eived symbols truncated
+17:21:12.863  <- eived symbols truncated
+17:21:12.863  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.864  <- eived symbols truncated
+17:21:12.865  <- eived symbols truncated
+17:21:12.865  <- eived symbols truncated
+17:21:12.865  <- eived symbols truncated
+17:21:12.865  <- eived symbols truncated
+17:21:12.865  <- eived symbols truncated
+17:21:12.865  <- eived symbols truncated
+17:21:12.865  <- eived symbols truncated
+17:21:12.865  <- eived symbols truncated
+17:21:12.865  <- eived symbols truncated
+17:21:12.865  <- eived symbols truncated
+17:21:12.866  <- eived symbols truncated
+17:21:12.866  <- eived symbols truncated
+17:21:12.866  <- eived symbols truncated
+17:21:12.866  <- eived symbols truncated
+17:21:12.866  <- eived symbols truncated
+17:21:12.866  <- eived symbols truncated
+17:21:12.866  <- eived symbols truncated
+17:21:12.866  <- eived symbols truncated
+17:21:12.866  <- eived symbols truncated
+17:21:12.866  <- eived symbols truncated
+17:21:12.867  <- eived symbols truncated
+17:21:12.867  <- eived symbols truncated
+17:21:12.867  <- eived symbols truncated
+17:21:12.867  <- eived symbols truncated
+17:21:12.867  <- eived symbols truncated
+17:21:12.867  <- eived symbols truncated
+17:21:12.867  <- eived symbols truncated
+17:21:12.867  <- eived symbols truncated
+17:21:12.867  <- eived symbols truncated
+17:21:12.867  <- eived symbols truncated
+17:21:12.867  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.868  <- eived symbols truncated
+17:21:12.869  <- eived symbols truncated
+17:21:12.869  <- eived symbols truncated
+17:21:12.869  <- eived symbols truncated
+17:21:12.869  <- eived symbols truncated
+17:21:12.869  <- eived symbols truncated
+17:21:12.869  <- eived symbols truncated
+17:21:12.869  <- eived symbols truncated
+17:21:12.869  <- eived symbols truncated
+17:21:12.869  <- eived symbols truncated
+17:21:12.869  <- eived symbols truncated
+17:21:12.870  <- eived symbols truncated
+17:21:12.870  <- eived symbols truncated
+17:21:12.870  <- eived symbols truncated
+17:21:12.870  <- eived symbols truncated
+17:21:12.870  <- eived symbols truncated
+17:21:12.870  <- eived symbols truncated
+17:21:12.870  <- eived symbols truncated
+17:21:12.870  <- eived symbols truncated
+17:21:12.870  <- eived symbols truncated
+17:21:12.870  <- eived symbols truncated
+17:21:12.870  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.871  <- eived symbols truncated
+17:21:12.872  <- eived symbols truncated
+17:21:12.872  <- eived symbols truncated
+17:21:12.872  <- eived symbols truncated
+17:21:12.872  <- eived symbols truncated
+17:21:12.872  <- eived symbols truncated
+17:21:12.872  <- eived symbols truncated
+17:21:12.872  <- eived symbols truncated
+17:21:12.872  <- eived symbols truncated
+17:21:12.872  <- eived symbols truncated
+17:21:12.872  <- eived symbols truncated
+17:21:12.872  <- eived symbols truncated
+17:21:12.873  <- eived symbols truncated
+17:21:12.873  <- eived symbols truncated
+17:21:12.873  <- eived symbols truncated
+17:21:12.873  <- eived symbols truncated
+17:21:12.873  <- eived symbols truncated
+17:21:12.873  <- eived symbols truncated
+17:21:12.873  <- eived symbols truncated
+17:21:12.873  <- eived symbols truncated
+17:21:12.873  <- eived symbols truncated
+17:21:12.873  <- eived symbols truncated
+17:21:12.873  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.874  <- eived symbols truncated
+17:21:12.875  <- eived symbols truncated
+17:21:12.875  <- eived symbols truncated
+17:21:12.875  <- eived symbols truncated
+17:21:12.875  <- eived symbols truncated
+17:21:12.875  <- eived symbols truncated
+17:21:12.875  <- eived symbols truncated
+17:21:12.875  <- eived symbols truncated
+17:21:12.875  <- eived symbols truncated
+17:21:12.875  <- eived symbols truncated
+17:21:12.875  <- eived symbols truncated
+17:21:12.875  <- eived symbols truncated
+17:21:12.875  <- eived symbols truncated
+17:21:12.876  <- eived symbols truncated
+17:21:12.876  <- eived symbols truncated
+17:21:12.876  <- eived symbols truncated
+17:21:12.876  <- eived symbols truncated
+17:21:12.876  <- eived symbols truncated
+17:21:12.876  <- eived symbols truncated
+17:21:12.876  <- eived symbols truncated
+17:21:12.876  <- eived symbols truncated
+17:21:12.876  <- eived symbols truncated
+17:21:12.876  <- eived symbols truncated
+17:21:12.876  <- eived symbols truncated
+17:21:12.877  <- eived symbols truncated
+17:21:12.877  <- eived symbols truncated
+17:21:12.877  <- eived symbols truncated
+17:21:12.877  <- eived symbols truncated
+17:21:12.877  <- eived symbols truncated
+17:21:12.877  <- eived symbols truncated
+17:21:12.877  <- eived symbols truncated
+17:21:12.877  <- eived symbols truncated
+17:21:12.877  <- eived symbols truncated
+17:21:12.877  <- eived symbols truncated
+17:21:12.878  <- eived symbols truncated
+17:21:12.878  <- eived symbols truncated
+17:21:12.878  <- eived symbols truncated
+17:21:12.878  <- eived symbols truncated
+17:21:12.878  <- eived symbols truncated
+17:21:12.878  <- eived symbols truncated
+17:21:12.878  <- eived symbols truncated
+17:21:12.878  <- eived symbols truncated
+17:21:12.878  <- eived symbols truncated
+17:21:12.878  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.879  <- eived symbols truncated
+17:21:12.880  <- eived symbols truncated
+17:21:12.880  <- eived symbols truncated
+17:21:12.880  <- eived symbols truncated
+17:21:12.880  <- eived symbols truncated
+17:21:12.880  <- eived symbols truncated
+17:21:12.880  <- eived symbols truncated
+17:21:12.880  <- eived symbols truncated
+17:21:12.880  <- eived symbols truncated
+17:21:12.880  <- eived symbols truncated
+17:21:12.880  <- eived symbols truncated
+17:21:12.881  <- eived symbols truncated
+17:21:12.881  <- eived symbols truncated
+17:21:12.881  <- eived symbols truncated
+17:21:12.881  <- eived symbols truncated
+17:21:12.881  <- eived symbols truncated
+17:21:12.881  <- eived symbols truncated
+17:21:12.881  <- eived symbols truncated
+17:21:12.881  <- eived symbols truncated
+17:21:12.881  <- eived symbols truncated
+17:21:12.881  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.882  <- eived symbols truncated
+17:21:12.883  <- eived symbols truncated
+17:21:12.883  <- eived symbols truncated
+17:21:12.883  <- eived symbols truncated
+17:21:12.883  <- eived symbols truncated
+17:21:12.883  <- eived symbols truncated
+17:21:12.883  <- eived symbols truncated
+17:21:12.883  <- eived symbols truncated
+17:21:12.883  <- eived symbols truncated
+17:21:12.883  <- eived symbols truncated
+17:21:12.883  <- eived symbols truncated
+17:21:12.883  <- eived symbols truncated
+17:21:12.884  <- eived symbols truncated
+17:21:12.884  <- eived symbols truncated
+17:21:12.884  <- eived symbols truncated
+17:21:12.884  <- eived symbols truncated
+17:21:12.884  <- eived symbols truncated
+17:21:12.884  <- eived symbols truncated
+17:21:12.884  <- eived symbols truncated
+17:21:12.884  <- eived symbols truncated
+17:21:12.884  <- eived symbols truncated
+17:21:12.884  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.885  <- eived symbols truncated
+17:21:12.886  <- eived symbols truncated
+17:21:12.886  <- eived symbols truncated
+17:21:12.886  <- eived symbols truncated
+17:21:12.886  <- eived symbols truncated
+17:21:12.886  <- eived symbols truncated
+17:21:12.886  <- eived symbols truncated
+17:21:12.886  <- eived symbols truncated
+17:21:12.886  <- eived symbols truncated
+17:21:12.886  <- eived symbols truncated
+17:21:12.886  <- eived symbols truncated
+17:21:12.886  <- eived symbols truncated
+17:21:12.886  <- eived symbols truncated
+17:21:12.886  <- eived symbols truncated
+17:21:12.887  <- eived symbols truncated
+17:21:12.887  <- eived symbols truncated
+17:21:12.887  <- eived symbols truncated
+17:21:12.887  <- eived symbols truncated
+17:21:12.887  <- eived symbols truncated
+17:21:12.887  <- eived symbols truncated
+17:21:12.887  <- eived symbols truncated
+17:21:12.887  <- eived symbols truncated
+17:21:12.887  <- eived symbols truncated
+17:21:12.887  <- eived symbols truncated
+17:21:12.887  <- eived symbols truncated
+17:21:12.887  <- eived symbols truncated
+17:21:12.887  <- eived symbols truncated
+17:21:12.888  <- eived symbols truncated
+17:21:12.888  <- eived symbols truncated
+17:21:12.888  <- eived symbols truncated
+17:21:12.888  <- eived symbols truncated
+17:21:12.888  <- eived symbols truncated
+17:21:12.888  <- eived symbols truncated
+17:21:12.888  <- eived symbols truncated
+17:21:12.888  <- eived symbols truncated
+17:21:12.888  <- eived symbols truncated
+17:21:12.888  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.889  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.890  <- eived symbols truncated
+17:21:12.891  <- eived symbols truncated
+17:21:12.891  <- eived symbols truncated
+17:21:12.891  <- eived symbols truncated
+17:21:12.891  <- eived symbols truncated
+17:21:12.891  <- eived symbols truncated
+17:21:12.891  <- eived symbols truncated
+17:21:12.891  <- eived symbols truncated
+17:21:12.891  <- eived symbols truncated
+17:21:12.891  <- eived symbols truncated
+17:21:12.891  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.892  <- eived symbols truncated
+17:21:12.894  <- eived symbols truncated
+17:21:12.894  <- eived symbols truncated
+17:21:12.894  <- eived symbols truncated
+17:21:12.894  <- eived symbols truncated
+17:21:12.894  <- eived symbols truncated
+17:21:12.894  <- eived symbols truncated
+17:21:12.894  <- eived symbols truncated
+17:21:12.894  <- eived symbols truncated
+17:21:12.894  <- eived symbols truncated
+17:21:12.894  <- eived symbols truncated
+17:21:12.894  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.895  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.896  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.897  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.898  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.899  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.900  <- eived symbols truncated
+17:21:12.901  <- eived symbols truncated
+17:21:12.901  <- eived symbols truncated
+17:21:12.901  <- eived symbols truncated
+17:21:12.901  <- eived symbols truncated
+17:21:12.901  <- eived symbols truncated
+17:21:12.901  <- eived symbols truncated
+17:21:12.901  <- eived symbols truncated
+17:21:12.901  <- eived symbols truncated
+17:21:12.901  <- eived symbols truncated
+17:21:12.901  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.902  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.903  <- eived symbols truncated
+17:21:12.904  <- eived symbols truncated
+17:21:12.904  <- eived symbols truncated
+17:21:12.904  <- eived symbols truncated
+17:21:12.904  <- eived symbols truncated
+17:21:12.904  <- eived symbols truncated
+17:21:12.904  <- eived symbols truncated
+17:21:12.904  <- eived symbols truncated
+17:21:12.904  <- eived symbols truncated
+17:21:12.904  <- eived symbols truncated
+17:21:12.904  <- eived symbols truncated
+17:21:12.905  <- eived symbols truncated
+17:21:12.905  <- eived symbols truncated
+17:21:12.905  <- eived symbols truncated
+17:21:12.905  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.905  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.905  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.905  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.905  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.905  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.905  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.905  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.906  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.906  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.906  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.906  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.907  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.907  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.907  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.907  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.907  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.907  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.907  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.907  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.907  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.908  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.908  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.908  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.908  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.908  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.908  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.908  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.908  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.908  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.909  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.909  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.909  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.909  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.909  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.910  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.910  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.910  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.910  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.910  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.910  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.910  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.910  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.910  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.911  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.911  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.911  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.911  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.911  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.912  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.912  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.912  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.912  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.912  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.912  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.912  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.912  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.912  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.913  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.913  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.913  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.913  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.913  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.914  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.914  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.914  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.914  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.914  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.914  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.914  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.914  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.914  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.915  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.915  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.915  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.915  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.915  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.915  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.915  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.916  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.916  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.916  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.916  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.916  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.916  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.917  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.917  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.917  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.917  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.917  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.917  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.917  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.917  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.917  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.917  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.918  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.918  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.918  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.918  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.919  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.919  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.919  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.919  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.919  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.919  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.919  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.919  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.919  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.920  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.920  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.920  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.920  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.920  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.921  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.921  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.921  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.921  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.921  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.921  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.921  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.921  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.921  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.922  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.922  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.922  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.922  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.922  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.923  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.923  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.923  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.923  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.923  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.923  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.923  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.923  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.923  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.924  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.924  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.924  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.924  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.925  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.925  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.925  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.925  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.925  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.925  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.925  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.926  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.926  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.926  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.926  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.926  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.926  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.926  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.927  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.927  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.927  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.927  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.927  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.927  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.927  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.927  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.927  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.928  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.928  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.928  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.928  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.928  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.929  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.929  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.929  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.929  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.929  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.929  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.929  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.929  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.930  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.930  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.930  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.930  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.930  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.931  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.931  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.931  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.931  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.931  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.932  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.932  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.932  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.932  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.932  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.932  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.932  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.932  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.932  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.933  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.933  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.933  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.933  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.933  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.934  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.934  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.934  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.934  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.934  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.934  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.934  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.934  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.934  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.935  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.935  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.935  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.935  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.936  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.936  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.936  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.936  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.936  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.937  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.937  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.937  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.937  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.937  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.937  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.937  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.937  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.937  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.938  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.938  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.938  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.938  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.938  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.939  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.939  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.939  <- E rmt: hw buffer too small, received symbols truncated
+17:21:12.939  <- E rmt: hw buffer too small, received symbols truncated
+17:21:13.444  <- E rmt: hw buffer too small, received symbols truncated
+17:21:13.444  <- E rmt: hw buffer too small, received symbols truncated
+17:21:13.444  <- E rmt: hw buffer too small, received symbols truncated
+17:21:13.945  <- E rmt: hw buffer too small, received symbols truncated
+17:21:13.945  <- E rmt: hw buffer too small, received symbols truncated
+17:21:13.945  <- BU.OK relay bridge=DRIVE dir=REV ms=1000 I_before=-0.03 I_mid=+21.56 I_after=-0.03 heat=0.011 tripped=0 edges=0
+17:25:38.118  -> BU.RELAY JACK UP 500
+17:25:38.119  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.119  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.119  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.119  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.119  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.119  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.119  <- [0;32mI (86609) BT_HID: Scanning for HID devices (3s)...[0m
+17:25:38.119  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.119  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.120  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.120  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.120  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.120  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.121  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.121  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.121  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.121  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.121  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.122  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.122  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.122  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.122  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.122  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.122  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.122  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.122  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.122  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.123  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.123  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.123  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.123  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.124  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.124  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.124  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.124  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.124  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.124  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.124  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.124  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.124  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.124  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.125  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.125  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.125  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.125  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.125  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.125  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.126  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.126  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.126  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.126  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.126  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.126  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.126  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.127  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.127  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.127  <- [0;32mI (89619) BT_HID: Found 0 HID device(s)[0m
+17:25:38.127  <- [0;32mI (89619) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:25:38.127  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.127  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.127  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.127  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.127  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.128  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.128  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.128  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.128  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.128  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.129  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.129  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.129  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.129  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.130  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.130  <- mall, received symbols truncated
+17:25:38.130  <- [0;32mI (350139) BT_HID: Found 0 HID device(s)[0m
+17:25:38.130  <- [0;32mI (350139) BT_HID: No HID devices found, retrying in 2000ms...[0m
+17:25:38.130  <- E rmt: hw buffer too smaces found, retrying in 2000ms...[0m
+17:25:38.636  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.636  <- E rmt: hw buffer too small, received symbols truncated
+17:25:38.636  <- E rmt: hw buffer too small, received symbols truncated
+17:25:39.061  <- BU.OK relay bridge=JACK dir=UP ms=500 I_before=+0.00 I_mid=-0.38 I_after=+0.00 heat=0.000 tripped=0 edges=1
+17:25:39.355  -> BU.RELAY JACK DOWN 500
+17:25:39.356  <- E rmt: hw buffer too small, received symbols truncated
+17:25:39.356  <- E rmt: hw buffer too small, received symbols truncated
+17:25:39.697  <- E rmt: hw buffer too small, received symbols truncated
+17:25:39.697  <- E rmt: hw buffer too small, received symbols truncated
+17:25:39.697  <- E rmt: hw buffer too small, received symbols truncated
+17:25:39.697  <- E rmt: hw buffer too small, received symbols truncated
+17:25:39.697  <- E rmt: hw buffer too small, received symbols truncated
+17:25:40.017  <- E rmt: hw buffer too small, received symbols truncated
+17:25:40.017  <- E rmt: hw buffer too small, received symbols truncated
+17:25:40.017  <- BU.OK relay bridge=JACK dir=DOWN ms=500 I_before=+0.00 I_mid=+0.83 I_after=-0.00 heat=0.000 tripped=0 edges=1
+17:25:40.340  -> BU.RELAY AUX FWD 150
+17:25:40.341  <- E rmt: hw buffer too small, received symbols truncated
+17:25:40.341  <- [0;32mI (352139) BT_HID: Scanning for HID devices (3s)...[0m
+17:25:40.341  <- E rmt: hw buffer too small, received symbols truncated
+17:25:40.341  <- E rmt: hw buffer too small, received symbols truncated
+17:25:40.341  <- E rmt: hw buffer too small, received symbols truncated
+17:25:40.770  <- E rmt: hw buffer too small, received symbols truncated
+17:25:40.770  <- E rmt: hw buffer too small, received symbols truncated
+17:25:40.770  <- BU.OK relay bridge=AUX dir=FWD ms=150 I_before=+0.00 I_mid=-2.12 I_after=+0.00 heat=0.006 tripped=0 edges=0
+17:25:42.165  -> BU.END

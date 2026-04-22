@@ -34,6 +34,11 @@ float get_battery_V();
 // Always false on V4.
 bool get_hw_overcurrent_fault(void);
 
+// Raw, unfiltered ADC reads — used by POST. Return 0 on error.
+int get_bat_raw_mv(void);
+int get_isens_raw_mv(void);  // V5 only — returns 0 on V4
+int get_voc_raw_mv(void);    // V5 only — returns 0 on V4
+
 void disable_autozero(bridge_t bridge);
 bool get_bridge_overcurrent(bridge_t bridge, float threshold);
 bool get_bridge_spike(bridge_t bridge, float threshold);

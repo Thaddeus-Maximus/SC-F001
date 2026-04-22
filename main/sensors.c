@@ -17,14 +17,21 @@
 static const char* TAG = "SENS";
 
 #ifdef BOARD_V5
-// V5 labels 2/3/4/1 → IO14/16/19/27 → SAFETY/JACK/DRIVE/nc
+// V5 physical connectors:
+//   J1 = IO27 → SAFETY
+//   J2 = IO14 → JACK
+//   J3 = IO23 → n/c (AUX)   (J3 unreliable on the V5 board, moved DRIVE off)
+//   J4 = IO19 → DRIVE
 // Array order matches sensor_t: SAFETY, DRIVE, JACK, AUX2
-uint8_t sensor_pins[N_SENSORS] = {GPIO_NUM_14, GPIO_NUM_19, GPIO_NUM_16, GPIO_NUM_27};
+uint8_t sensor_pins[N_SENSORS] = {GPIO_NUM_27, GPIO_NUM_19, GPIO_NUM_14, GPIO_NUM_23};
 #else // BOARD_V4
 uint8_t sensor_pins[N_SENSORS] = {GPIO_NUM_27, GPIO_NUM_14, GPIO_NUM_16, GPIO_NUM_19};
 #endif
 
 volatile int16_t sensor_count[N_SENSORS] = {0};
+/* Bumped directly in the ISR on every edge — does not require sensors_check()
+ * to run, so it works even while bring-up pauses the FSM task. */
+volatile uint32_t sensor_isr_edge_count[N_SENSORS] = {0};
 static volatile uint64_t sensor_last_isr_time[N_SENSORS] = {0};
 static volatile bool sensor_stable_state[N_SENSORS] = {false};
 static QueueHandle_t sensor_event_queue = NULL;
@@ -59,6 +66,8 @@ static void IRAM_ATTR sensor_isr_handler(void* arg) {
     uint64_t now = esp_timer_get_time();
     sensor_last_isr_time[i] = now;
 
+    sensor_isr_edge_count[i]++;
+
     sensor_event_t evt = {.sensor_id = i, .level = !gpio_get_level(gpio_num)};
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     xQueueSendFromISR(sensor_event_queue, &evt, &xHigherPriorityTaskWoken);
@@ -69,6 +78,17 @@ esp_err_t sensors_init() {
 	
 	 uint64_t pin_mask = 0;
 	 for (uint8_t i = 0; i < N_SENSORS; i++) pin_mask |= (1ULL << sensor_pins[i]);
+
+	/* Belt-and-suspenders: force each sensor pin into digital-GPIO mode with
+	 * pull-up explicitly applied. gpio_config()'s pull_up_en is known to be
+	 * shadowed by RTC-subsystem settings on RTC-capable pins (IO27, 32, 33,
+	 * 34–39). gpio_reset_pin() detaches any lingering RTC/peripheral mux,
+	 * and the explicit gpio_set_pull_mode() call goes through the right
+	 * path regardless of which sub-block owns the pin. */
+	for (uint8_t i = 0; i < N_SENSORS; i++) {
+	    gpio_reset_pin(sensor_pins[i]);
+	}
+
 	 gpio_config_t io_conf = {
         .pin_bit_mask = pin_mask,
         .mode = GPIO_MODE_INPUT,
@@ -77,6 +97,10 @@ esp_err_t sensors_init() {
         .intr_type = GPIO_INTR_ANYEDGE,
     };
     ESP_ERROR_CHECK(gpio_config(&io_conf));
+
+    for (uint8_t i = 0; i < N_SENSORS; i++) {
+        ESP_ERROR_CHECK(gpio_set_pull_mode(sensor_pins[i], GPIO_PULLUP_ONLY));
+    }
 
     sensor_event_queue = xQueueCreate(16, sizeof(sensor_event_t));
     if (!sensor_event_queue) {
@@ -165,7 +189,9 @@ void sensors_check() {
             ESP_LOGI(TAG, "Safety sensor went HIGH, starting break timer");
         } else if (is_safe && (now - safety_high_start_time >= SAFETY_BREAK_DEBOUNCE_US)) {
             is_safe = false;
-            i2c_set_relays((relay_port_t){.raw=0});
+            /* Kill all bridges but leave the sensor rail up — we still
+             * want to observe the safety input. */
+            i2c_relays_idle();
             ESP_LOGI(TAG, "SAFETY BREAK - Relays disabled");
         }
     }
@@ -198,4 +224,9 @@ int16_t get_sensor_counter(sensor_t i) {
 
 void set_sensor_counter(sensor_t i, int16_t to) {
     sensor_count[i] = to;
+}
+
+uint32_t get_sensor_isr_edges(sensor_t i) {
+    if (i >= N_SENSORS) return 0;
+    return sensor_isr_edge_count[i];
 }

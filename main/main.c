@@ -18,6 +18,7 @@
 #include "rf_433.h"
 #include "bt_hid.h"
 #include "webserver.h"
+#include "bringup.h"
 #include "comms_events.h"
 #include "version.h"
 #include <string.h>
@@ -160,7 +161,9 @@ void app_main(void) {esp_task_wdt_add(NULL);
     init_critical("I2C", i2c_init);
     drive_leds(LED_BOOTING);  // LED on ASAP after I2C is up
     i2c_post();  // verify TCA9555 responds
-    i2c_set_relays((relay_port_t){.raw=0});
+    /* Sensors powered from boot; FSM will keep P10 high on every tick.
+     * Drops back to 0 on soft_idle_enter() (sleep). */
+    i2c_relays_idle();
 
     if (rtc_xtal_init() != ESP_OK) ESP_LOGE(TAG, "RTC FAILED");
     
@@ -321,7 +324,13 @@ void app_main(void) {esp_task_wdt_add(NULL);
 
     while(true) {
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
-        
+
+        /* Bring-up tool owns the LEDs, buttons, and relays while active. */
+        if (bringup_mode_is_active()) {
+            esp_task_wdt_reset();
+            continue;
+        }
+
         /* In soft idle: slow poll (5s) via direct GPIO, no I2C. */
         // TODO: Critique & confirm what we do in idle
         if (soft_idle_is_active()) {

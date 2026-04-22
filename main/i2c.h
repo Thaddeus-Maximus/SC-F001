@@ -55,6 +55,13 @@ esp_err_t i2c_stop(void);
 esp_err_t i2c_set_relays(relay_port_t states);
 esp_err_t i2c_set_led1(uint8_t state);
 
+/* Normal run state: all bridges off, but P10 (sensor rail) held high.
+ * Use whenever "everything off" is really "all motors off, system is still on". */
+esp_err_t i2c_relays_idle(void);
+
+/* Sleep state: all bridges off AND P10 low, cutting power to the sensors. */
+esp_err_t i2c_relays_sleep(void);
+
 esp_err_t i2c_poll_buttons();
 
 bool i2c_get_button_tripped(uint8_t button);
