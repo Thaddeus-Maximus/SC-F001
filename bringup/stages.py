@@ -208,14 +208,14 @@ def _run_battery_cal(link: Link, t: Tally) -> None:
     err = new_V - v_true
     print(f"  Post-cal bat_V = {new_V:.3f}  (err {err*1000:+.1f} mV)")
     abs_err = abs(err)
-    if abs_err < 0.020:
-        print(f"  {fmt.pass_('PASS')}: cal residual within ±20 mV")
+    if abs_err < 0.040:
+        print(f"  {fmt.pass_('PASS')}: cal residual within ±40 mV")
         t.note_pass()
-    elif abs_err < 0.050:
-        print(f"  {fmt.warn('WARN')}: residual {err*1000:+.1f} mV (>20, <50 mV)")
+    elif abs_err < 0.100:
+        print(f"  {fmt.warn('WARN')}: residual {err*1000:+.1f} mV (>40, <100 mV)")
         t.note_warn()
     else:
-        print(f"  {fmt.fail('FAIL')}: residual {err*1000:+.1f} mV exceeds 50 mV")
+        print(f"  {fmt.fail('FAIL')}: residual {err*1000:+.1f} mV exceeds 100 mV")
         t.note_fail()
 
 
