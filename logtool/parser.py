@@ -33,6 +33,7 @@ _FALLBACK_FSM_STATES = {
     10: "CALIBRATE_JACK_MOVE",
     11: "CALIBRATE_DRIVE_DELAY",
     12: "CALIBRATE_DRIVE_MOVE",
+    13: "DRIVE_FLUFF_START",
 }
 
 ESP_RESET_REASONS = {
@@ -193,7 +194,7 @@ def _unpack_time_set(payload: bytes) -> dict:
 
 
 def _is_valid_entry_type(t: int) -> bool:
-    return (0 <= t <= 12) or t in (LOG_TYPE_BAT, LOG_TYPE_CRASH, LOG_TYPE_BOOT, LOG_TYPE_TIME_SET)
+    return (0 <= t <= 13) or t in (LOG_TYPE_BAT, LOG_TYPE_CRASH, LOG_TYPE_BOOT, LOG_TYPE_TIME_SET)
 
 
 def parse_entries(data: bytes, fsm_states: dict = None, type_first: bool = False) -> list:
@@ -282,7 +283,7 @@ def parse_entries(data: bytes, fsm_states: dict = None, type_first: bool = False
             i = end_offset + 1
 
         try:
-            if 0 <= entry_type <= 12:
+            if 0 <= entry_type <= 13:
                 e = _unpack_fsm(payload, fsm_states)
                 e['entry_type'] = entry_type
                 e['state_name'] = fsm_states.get(entry_type, f"STATE_{entry_type}")

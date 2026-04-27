@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
+import fmt
 from protocol import Link, Response, Event
 
 
@@ -24,8 +25,8 @@ class Tally:
 
 def _prompt(msg: str, accept_skip: bool = True) -> str:
     """Block for operator input. Returns 'run', 'skip', or 'quit'."""
-    hint = " [Enter=run" + (", s=skip" if accept_skip else "") + ", q=quit]"
-    ans = input(msg + hint + ": ").strip().lower()
+    hint = fmt.dim(" [Enter=run" + (", s=skip" if accept_skip else "") + ", q=quit]")
+    ans = input(fmt.prompt(msg) + hint + ": ").strip().lower()
     if ans in ("", "y", "yes", "r", "run"):
         return "run"
     if ans in ("s", "skip") and accept_skip:
@@ -38,7 +39,7 @@ def _prompt(msg: str, accept_skip: bool = True) -> str:
 
 def _show_response(label: str, r: Response) -> None:
     bag = " ".join(f"{k}={v}" for k, v in r.fields.items())
-    print(f"  [{r.status}] {label}  {bag}")
+    print(f"  {fmt.status_tag(r.status)} {label}  {fmt.dim(bag)}")
 
 
 # ---------------------------------------------------------------------------
@@ -46,7 +47,7 @@ def _show_response(label: str, r: Response) -> None:
 # ---------------------------------------------------------------------------
 
 def stage_begin(link: Link, t: Tally) -> None:
-    print("\n== Stage 0 — Begin ==")
+    print(fmt.stage("Stage 0 — Begin"))
     print("  Waiting for device to finish booting ...")
     r = link.wait_ready("BU.BEGIN", per_attempt_s=1.5, overall_timeout_s=30.0)
     _show_response("begin", r)
@@ -64,7 +65,7 @@ def stage_begin(link: Link, t: Tally) -> None:
 # ---------------------------------------------------------------------------
 
 def stage_flash(link: Link, t: Tally) -> None:
-    print("\n== Stage 1 — Flash & storage ==")
+    print(fmt.stage("Stage 1 — Flash & storage"))
     if _prompt("  Run flash roundtrip + log head/tail check") != "run":
         t.note_skip(); return
     r = link.request("BU.FLASH", overall_timeout_s=10)
@@ -78,10 +79,9 @@ def stage_flash(link: Link, t: Tally) -> None:
 
 def stage_i2c_led(link: Link, t: Tally) -> None:
     import threading
-    import time
 
-    print("\n== Stage 2 — I2C / TCA9555 / LEDs ==")
-    if _prompt("  Probe TCA9555 and run LED waterfall") != "run":
+    print(fmt.stage("Stage 2 — I2C / TCA9555 / LEDs"))
+    if _prompt("  Probe TCA9555 and run LED check") != "run":
         t.note_skip(); return
 
     r = link.request("BU.I2C")
@@ -90,51 +90,40 @@ def stage_i2c_led(link: Link, t: Tally) -> None:
         t.note_fail(); return
     t.note_pass()
 
-    # Waterfall: 000 → 001 → 011 → 111 → 110 → 100 → 000, looped.
-    pattern = [0b000, 0b001, 0b011, 0b111, 0b110, 0b100]
-    step_s = 0.25
-
-    stop = threading.Event()
-
-    def driver() -> None:
-        i = 0
-        while not stop.is_set():
-            try:
-                link.request(f"BU.LED {pattern[i % len(pattern)]}",
-                             overall_timeout_s=2.0)
-            except Exception as e:
-                print(f"    [led] {e!r}")
-                break
-            i += 1
-            # Sleep in small chunks so we can stop promptly.
-            for _ in range(int(step_s * 20)):
-                if stop.is_set():
+    # Firmware-driven LED watch: all LEDs solid when the button is released,
+    # fast waterfall while held. Operator actuates the button and confirms.
+    def reader() -> None:
+        try:
+            for item in link.request_stream("BU.LED.WATCH",
+                                            overall_timeout_s=3600):
+                if isinstance(item, Event) and item.cmd == "led":
+                    state = "PRESSED" if item.fields.get("pressed") == "1" else "released"
+                    print(f"    [led] button {state}")
+                elif isinstance(item, Response):
                     return
-                time.sleep(0.05)
+        except Exception as e:  # pragma: no cover — defensive
+            print(f"    [led-reader] {e!r}")
 
-    th = threading.Thread(target=driver, daemon=True)
+    th = threading.Thread(target=reader, daemon=True)
     th.start()
 
-    print("  LED waterfall running — watch the board.")
+    print("  LEDs should be SOLID (all on) when button is released.")
+    print("  Press-and-hold the button: LEDs should WATERFALL at ~3× speed.")
     try:
         while True:
-            ans = input("  Did the waterfall look correct? [y/n]: ").strip().lower()
+            ans = input("  LEDs behaved correctly? [y/n]: ").strip().lower()
             if ans.startswith("y"):
                 verdict = "pass"; break
             if ans.startswith("n"):
                 verdict = "fail"; break
     finally:
-        stop.set()
+        link.send("")  # any byte aborts BU.LED.WATCH
         th.join(timeout=3)
-        try:
-            link.request("BU.LED 0", overall_timeout_s=2.0)
-        except Exception:
-            pass
 
     if verdict == "pass":
         t.note_pass()
     else:
-        print("  LED visual check FAILED")
+        print(f"  {fmt.fail('LED visual check FAILED')}")
         t.note_fail()
 
 
@@ -143,8 +132,8 @@ def stage_i2c_led(link: Link, t: Tally) -> None:
 # ---------------------------------------------------------------------------
 
 def stage_adc(link: Link, t: Tally, calibrate: bool = True) -> None:
-    print("\n== Stage 3 — Analog front-end ==")
-    if _prompt("  Read ADC snapshot (battery / current / FAULT / VOC)") != "run":
+    print(fmt.stage("Stage 3 — Analog front-end"))
+    if _prompt("  Read ADC snapshot (battery / motor current)") != "run":
         t.note_skip(); return
 
     r = link.request("BU.ADC")
@@ -156,24 +145,9 @@ def stage_adc(link: Link, t: Tally, calibrate: bool = True) -> None:
     bat_V = r.getf("bat_V", 0.0)
     print(f"  -> battery reports {bat_V:.3f} V")
 
-    # V5-specific checks — INFORMATIONAL only on the current V5 boards,
-    # because both VOC and FAULT are wired straight to the ESP32 with no
-    # external resistors. Without a pull-down on VOC the pin floats at VDD
-    # (IC has a ~10 µA internal current source toward VDD, needs an
-    # external RL_VOC to GND to set the OC threshold). Without a pull-up
-    # on FAULT (open-drain, active-low) the line is undefined. Neither
-    # reading is actionable in firmware until the board is respun —
-    # GPIO36/39 are input-only on ESP32 and don't have internal pulls.
-    # See docs/SC-F001/README.md "V5 hardware caveats".
-    if "voc_mv" in r.fields:
-        voc_mv = r.geti("voc_mv")
-        in_range = 330 <= voc_mv <= 660
-        print(f"  INFO: VOC={voc_mv} mV "
-              f"({'in' if in_range else 'out of'} datasheet linear range 330–660 mV)")
-    if "fault" in r.fields:
-        if r.geti("fault") == 1:
-            print("  INFO: FAULT pin reads LOW — expected on V5 boards without "
-                  "an external pull-up on the FAULT trace")
+    # VOC and FAULT pins on V5 are unusable (wired direct to input-only
+    # ESP32 GPIOs, no external resistors — see README "V5 hardware caveats").
+    # They're intentionally ignored here.
 
     if not calibrate:
         return
@@ -183,7 +157,7 @@ def stage_adc(link: Link, t: Tally, calibrate: bool = True) -> None:
 def _run_battery_cal(link: Link, t: Tally) -> None:
     from calibrate import single_point_offset, verify
 
-    print("\n-- Battery voltage calibration --")
+    print(fmt.section("Battery voltage calibration"))
     while True:
         ans = input("  Run calibration now? [y/n]: ").strip().lower()
         if ans.startswith("n"):
@@ -249,7 +223,7 @@ def stage_sensors(link: Link, t: Tally) -> None:
     """
     import threading
 
-    print("\n== Stage 4 — Sensor live view ==")
+    print(fmt.stage("Stage 4 — Sensor live view"))
     print("  Live state of all 4 sensor pins is printed below when any one")
     print("  changes. Per-edge events also print as they arrive.")
     print("  Poke each sensor by hand / magnet / jumper to verify it responds.")
@@ -303,11 +277,11 @@ def stage_sensors(link: Link, t: Tally) -> None:
     th.join(timeout=3)
 
     if state["make"] and state["break"]:
-        print("  SAFETY: PASS (saw break and make)")
+        print(f"  SAFETY: {fmt.pass_('PASS')} (saw break and make)")
         t.note_pass()
     else:
         missing = [k for k, v in state.items() if not v]
-        print(f"  SAFETY: FAIL — missed {missing}")
+        print(f"  SAFETY: {fmt.fail('FAIL')} — missed {missing}")
         t.note_fail()
 
 
@@ -329,7 +303,7 @@ RELAY_TESTS = [
 
 
 def stage_relays(link: Link, t: Tally) -> None:
-    print("\n== Stage 5 — Relay bridges ==")
+    print(fmt.stage("Stage 5 — Relay bridges"))
     print("  PRECONDITIONS:")
     print("   - Battery connected, fuse in place")
     print("   - Drive wheels off ground / disengaged")
@@ -361,14 +335,14 @@ def stage_relays(link: Link, t: Tally) -> None:
               f"tripped={tripped}{edge_str}")
 
         if tripped:
-            print("    FAIL: efuse tripped"); t.note_fail(); continue
+            print(f"    {fmt.fail('FAIL')}: efuse tripped"); t.note_fail(); continue
         if check_edges and edges <= 0:
-            print(f"    FAIL: {bridge} sensor saw no edges — motor not turning?")
+            print(f"    {fmt.fail('FAIL')}: {bridge} sensor saw no edges — motor not turning?")
             t.note_fail(); continue
         if lo <= delta <= hi:
             t.note_pass()
         else:
-            print(f"    WARN: ΔI outside nominal")
+            print(f"    {fmt.warn('WARN')}: ΔI outside nominal")
             t.note_warn()
 
 
@@ -379,7 +353,7 @@ def stage_relays(link: Link, t: Tally) -> None:
 def stage_rf(link: Link, t: Tally) -> None:
     import threading
 
-    print("\n== Stage 6a — RF 433 MHz ==")
+    print(fmt.stage("Stage 6a — RF 433 MHz"))
     if _prompt("  Watch for RF remote codes") != "run":
         t.note_skip(); return
 
@@ -413,7 +387,7 @@ def stage_rf(link: Link, t: Tally) -> None:
 
 
 def stage_wifi(link: Link, t: Tally) -> None:
-    print("\n== Stage 6b — WiFi + web UI ==")
+    print(fmt.stage("Stage 6b — WiFi + web UI"))
     if _prompt("  Start SoftAP and wait for a client to load the web UI") != "run":
         t.note_skip(); return
     r = link.request("BU.WIFI.START", overall_timeout_s=20)
@@ -440,7 +414,7 @@ def stage_wifi(link: Link, t: Tally) -> None:
 # ---------------------------------------------------------------------------
 
 def stage_end(link: Link, t: Tally) -> None:
-    print("\n== Stage — End ==")
+    print(fmt.stage("Stage — End"))
     if _prompt("  Exit bring-up mode (device will reboot)") != "run":
         print("  Leaving device in bring-up mode — reset manually to resume normal firmware.")
         return

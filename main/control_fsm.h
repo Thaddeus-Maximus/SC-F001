@@ -33,12 +33,18 @@ typedef enum {
 	STATE_DRIVE_END_DELAY,
 	STATE_JACK_DOWN,
 	STATE_UNDO_JACK_START,
-	
+
 	STATE_CALIBRATE_JACK_DELAY,
 	STATE_CALIBRATE_JACK_MOVE,
-	
+
 	STATE_CALIBRATE_DRIVE_DELAY,
-	STATE_CALIBRATE_DRIVE_MOVE
+	STATE_CALIBRATE_DRIVE_MOVE,
+
+	/* New — appended here to avoid renumbering existing log entries.
+	 * Runs the fluffer alone for ~1 s between DRIVE_START_DELAY and DRIVE
+	 * so the aux motor never overlaps with the jack (which caused the aux
+	 * e-fuse to spuriously trip on V5's shared current sensor). */
+	STATE_DRIVE_FLUFF_START
 } fsm_state_t;
 #define LOG_TYPE_BAT      100
 #define LOG_TYPE_CRASH    101

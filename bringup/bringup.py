@@ -37,6 +37,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+import fmt                             # noqa: E402
 from protocol import Link          # noqa: E402
 from stages import all_stages, Tally  # noqa: E402
 import flash as flasher               # noqa: E402
@@ -91,7 +92,7 @@ def main() -> int:
         transcript_file = transcript_path.open("w", encoding="utf-8")
         def _tx(line: str) -> None:
             ts = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-            transcript_file.write(f"{ts}  {line}\n")
+            transcript_file.write(f"{ts}  {fmt.strip(line)}\n")
             transcript_file.flush()
         transcript_cb = _tx
         print(f"Transcript → {transcript_path}")
@@ -103,9 +104,9 @@ def main() -> int:
 
     # Phase 1: optional flash
     if args.flash or args.flash_only:
-        _log(f"== Flashing {args.port} ==")
+        _log(fmt.stage(f"Flashing {args.port}"))
         _do_flash(args, _log)
-        _log("== Flash complete ==")
+        _log(fmt.pass_("Flash complete"))
         if args.flash_only:
             if transcript_file:
                 transcript_file.close()
@@ -141,21 +142,24 @@ def main() -> int:
                     print(f"  EXCEPTION in stage: {e!r}")
                     tally.note_fail()
                 if tally.failed > snap[1]:
-                    ans = input("  Stage had FAILs — retry? [y/n]: ").strip().lower()
+                    ans = input(fmt.prompt("  Stage had FAILs — retry? [y/n]") + ": ").strip().lower()
                     if ans.startswith("y"):
                         _restore(tally, snap)
                         continue
                 break
     except KeyboardInterrupt:
-        print("\nAborted by operator")
+        print(fmt.warn("\nAborted by operator"))
         try:
             link.send("BU.END")
         except Exception:
             pass
 
-    print("\n==== Bring-up summary ====")
-    print(f"  pass={tally.passed}  fail={tally.failed}  "
-          f"warn={tally.warnings}  skip={tally.skipped}")
+    print(fmt.stage("Bring-up summary"))
+    print(fmt.summary_line(tally.passed, tally.failed, tally.warnings, tally.skipped))
+    if tally.failed == 0:
+        print(f"  {fmt.pass_('ALL PASS')}")
+    else:
+        print(f"  {fmt.fail('FAILURES PRESENT — review above')}")
 
     link.close()
     if transcript_file:

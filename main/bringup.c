@@ -225,17 +225,84 @@ static void cmd_led(char *args)
     OK("led mask=%u", mask);
 }
 
+/* BU.LED.WATCH
+ *   LEDs solid (all on) while the physical button is released.
+ *   LEDs waterfall at ~83 ms/step while the button is held.
+ *   Runs indefinitely; any UART byte aborts.
+ */
+static void cmd_led_watch(char *args)
+{
+    (void)args;
+    static const uint8_t waterfall[] = {
+        0b001, 0b011, 0b111, 0b110, 0b100, 0b000
+    };
+    const size_t N_WF = sizeof(waterfall) / sizeof(waterfall[0]);
+    const int64_t step_us = 83000;  /* ~83 ms — 3× the 250 ms host-side rate */
+
+    int64_t next_step_us = esp_timer_get_time();
+    size_t  wf_i = 0;
+    int     last_pressed = -1;  /* force initial emit */
+    uint8_t last_mask = 0xFF;
+
+    while (1) {
+        /* Abort on any UART input. */
+        size_t available = 0;
+        if (uart_get_buffered_data_len(UART_NUM_0, &available) == ESP_OK
+            && available > 0) {
+            uint8_t drain[64];
+            while (available > 0) {
+                int n = uart_read_bytes(UART_NUM_0, drain, sizeof(drain), 0);
+                if (n <= 0) break;
+                available = (size_t)n < available ? available - (size_t)n : 0;
+            }
+            break;
+        }
+
+        i2c_poll_buttons();
+        bool pressed = i2c_get_button_state(0);
+        int64_t now_us = esp_timer_get_time();
+
+        uint8_t mask;
+        if (pressed) {
+            if (now_us >= next_step_us) {
+                wf_i = (wf_i + 1) % N_WF;
+                next_step_us = now_us + step_us;
+            }
+            mask = waterfall[wf_i];
+        } else {
+            wf_i = 0;
+            next_step_us = now_us;  /* so the first press starts from step 0 */
+            mask = 0b111;
+        }
+
+        if (mask != last_mask) {
+            i2c_set_led1(mask);
+            last_mask = mask;
+        }
+        if ((int)pressed != last_pressed) {
+            EVT("led t=%.2f pressed=%d", elapsed_s(), pressed ? 1 : 0);
+            last_pressed = pressed;
+        }
+
+        esp_task_wdt_reset();
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
+
+    i2c_set_led1(0);
+    OK("led.watch done");
+}
+
 static void cmd_adc_once(void)
 {
     int bat_mv = get_bat_raw_mv();
     float bat_V = get_battery_V();
 #ifdef BOARD_V5
+    /* VOC and FAULT pins are unusable on V5 (input-only ESP32 GPIOs
+     * without external pulls — see README "V5 hardware caveats"); skip. */
     int isens_mv = get_isens_raw_mv();
     float isens_A = -(isens_mv - 1650.0f) / 13.2f;
-    int voc_mv = get_voc_raw_mv();
-    int fault = get_hw_overcurrent_fault() ? 1 : 0;
-    OK("adc bat_mv=%d bat_V=%.3f isens_mv=%d isens_A=%+.2f voc_mv=%d fault=%d",
-       bat_mv, bat_V, isens_mv, isens_A, voc_mv, fault);
+    OK("adc bat_mv=%d bat_V=%.3f isens_mv=%d isens_A=%+.2f",
+       bat_mv, bat_V, isens_mv, isens_A);
 #else
     OK("adc bat_mv=%d bat_V=%.3f", bat_mv, bat_V);
 #endif
@@ -629,6 +696,7 @@ static const struct cmd_entry CMDS[] = {
     { "FLASH",          cmd_flash        },
     { "I2C",            cmd_i2c          },
     { "LED",            cmd_led          },
+    { "LED.WATCH",      cmd_led_watch    },
     { "ADC",            cmd_adc          },
     { "ADC.STREAM",     cmd_adc_stream   },
     { "SENSORS.WATCH",  cmd_sensors_watch},

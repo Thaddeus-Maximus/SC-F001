@@ -112,6 +112,7 @@ int8_t fsm_get_current_progress(int8_t denominator) {
 		case STATE_JACK_DOWN:
 		case STATE_MOVE_START_DELAY:
 		case STATE_DRIVE_START_DELAY:
+		case STATE_DRIVE_FLUFF_START:
 		case STATE_DRIVE_END_DELAY:
 			if (timer_end != timer_start)
 				x = (fsm_now-timer_start)*denominator/(timer_end-timer_start);
@@ -407,12 +408,35 @@ void control_task(void *param) {
                 break;
 
             case STATE_DRIVE_START_DELAY:
-            	// 1s pause between jack-up and drive — mechanical settling
+            	// 1s quiet pause between jack-up and fluffer spin-up.
+            	// All motors off here so the jack-up current fully settles
+            	// before we energize the fluffer.
             	if (!get_is_safe()) {
 					fsm_error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
 					set_timer(JACK_DOWN_TIME);
                 	log = true;
+				} else if (timer_done()) {
+					current_state = STATE_DRIVE_FLUFF_START;
+            		log = true;
+					set_timer((uint64_t)get_param_value_t(PARAM_FLUFF_PREDRIVE_MS).u32 * 1000);
+				}
+                break;
+
+            case STATE_DRIVE_FLUFF_START:
+            	// Fluffer alone for 1s, then drive+fluffer. Splits the old
+            	// "jack-up+fluff concurrent" sequence so aux never overlaps
+            	// with jack on V5's shared current sensor.
+            	if (!get_is_safe()) {
+					fsm_error = SC_ERR_SAFETY_TRIP;
+					current_state = STATE_UNDO_JACK_START;
+					set_timer(JACK_DOWN_TIME);
+                	log = true;
+				} else if (efuse_get(BRIDGE_AUX)) {
+					fsm_error = SC_ERR_EFUSE_TRIP_3;
+					current_state = STATE_UNDO_JACK_START;
+					set_timer(JACK_DOWN_TIME);
+					log = true;
 				} else if (timer_done()) {
 					current_state = STATE_DRIVE;
             		log = true;
@@ -632,11 +656,12 @@ void control_task(void *param) {
 			case STATE_CALIBRATE_JACK_MOVE:
             case STATE_JACK_UP_START:
             case STATE_JACK_UP:
-            	// jack up and fluff
+            	// jack up only — fluffer is deferred to STATE_DRIVE_FLUFF_START
+            	// so aux and jack never energize together.
             	drive_relays((relay_port_t){.bridges = {
 					.DRIVE=BRIDGE_OFF,
 					.JACK=BRIDGE_FWD,
-					.AUX=BRIDGE_FWD
+					.AUX=BRIDGE_OFF
 				}});
                 rtc_reset_shutdown_timer();
                 log = true;
@@ -661,8 +686,19 @@ void control_task(void *param) {
                 rtc_reset_shutdown_timer();
                 log = true;
                 break;
-			case STATE_UNDO_JACK_START:
-            case STATE_DRIVE_START_DELAY:
+			case STATE_DRIVE_START_DELAY:
+            	// Quiet 1s after jack-up — all motors off so jack current
+            	// settles before the fluffer starts.
+            	drive_relays((relay_port_t){.bridges = {
+					.DRIVE=BRIDGE_OFF,
+					.JACK=BRIDGE_OFF,
+					.AUX=BRIDGE_OFF
+				}});
+                rtc_reset_shutdown_timer();
+                log = true;
+                break;
+            case STATE_DRIVE_FLUFF_START:
+            case STATE_UNDO_JACK_START:
             case STATE_DRIVE_END_DELAY:
             	// only fluffer
             	drive_relays((relay_port_t){.bridges = {

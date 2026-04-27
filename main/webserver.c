@@ -829,10 +829,7 @@ bool server_running = false;
 static bool s_wifi_running = false;
 
 static esp_netif_t      *s_ap_netif      = NULL;
-static esp_netif_t      *s_sta_netif     = NULL;
 static bool              s_wifi_initted  = false;
-static SemaphoreHandle_t s_sta_sem       = NULL;
-static bool              s_sta_connected = false;
 
 static esp_err_t start_http_server(void) {
 	if (server_running) return ESP_OK;
@@ -908,15 +905,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
             ESP_LOGI(TAG, "Station disconnected, AID=%d", event->aid);
             n_connected--;
             if (n_connected <= 0) stop_http_server();
-        } else if (event_id == WIFI_EVENT_STA_DISCONNECTED) {
-            s_sta_connected = false;
-            if (s_sta_sem) xSemaphoreGive(s_sta_sem);
         }
-    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-        ip_event_got_ip_t *e = (ip_event_got_ip_t *)event_data;
-        ESP_LOGI(TAG, "STA connected, IP: " IPSTR, IP2STR(&e->ip_info.ip));
-        s_sta_connected = true;
-        if (s_sta_sem) xSemaphoreGive(s_sta_sem);
     }
 }
 
@@ -950,80 +939,7 @@ static esp_err_t wifi_common_init(void) {
         return err;
     }
 
-    err = esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
-                                              &wifi_event_handler, NULL, NULL);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to register IP_EVENT handler: %s", esp_err_to_name(err));
-        return err;
-    }
-
     s_wifi_initted = true;
-    return ESP_OK;
-}
-
-/* Attempt STA connection; blocks up to 10 s. Returns ESP_OK on GOT_IP. */
-static esp_err_t try_connect_sta(const char *ssid, const char *pass, bool reset_wdt) {
-    if (s_sta_netif == NULL) {
-        s_sta_netif = esp_netif_create_default_wifi_sta();
-        if (s_sta_netif == NULL) {
-            ESP_LOGE(TAG, "Failed to create STA netif");
-            return ESP_FAIL;
-        }
-        esp_netif_set_hostname(s_sta_netif, HOSTNAME);
-    }
-
-    esp_err_t err = wifi_common_init();
-    if (err != ESP_OK) return err;
-
-    wifi_config_t sta_cfg = {};
-    strlcpy((char *)sta_cfg.sta.ssid,     ssid,          sizeof(sta_cfg.sta.ssid));
-    strlcpy((char *)sta_cfg.sta.password, pass ? pass : "", sizeof(sta_cfg.sta.password));
-
-    err = esp_wifi_set_mode(WIFI_MODE_STA);
-    if (err != ESP_OK) { ESP_LOGE(TAG, "set_mode STA: %s", esp_err_to_name(err)); return err; }
-
-    err = esp_wifi_set_config(WIFI_IF_STA, &sta_cfg);
-    if (err != ESP_OK) { ESP_LOGE(TAG, "set_config STA: %s", esp_err_to_name(err)); return err; }
-
-    s_sta_connected = false;
-    if (s_sta_sem == NULL) {
-        s_sta_sem = xSemaphoreCreateBinary();
-    } else {
-        xSemaphoreTake(s_sta_sem, 0);  // drain any stale token
-    }
-
-    err = esp_wifi_start();
-    if (err != ESP_OK) { ESP_LOGE(TAG, "wifi_start: %s", esp_err_to_name(err)); return err; }
-
-    /* Yield so the event loop (priority 20) can process WIFI_EVENT_STA_START
-     * and esp_netif can finish initialising the STA interface before we call
-     * esp_wifi_connect().  The esp_timer task runs at priority 22, so without
-     * this yield it would call connect before STA_START is handled — the
-     * driver accepts the call (returns ESP_OK) but silently discards it when
-     * it finishes its own internal start sequence. */
-    vTaskDelay(pdMS_TO_TICKS(10));
-
-    err = esp_wifi_connect();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "wifi_connect: %s", esp_err_to_name(err));
-        esp_wifi_stop();
-        return err;
-    }
-
-    /* Poll in 100 ms slices so the WDT gets reset when needed (init path). */
-    for (int i = 0; i < 100 && !s_sta_connected; i++) {
-        xSemaphoreTake(s_sta_sem, pdMS_TO_TICKS(100));
-        if (reset_wdt) esp_task_wdt_reset();
-    }
-
-    if (!s_sta_connected) {
-        ESP_LOGW(TAG, "STA connection timed out or rejected");
-        esp_wifi_stop();
-        return ESP_FAIL;
-    }
-
-    s_wifi_running = true;
-    if (comms_event_group) xEventGroupSetBits(comms_event_group, WIFI_READY_BIT);
     return ESP_OK;
 }
 
@@ -1110,20 +1026,11 @@ static esp_err_t launch_soft_ap(void) {
     return ESP_OK;
 }
 
-/* STA-first startup: try NET_SSID, fall back to softAP on failure/empty. */
-/* TODO: STA mode disabled pending network stack fixes */
+/* SoftAP-only startup. STA mode was removed along with try_connect_sta()
+ * — revisit if/when STA is reinstated (see git history for the previous
+ * implementation). */
 static esp_err_t start_wifi(bool reset_wdt) {
-    // char *net_ssid = get_param_string(PARAM_NET_SSID);
-    // if (net_ssid && strlen(net_ssid) > 0) {
-    //     char *net_pass = get_param_string(PARAM_NET_PASS);
-    //     ESP_LOGI(TAG, "Trying STA connection to '%s'...", net_ssid);
-    //     if (try_connect_sta(net_ssid, net_pass, reset_wdt) == ESP_OK) {
-    //         ESP_LOGI(TAG, "STA connected — HTTP server running");
-    //         return ESP_OK;
-    //     }
-    //     ESP_LOGW(TAG, "STA failed — falling back to softAP");
-    //     /* try_connect_sta already called esp_wifi_stop() on failure */
-    // }
+    (void)reset_wdt;
     return launch_soft_ap();
 }
 
@@ -1144,17 +1051,14 @@ esp_err_t webserver_restart_wifi(void) {
     if (s_wifi_running) {
         esp_wifi_stop();
         s_wifi_running = false;
-        /* Allow the event loop to drain the WIFI_EVENT_STA_DISCONNECTED (or
-         * AP stop) event that esp_wifi_stop() queues asynchronously.  Without
-         * this delay, the stale disconnect event is processed after the new
-         * esp_wifi_connect() call, which resets the driver's internal
-         * connection state machine and silently kills the new attempt. */
+        /* Allow the event loop to drain the AP-stop event that
+         * esp_wifi_stop() queues asynchronously before we relaunch. */
         vTaskDelay(pdMS_TO_TICKS(200));
     }
 
     esp_err_t err = start_wifi(false);  // called from esp_timer task, not subscribed to WDT
     if (err != ESP_OK) return err;
-    start_http_server();  // no-op if STA path already started it
+    start_http_server();  // no-op if already running
     return ESP_OK;
 }
 
@@ -1167,7 +1071,7 @@ esp_err_t webserver_init(void) {
         return err;
     }
 
-    start_http_server();  // no-op if STA path already started it
+    start_http_server();  // no-op if already running
 
     ESP_LOGI(TAG, "Webserver initialization complete");
     return ESP_OK;

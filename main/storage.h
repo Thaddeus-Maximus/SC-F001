@@ -64,7 +64,7 @@ typedef struct {
     PARAM_DEF(DRIVE_DIST,        f32, 10,            "ft",      0.0, 100.0) \
     PARAM_DEF(JACK_DIST,         f32,  5,            "in",      0.0, 10.0) \
     PARAM_DEF(DRIVE_KE,          f32, 29.2,          "n/ft",    1.0, 1e9) \
-    PARAM_DEF(DRIVE_KT,          f32, 2880000,       "us/ft",   1.0, 1e9) /* div-critical */ \
+    PARAM_DEF(DRIVE_KT,          f32, 1440000,       "us/ft",   1.0, 1e9) /* div-critical */ \
     PARAM_DEF(JACK_KT,           f32, 1428571,       "ms/in",   1.0, 1e9) /* div-critical */ \
     PARAM_DEF(KEYCODE_0,         u32, 0,             "",        0, 0) /* skip */ \
     PARAM_DEF(KEYCODE_1,         u32, 0,             "",        0, 0) \
@@ -104,7 +104,8 @@ typedef struct {
     PARAM_DEF(BUILD_VERSION,     str, "undefined",   "",        "", "") \
     PARAM_DEF(SAFETY_BREAK_US,   u32, 300000,        "",        0, 10000000) \
     PARAM_DEF(SAFETY_MAKE_US,    u32, 1000000,       "",        0, 10000000) \
-    PARAM_DEF(JACK_IS_DOWN,      f32, 8.0,           "A",       0.0, 200.0) /* deprecated: may duplicate JACK_I_DOWN */
+    PARAM_DEF(JACK_IS_DOWN,      f32, 8.0,           "A",       0.0, 200.0) /* deprecated: may duplicate JACK_I_DOWN */ \
+    PARAM_DEF(FLUFF_PREDRIVE_MS, u32, 2000,          "ms",      0, 60000)
 
 // Generate enum for parameter indices
 #define PARAM_DEF(name, type, default_val, unit, min, max) PARAM_##name,

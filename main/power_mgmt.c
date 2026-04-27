@@ -142,9 +142,18 @@ esp_err_t drive_relays(relay_port_t relay_state) {
 	BRIDGE_TRANSITION_LOGIC(DRIVE)
 	BRIDGE_TRANSITION_LOGIC(JACK)
 	BRIDGE_TRANSITION_LOGIC(AUX)
-	
-	relay_state.bridges.SENSORS = 1;
-	
+
+	/* Sensor rail (P10) powered only when FSM is actively doing something.
+	 * In STATE_IDLE we cut it to save power. Overrides energize a motor
+	 * while FSM is technically IDLE — keep the rail up in that case too
+	 * so overrides that consult sensor state (e.g. JACK_DOWN, which checks
+	 * SENSOR_JACK) still work. */
+	bool motor_requested = (relay_state.bridges.DRIVE != BRIDGE_OFF ||
+	                        relay_state.bridges.JACK  != BRIDGE_OFF ||
+	                        relay_state.bridges.AUX   != BRIDGE_OFF);
+	relay_state.bridges.SENSORS =
+	    (fsm_get_state() != STATE_IDLE || motor_requested) ? 1 : 0;
+
 	if (!get_is_safe())
 		relay_state.bridges.DRIVE = 0;
 		

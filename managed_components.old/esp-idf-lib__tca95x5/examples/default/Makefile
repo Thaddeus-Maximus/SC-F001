@@ -1,6 +1,0 @@
-#V := 1
-PROJECT_NAME := example-tca95x5
-
-
-include $(IDF_PATH)/make/project.mk
-

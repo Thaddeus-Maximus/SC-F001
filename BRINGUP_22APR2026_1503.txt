@@ -1,8 +1,0 @@
-15:03:29.132  == Flashing COM3 ==
-15:03:29.134    erase_flash @ COM3
-15:03:32.409    flashing from D:\SC\SC-F001\build
-15:03:32.410    files: [('0x1000', 'bootloader/bootloader.bin'), ('0x10000', 'SC-F001.bin'), ('0x8000', 'partition_table/partition-table.bin'), ('0xd000', 'ota_data_initial.bin')]
-15:03:57.500  == Flash complete ==
-15:03:59.001  Connecting to COM3 @ 115200 ...
-15:03:59.005  -> BU.BEGIN
-15:06:09.840  -> BU.END

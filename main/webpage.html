@@ -8,6 +8,7 @@ green: #2a493d
 black: #2f2f2f
 -->
 <head>
+    <meta charset="utf-8">
     <title>Control Panel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
@@ -37,11 +38,32 @@ black: #2f2f2f
         #commit_btn[disabled], #cancel_btn[disabled] { background-color: #444 !important; color: #888; cursor: not-allowed; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
         td { padding: 8px; border-bottom: 1px solid #efede9; }
+        #log_viewer_table td { padding: 2px 6px; font-size: 0.65rem; }
+        #log_viewer_table td:first-child { white-space: nowrap; }
         summary { border-radius: 5px; font-weight: bold; text-align: left; color: #fff; background-color: #723; padding: 0.3rem;}
         
         .cmd { font-size: 1.5rem; border: none;}
         
         #msg {text-align: center;}
+
+        /* Status box: state label plus a flex row of per-error pills. */
+        #status_box { text-align: center; padding: 6px 0; }
+        #status_state { font-weight: bold; font-size: 1.3rem; padding: 4px 0; color: #2a493d; }
+        #status_state.error { color: #c33; }
+        #status_indicators { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 4px; }
+        #status_indicators:empty { display: none; }
+        .status_pill {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #ffffff;
+            background-color: #888;
+            white-space: nowrap;
+        }
+        .status_pill.error { background-color: #c33; }
+        .status_pill.warn  { background-color: #c90; }
+        .status_pill.info  { background-color: #479; }
         
         h1 {
         font-size: 2.5rem;
@@ -85,8 +107,11 @@ black: #2f2f2f
         
         @media screen and (max-width: 350px) {
             #content { max-width: 100%; padding: 0 5px; }
-            table tr td { display: block; width: 100%; box-sizing: border-box; } /* Stack table cells vertically on mobile for better usability */
-            table tr { display: block; margin-bottom: 10px; }
+            /* Stack table cells vertically on mobile for better usability,
+             * but exempt the log viewer — it stays as a wide table with
+             * horizontal scroll provided by its wrapping div. */
+            table:not(#log_viewer_table) tr td { display: block; width: 100%; box-sizing: border-box; }
+            table:not(#log_viewer_table) tr { display: block; margin-bottom: 10px; }
         }
         
         #popup-buttons {
@@ -168,7 +193,12 @@ black: #2f2f2f
 
     <table>
         <tr>
-            <td colspan="3"><input readonly="" id="msg"/></td>
+            <td colspan="3">
+                <div id="status_box">
+                    <div id="status_state">&mdash;</div>
+                    <div id="status_indicators"></div>
+                </div>
+            </td>
         </tr>
         <tr>
             <td colspan="3"><input type="datetime-local" id="UX_TIME" step="1" readonly=""/>
@@ -191,15 +221,15 @@ black: #2f2f2f
             <td><input type="datetime-local" id="UX_NEXT_ALARM" readonly=""/></td>
         </tr>
         <tr>
-            <td>Remain. Distance (ft)</td>
+            <td>Leash (ft)</td>
             <td><input type="number" id="UX_REM_DIST" onchange="handleRemainingDistChange(this)"/></td>
         </tr>
         <tr>
-            <td>Move Distance (ft)</td>
+            <td>Move Dist. (ft)</td>
             <td><input type="number" min="0" id="UX_DRIVE_DIST" onchange="changeSchedule(this)"/></td>
         </tr>
         <tr>
-            <td>Jack Height (in)</td>
+            <td>Jack Ht. (in)</td>
             <td><input type="number" min="0" id="UX_JACK_DIST" onchange="changeSchedule(this)"/></td>
         </tr>
         <tr>
@@ -291,6 +321,20 @@ black: #2f2f2f
             <td><button onclick="applyWifiSettings()">Apply WiFi Settings</button></td>
         </tr>
     </table>
+    </details>
+    <br/>
+
+    <details id="log_viewer_details">
+    <summary style="background-color:#2a493d;">EVENT LOG</summary>
+    <!-- Body breaks out of the 500px #content column so the table has
+         room to breathe. The summary above stays inside the column. -->
+    <div id="log_viewer_body" style="position:relative;width:100vw;left:50%;margin-left:-50vw;padding:0 8px;box-sizing:border-box;">
+        <button onclick="loadLogViewer()" style="width:auto;padding:4px 12px;">Refresh</button>
+        <div id="log_viewer_msg" style="padding:8px;font-size:0.75rem;"></div>
+        <div style="overflow-x:auto;">
+            <table id="log_viewer_table" style="font-family:monospace;font-size:0.65rem;white-space:nowrap;"></table>
+        </div>
+    </div>
     </details>
     <br/>
 
@@ -583,7 +627,14 @@ black: #2f2f2f
         let intervalId = null;
         
         function remote(command) {
-        	sendCommand(command);
+        	// Fire-and-forget POST. Held-button jog sends this every 150 ms —
+        	// transient NetworkErrors must not pop a modal (would spam the UI
+        	// and race with subsequent sends). Any error is swallowed.
+        	fetch('./post', {
+        		method: 'POST',
+        		headers: {'Content-Type': 'application/json'},
+        		body: JSON.stringify({cmd: command})
+        	}).catch(() => {});
         	try {
         		navigator.vibrate(200);
         	} catch (error) {}
@@ -833,6 +884,16 @@ black: #2f2f2f
             }
         }
         
+        // Shared guard: skip writes into fields the user is currently editing
+        // (focused OR marked .changed). Applies uniformly across the front
+        // page AND the DANGER ZONE param table.
+        function _safeSet(el, value) {
+            if (!el) return;
+            if (document.activeElement === el) return;
+            if (el.classList && el.classList.contains('changed')) return;
+            el.value = value;
+        }
+
         function updateUI() {
         	if (!data.rtc_set) {
         		showRTCSyncModal();
@@ -847,43 +908,51 @@ black: #2f2f2f
         		if (driftS > 300) showDesyncModal(Math.round(driftS / 60));
         	}
         
-            // Update message + error flags in single msg field
+            // Status box: state label + per-error pills.
             {
                 const state = Array.isArray(data.msg) ? data.msg[0] || '' : (data.msg || '');
-                const flags = [];
-                if (data.errors) {
-                    const e = data.errors;
-                    if (e.efuse_drive) flags.push('DRIVE EFUSE');
-                    if (e.efuse_jack)  flags.push('JACK EFUSE');
-                    if (e.efuse_aux)   flags.push('AUX EFUSE');
-                    if (e.low_battery) flags.push('LOW BATTERY');
-                    if (e.rtc_not_set) flags.push('CLOCK NOT SET');
-                    if (e.safety_trip) flags.push('SAFETY BREAK');
-                    if (e.leash_hit)   flags.push('LEASH LIMIT');
-                }
-                const msgEl = ge('msg');
-                if (flags.length > 0) {
-                    const bin = (data.errors.led_code >>> 0).toString(2).padStart(3,'0');
-                    msgEl.value = state + ' [' + bin + '] ' + flags.join(' | ');
-                    msgEl.style.color = '#c33';
-                } else {
-                    msgEl.value = state;
-                    msgEl.style.color = '';
+                // Pills rendered in priority order: hardware errors first,
+                // then config / housekeeping warnings. Each entry:
+                //   [errorKey, pill text, 'error' | 'warn']
+                const INDICATORS = [
+                    ['safety_trip', 'SAFETY BREAK',  'error'],
+                    ['efuse_drive', 'DRIVE EFUSE',   'error'],
+                    ['efuse_jack',  'JACK EFUSE',    'error'],
+                    ['efuse_aux',   'AUX EFUSE',     'error'],
+                    ['low_battery', 'LOW BATTERY',   'warn'],
+                    ['leash_hit',   'LEASH LIMIT',   'warn'],
+                    ['rtc_not_set', 'CLOCK NOT SET', 'warn'],
+                ];
+                const errs = data.errors || {};
+                const activePills = INDICATORS.filter(([k]) => errs[k]);
+
+                const stateEl = ge('status_state');
+                stateEl.textContent = state || '—';
+                stateEl.classList.toggle('error', activePills.length > 0);
+
+                const box = ge('status_indicators');
+                box.innerHTML = '';
+                for (const [, label, kind] of activePills) {
+                    const pill = document.createElement('span');
+                    pill.className = 'status_pill ' + kind;
+                    pill.textContent = label;
+                    box.appendChild(pill);
                 }
             }
             
-            // Update voltage (read-only)
+            // Update voltage (read-only — but still skip while focused so a
+            // user copying the value doesn't lose their selection)
             if (data.voltage !== undefined) {
-                ge('voltage').value = data.voltage.toFixed(2);
+                _safeSet(ge('voltage'), data.voltage.toFixed(2));
             }
-            
+
             if (data.build_version || data.build_date) {
-            	ge('version').value = data.build_version + ' ('+data.build_date+')';
+                _safeSet(ge('version'), data.build_version + ' ('+data.build_date+')');
             }
-            
-            // Update time (skip if changed or focused)
+
+            // Update time
             const timeInput = ge('UX_TIME');
-            if (data.time !== undefined && !timeInput.classList.contains('changed') && document.activeElement !== timeInput) {
+            if (data.time !== undefined) {
                 // Treat incoming timestamp as local time (no timezone conversion)
 				const dt = new Date(data.time * 1000);
 				const year = dt.getUTCFullYear();
@@ -892,65 +961,81 @@ black: #2f2f2f
 				const hours = String(dt.getUTCHours()).padStart(2, '0');
 				const minutes = String(dt.getUTCMinutes()).padStart(2, '0');
 				const seconds = String(dt.getUTCSeconds()).padStart(2, '0');
-				timeInput.value = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+				_safeSet(timeInput, `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`);
             }
-            
+
             const timeOutput = ge('UX_NEXT_ALARM');
-            if (data.next_alarm !== undefined) {
-                // Treat incoming timestamp as local time (no timezone conversion)
-				const dt = new Date(data.next_alarm * 1000);
-				const year = dt.getUTCFullYear();
-				const month = String(dt.getUTCMonth() + 1).padStart(2, '0');
-				const day = String(dt.getUTCDate()).padStart(2, '0');
-				const hours = String(dt.getUTCHours()).padStart(2, '0');
-				const minutes = String(dt.getUTCMinutes()).padStart(2, '0');
-				const seconds = String(dt.getUTCSeconds()).padStart(2, '0');
-				timeOutput.value = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+            if (data.next_alarm !== undefined && document.activeElement !== timeOutput) {
+                if (data.next_alarm > 0) {
+                    // Flip the element back to a datetime-local input so
+                    // the value parses — the "disabled" branch swaps it to
+                    // a plain text input to display a message.
+                    if (timeOutput.type !== 'datetime-local') timeOutput.type = 'datetime-local';
+                    // Treat incoming timestamp as local time (no timezone conversion)
+                    const dt = new Date(data.next_alarm * 1000);
+                    const year = dt.getUTCFullYear();
+                    const month = String(dt.getUTCMonth() + 1).padStart(2, '0');
+                    const day = String(dt.getUTCDate()).padStart(2, '0');
+                    const hours = String(dt.getUTCHours()).padStart(2, '0');
+                    const minutes = String(dt.getUTCMinutes()).padStart(2, '0');
+                    const seconds = String(dt.getUTCSeconds()).padStart(2, '0');
+                    timeOutput.value = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+                } else {
+                    // <=0 means firmware has no alarm scheduled (e.g. NUM_MOVES=0).
+                    if (timeOutput.type !== 'text') timeOutput.type = 'text';
+                    timeOutput.value = 'DISABLED';
+                }
             }
-            
+
             // Update parameters
             if (data.parameters) {
                 updateParamTable();
                 updateScheduleInputs();
             }
-            
-            // Update remaining distance (special parameter) - skip if changed or focused
-            const remainingDistInput = ge('UX_REM_DIST');
-            if (data.remaining_dist !== undefined && !remainingDistInput.classList.contains('changed') && document.activeElement !== remainingDistInput) {
-                remainingDistInput.value = data.remaining_dist.toFixed(1);
+
+            // Update remaining distance (special parameter)
+            if (data.remaining_dist !== undefined) {
+                _safeSet(ge('UX_REM_DIST'), data.remaining_dist.toFixed(1));
             }
             
             
         }
         
+        // Keys whose inputs live OUTSIDE the auto-generated DANGER ZONE
+        // table (in the dedicated WiFi section, or commented out entirely).
+        // Must be filtered in BOTH the build and update paths — otherwise a
+        // poll sees "no input for NET_SSID" and force-rebuilds the whole
+        // table every tick, wiping every in-progress edit.
+        const PARAM_TABLE_SKIP = new Set(['NET_SSID', 'NET_PASS', 'WIFI_SSID', 'WIFI_PASS']);
+
         function updateParamTable() {
             const table = ge('table');
-            
-            // Sort parameters alphabetically by key
-            const sortedParams = Object.entries(data.parameters).sort((a, b) => a[0].localeCompare(b[0]));
-            
+
+            // Sort parameters alphabetically, pre-filtering keys that don't
+            // belong in the auto-generated DANGER ZONE table.
+            const sortedParams = Object.entries(data.parameters)
+                .filter(([k]) => !PARAM_TABLE_SKIP.has(k))
+                .sort((a, b) => a[0].localeCompare(b[0]));
+
             if (!paramTableCreated) {
                 // Create table for the first time
                 table.innerHTML = '';
-                
-                const WIFI_PARAM_KEYS = new Set(['NET_SSID', 'NET_PASS', 'WIFI_SSID', 'WIFI_PASS']);
                 for (const [key, value] of sortedParams) {
-                    if (WIFI_PARAM_KEYS.has(key)) continue;  // shown in dedicated WiFi section
                     const row = table.insertRow();
                     const cell1 = row.insertCell(0);
                     const cell2 = row.insertCell(1);
-                    
+
                     cell1.textContent = key;
-                    
+
                     const input = document.createElement('input');
                     input.type = typeof value === 'string' ? 'text':'number';
                     input.id = `PARAM_${key}`;
                     input.value = value;
                     input.onchange = function() { markChanged(this); };
-                    
+
                     cell2.appendChild(input);
                 }
-                
+
                 // add listener so anytime you click anything you select the box
                 // duh
                 document.querySelectorAll('input').forEach(input => {
@@ -959,19 +1044,17 @@ black: #2f2f2f
 			            this.select();
 			        });
 			    });
-                
+
                 paramTableCreated = true;
             } else {
                 // Update existing table
                 for (const [key, value] of sortedParams) {
                     const input = ge(`PARAM_${key}`);
                     if (input) {
-                        // Only update if not changed and not focused
-                        if (!input.classList.contains('changed') && document.activeElement !== input) {
-                            input.value = value;
-                        }
+                        // _safeSet skips changed/focused inputs so in-progress edits survive.
+                        _safeSet(input, value);
                     } else {
-                        // New parameter - need to rebuild table
+                        // Genuinely new param (unknown key AND not in skip list) → rebuild.
                         paramTableCreated = false;
                         updateParamTable();
                         return;
@@ -1408,6 +1491,260 @@ black: #2f2f2f
           }
         }
         
+        // ---- Log viewer ------------------------------------------------
+        // Parses the /log endpoint binary blob:
+        //   [4B BE json_len][json_len bytes JSON][4B BE tail][4B BE head][log data...]
+        // Log data entries (current FW): [len u8][payload (len-1 bytes)][type u8]
+        // Total per entry = len+1. 0xFF / 0x00 bytes → skip to next 4096 sector.
+
+        const LOG_FSM_NAMES = [
+            'IDLE','MOVE_START_DELAY','JACK_UP_START','JACK_UP',
+            'DRIVE_START_DELAY','DRIVE','DRIVE_END_DELAY','JACK_DOWN',
+            'UNDO_JACK_START','CAL_JACK_DELAY','CAL_JACK_MOVE',
+            'CAL_DRIVE_DELAY','CAL_DRIVE_MOVE','DRIVE_FLUFF_START',
+        ];
+        const LOG_TYPE_BAT = 100, LOG_TYPE_CRASH = 101, LOG_TYPE_BOOT = 102, LOG_TYPE_TIME_SET = 103;
+        const LOG_RESET_REASONS = {
+            0:'UNKNOWN',1:'POWERON',2:'EXT',3:'SW',4:'PANIC',
+            5:'INT_WDT',6:'TASK_WDT',7:'WDT',8:'DEEPSLEEP',9:'BROWNOUT',10:'SDIO',
+        };
+        let logViewerLoaded = false;
+
+        const LOG_MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+        function _logFormatTs(tsMs) {
+            // Device stores "local time as UTC ms" — display via getUTC* to avoid
+            // the browser re-applying its own timezone offset.
+            // Format: 2026APR08 14:23:45.123
+            if (!tsMs || tsMs <= 0) return '-';
+            const d = new Date(tsMs);
+            const pad = (n, w=2) => String(n).padStart(w, '0');
+            return `${d.getUTCFullYear()}${LOG_MONTHS[d.getUTCMonth()]}${pad(d.getUTCDate())} `
+                 + `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`
+                 + `.${pad(d.getUTCMilliseconds(), 3)}`;
+        }
+
+        // Decode the sensors byte: low nibble = debounced stable state,
+        // high nibble = raw level. Bit order SAFETY / DRIVE / JACK / AUX.
+        const LOG_SENSOR_NAMES = ['SAFETY', 'DRIVE', 'JACK', 'AUX'];
+        function _decodeSensors(b) {
+            const stable = b & 0x0F, raw = (b >> 4) & 0x0F;
+            const parts = [];
+            for (let i = 0; i < 4; i++) {
+                const s = (stable >> i) & 1;
+                const r = (raw    >> i) & 1;
+                parts.push(`${LOG_SENSOR_NAMES[i]}=${s}${s !== r ? ` (raw ${r})` : ''}`);
+            }
+            return parts.join(', ');
+        }
+
+        function _parseLogEntries(bytes) {
+            const entries = [];
+            const n = bytes.length;
+            const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+            let i = 0;
+            while (i < n) {
+                const b = bytes[i];
+                if (b === 0xFF || b === 0x00) {
+                    // Skip to next 4096-aligned sector.
+                    i = (Math.floor(i / 4096) + 1) * 4096;
+                    continue;
+                }
+                const entryLen = b;          // stored len = payload_size + 1
+                const payloadSize = entryLen - 1;
+                const endOffset = i + entryLen;
+                if (endOffset >= n) break;   // truncated
+                const type = bytes[endOffset];
+                const payloadStart = i + 1;
+                const entry = { type };
+                try {
+                    if (type >= 0 && type <= 13 && payloadSize >= 27) {
+                        entry.ts_ms   = Number(dv.getBigUint64(payloadStart + 0, true));
+                        entry.bat_V   = dv.getFloat32(payloadStart + 8, true);
+                        entry.drive_A = dv.getFloat32(payloadStart + 12, true);
+                        entry.jack_A  = dv.getFloat32(payloadStart + 16, true);
+                        entry.aux_A   = dv.getFloat32(payloadStart + 20, true);
+                        entry.counter = dv.getInt16(payloadStart + 24, true);
+                        entry.sensors = bytes[payloadStart + 26];
+                        entry.name    = LOG_FSM_NAMES[type] || `STATE_${type}`;
+                    } else if (type === LOG_TYPE_BAT && payloadSize >= 12) {
+                        entry.ts_ms = Number(dv.getBigUint64(payloadStart, true));
+                        entry.bat_V = dv.getFloat32(payloadStart + 8, true);
+                        entry.name  = 'BAT';
+                    } else if ((type === LOG_TYPE_CRASH || type === LOG_TYPE_BOOT) && payloadSize >= 9) {
+                        entry.ts_ms  = Number(dv.getBigUint64(payloadStart, true));
+                        const info   = bytes[payloadStart + 8];
+                        entry.reason = LOG_RESET_REASONS[info & 0x0F] || `UNKNOWN(${info & 0x0F})`;
+                        entry.name   = type === LOG_TYPE_BOOT ? 'BOOT' : 'CRASH';
+                    } else if (type === LOG_TYPE_TIME_SET && payloadSize >= 8) {
+                        entry.ts_ms = Number(dv.getBigUint64(payloadStart, true));
+                        entry.name  = 'TIME_SET';
+                    } else {
+                        entry.name = `UNK(0x${type.toString(16).padStart(2,'0')})`;
+                    }
+                } catch (e) {
+                    entry.name = 'PARSE_ERR';
+                }
+                entries.push(entry);
+                i = endOffset + 1;
+            }
+            return entries;
+        }
+
+        function _entryCells(e) {
+            // Returns an array of {text, title?} describing each column for
+            // a single entry. `title` becomes the tooltip (title attribute).
+            const sensorHex = e.sensors !== undefined
+                ? '0x' + e.sensors.toString(16).padStart(2,'0')
+                : '';
+            return [
+                { text: _logFormatTs(e.ts_ms) },
+                { text: e.name || '' },
+                { text: e.bat_V   !== undefined ? e.bat_V.toFixed(2)   : '' },
+                { text: e.drive_A !== undefined ? e.drive_A.toFixed(2) : '' },
+                { text: e.jack_A  !== undefined ? e.jack_A.toFixed(2)  : '' },
+                { text: e.aux_A   !== undefined ? e.aux_A.toFixed(2)   : '' },
+                { text: e.counter !== undefined ? String(e.counter)    : '' },
+                { text: sensorHex,
+                  title: e.sensors !== undefined ? _decodeSensors(e.sensors) : undefined },
+                { text: e.reason || '' },
+            ];
+        }
+
+        function _appendRow(table, cells, opts = {}) {
+            const row = table.insertRow();
+            if (opts.className) row.className = opts.className;
+            if (opts.hidden)    row.style.display = 'none';
+            if (opts.onclick)   row.addEventListener('click', opts.onclick);
+            if (opts.style)     Object.assign(row.style, opts.style);
+            cells.forEach(c => {
+                const td = document.createElement('td');
+                if (typeof c === 'string') {
+                    td.textContent = c;
+                } else {
+                    td.textContent = c.text ?? '';
+                    if (c.title) td.title = c.title;
+                    if (c.colSpan) td.colSpan = c.colSpan;
+                    if (c.style) Object.assign(td.style, c.style);
+                    if (c.bold) td.style.fontWeight = 'bold';
+                }
+                row.appendChild(td);
+            });
+            return row;
+        }
+
+        function _renderLogEntries(entries) {
+            const table = ge('log_viewer_table');
+            table.innerHTML = '';
+            const cols = ['Time','Type','Battery V','Drive A','Jack A','Aux A','Counter','Sensors','Extra'];
+            _appendRow(table, cols.map(h => ({ text: h, bold: true })));
+
+            // Walk newest-first, group contiguous entries sharing the same
+            // state name. Groups with ≥2 members render as a single clickable
+            // header row (default collapsed) followed by their entry rows.
+            let groupId = 0;
+            let i = entries.length - 1;
+            while (i >= 0) {
+                const name = entries[i].name || '';
+                let j = i;
+                while (j >= 0 && (entries[j].name || '') === name) j--;
+                const group = entries.slice(j + 1, i + 1).reverse(); // newest-first
+                i = j;
+
+                if (group.length === 1) {
+                    _appendRow(table, _entryCells(group[0]));
+                    continue;
+                }
+
+                groupId++;
+                const rowClass = `log-group-${groupId}`;
+                let collapsed = true;
+                const firstTs = _logFormatTs(group[group.length - 1].ts_ms);
+                const lastTs  = _logFormatTs(group[0].ts_ms);
+                const header = _appendRow(table, [{
+                    text: `[+] ${name} × ${group.length}   ${firstTs}  →  ${lastTs}`,
+                    colSpan: cols.length,
+                    style: { cursor: 'pointer', background: '#efede9',
+                             fontWeight: 'bold', fontSize: '0.7rem' },
+                }], {
+                    style: { background: '#efede9' },
+                });
+                // Defer wiring the onclick until we've appended the child rows.
+                const childRows = group.map(e =>
+                    _appendRow(table, _entryCells(e), {
+                        className: rowClass,
+                        hidden: true,
+                    }));
+                header.addEventListener('click', () => {
+                    collapsed = !collapsed;
+                    childRows.forEach(r => r.style.display = collapsed ? 'none' : '');
+                    const cell = header.cells[0];
+                    cell.textContent = `[${collapsed ? '+' : '-'}] ${name} × ${group.length}   ${firstTs}  →  ${lastTs}`;
+                });
+            }
+        }
+
+        async function loadLogViewer() {
+            const msg = ge('log_viewer_msg');
+            msg.textContent = 'Connecting...';
+            try {
+                const resp = await fetch('./log');
+                if (!resp.ok) { msg.textContent = `Failed: ${resp.status} ${resp.statusText}`; return; }
+
+                // Stream the body so we can report progress as bytes arrive.
+                // /log sets Content-Length, so we know the total ahead of time.
+                const total = parseInt(resp.headers.get('Content-Length') || '0', 10);
+                const reader = resp.body.getReader();
+                const chunks = [];
+                let received = 0;
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    chunks.push(value);
+                    received += value.length;
+                    const kb = (received / 1024).toFixed(1);
+                    if (total) {
+                        const totalKb = (total / 1024).toFixed(1);
+                        const pct = Math.round((received / total) * 100);
+                        msg.textContent = `Downloading... ${kb} / ${totalKb} KB (${pct}%)`;
+                    } else {
+                        msg.textContent = `Downloading... ${kb} KB`;
+                    }
+                }
+
+                // Concatenate chunks into a single Uint8Array.
+                const buf = new Uint8Array(received);
+                {
+                    let off = 0;
+                    for (const c of chunks) { buf.set(c, off); off += c.length; }
+                }
+
+                if (buf.length < 12) { msg.textContent = 'Log response too short.'; return; }
+                msg.textContent = `Parsing ${received} bytes...`;
+                const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+                const jsonLen = dv.getUint32(0, false);
+                if (jsonLen > 65536 || 4 + jsonLen + 8 > buf.length) {
+                    msg.textContent = 'Log response malformed.'; return;
+                }
+                const binStart = 4 + jsonLen + 8;
+                const logBytes = buf.subarray(binStart);
+                const entries = _parseLogEntries(logBytes);
+                _renderLogEntries(entries);
+                msg.textContent = `${entries.length} entries (${logBytes.length} bytes)`;
+                logViewerLoaded = true;
+            } catch (err) {
+                msg.textContent = `Error: ${err.message}`;
+            }
+        }
+
+        // Populate the first time the details section is opened.
+        function _attachLogViewerToggle() {
+            const d = ge('log_viewer_details');
+            if (!d) return;
+            d.addEventListener('toggle', () => {
+                if (d.open && !logViewerLoaded) loadLogViewer();
+            });
+        }
+
         // Start automatic polling
         function startPolling() {
             // Initial fetch
@@ -1440,6 +1777,7 @@ black: #2f2f2f
         window.onload = function() {
         	ge('commit_btn').disabled = true;
             ge('cancel_btn').disabled = true;
+            _attachLogViewerToggle();
         	startPolling();
         }
     </script>

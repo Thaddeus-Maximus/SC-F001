@@ -271,6 +271,18 @@ Single physical button (button 0 via TCA9555 I2C expander) controls all interact
 
 ### LED Status Indicators
 
+**Physical LED layout** — the three LEDs are wired to TCA9555 port-0 pins
+P05, P06, P07. Read bottom → top when checking error codes:
+
+| TCA pin | Bit | Physical position | Called |
+|---------|-----|-------------------|--------|
+| P05     | 0   | bottom            | LED1 |
+| P06     | 1   | middle            | LED2 |
+| P07     | 2   | top               | LED3 |
+
+A pattern written as `001` (LSB first) means **only the bottom LED is lit**,
+`100` means **only the top LED is lit**, and `111` means all three.
+
 | State | Pattern | Timing |
 |-------|---------|--------|
 | Idle | LED1 blink | 0.5Hz (1s on / 1s off) |
@@ -282,12 +294,12 @@ Single physical button (button 0 via TCA9555 I2C expander) controls all interact
 
 **Error code bits (during 2s hold phase):**
 
-| LED Pattern | Meaning |
-|-------------|---------|
-| 001 (LED1) | Efuse tripped (any bridge) or low battery |
-| 010 (LED2) | RTC/clock not set |
-| 100 (LED3) | Safety sensor break or leash limit hit |
-| 111 (all) | Unknown FSM error (fallback) |
+| LED Pattern (bottom→top) | Meaning |
+|--------------------------|---------|
+| 001 — only bottom (P05) lit   | Efuse tripped (any bridge) or low battery |
+| 010 — only middle (P06) lit   | RTC/clock not set |
+| 100 — only top (P07) lit      | Safety sensor break or leash limit hit |
+| 111 — all three lit           | Unknown FSM error (fallback) |
 
 Error codes are also shown on the web interface status field with individual flag names.
 

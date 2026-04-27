@@ -1,6 +1,7 @@
 # See the build system documentation in IDF programming guide
 # for more information about component CMakeLists.txt files.
 
+# Seed version.h at configure time so it exists for the first build.
 include(${CMAKE_CURRENT_LIST_DIR}/version.cmake)
 
 idf_component_register(
@@ -27,4 +28,18 @@ if(NOT CMAKE_BUILD_EARLY_EXPANSION)
 
     add_custom_target(generate_webpage_h DEPENDS ${COMPONENT_DIR}/webpage.h)
     add_dependencies(${COMPONENT_LIB} generate_webpage_h)
+
+    # Regenerate version.h on every build so git SHA / dirty flag stay
+    # current as commits land between builds. configure_file inside
+    # version.cmake is a no-op when the content matches, so rebuilds only
+    # cascade when something actually changed.
+    add_custom_target(update_version ALL
+        COMMAND ${CMAKE_COMMAND}
+            -DSRC_DIR=${COMPONENT_DIR}
+            -DBIN_DIR=${CMAKE_BINARY_DIR}
+            -P ${COMPONENT_DIR}/version.cmake
+        BYPRODUCTS ${CMAKE_BINARY_DIR}/version.h
+        COMMENT "Refreshing version.h from git"
+    )
+    add_dependencies(${COMPONENT_LIB} update_version)
 endif()
