@@ -28,51 +28,48 @@ def _row(e: dict) -> list:
             e.get('time_str', ''),
             name,
             f"{e.get('bat_V', 0):.3f}",
-            f"{e.get('drive_A', 0):.2f}",
-            f"{e.get('jack_A', 0):.2f}",
-            f"{e.get('aux_A', 0):.2f}",
+            f"{e.get('current_A', 0):.2f}",
             str(e.get('counter', 0)),
             _sensor_str(e.get('sensors_stable', 0)),
             _sensor_str(e.get('sensors_raw', 0)),
-            f"{e.get('drive_heat', 0):.1f}",
-            f"{e.get('jack_heat', 0):.1f}",
-            f"{e.get('aux_heat', 0):.1f}",
+            f"{e.get('heat', 0):.1f}",
+            f"0x{e.get('i2c_out', 0):04X}",
         ]
     elif t == LOG_TYPE_BAT:
         return [
             e.get('time_str', ''),
             'BAT',
             f"{e.get('bat_V', 0):.3f}",
-            '—', '—', '—', '—', '—', '—', '—', '—', '—',
+            '—', '—', '—', '—', '—', '—',
         ]
     elif t == LOG_TYPE_CRASH:
         return [
             e.get('time_str', ''),
             f"*** CRASH: {e.get('reason_str', '?')}",
-            '—', '—', '—', '—', '—', '—', '—', '—', '—', '—',
+            '—', '—', '—', '—', '—', '—', '—',
         ]
     elif t == LOG_TYPE_BOOT:
         return [
             e.get('time_str', ''),
             f"BOOT  rst={e.get('reason_str', '?')}  wake={e.get('wake_str', '?')}",
-            '—', '—', '—', '—', '—', '—', '—', '—', '—', '—',
+            '—', '—', '—', '—', '—', '—', '—',
         ]
     elif t == LOG_TYPE_TIME_SET:
         return [
             e.get('time_str', ''),
             'TIME_SET',
-            '—', '—', '—', '—', '—', '—', '—', '—', '—', '—',
+            '—', '—', '—', '—', '—', '—', '—',
         ]
     else:
         return [
             e.get('time_str', ''),
             name,
-            '—', '—', '—', '—', '—', '—', '—', '—', '—', '—',
+            '—', '—', '—', '—', '—', '—', '—',
         ]
 
 
-_HEADERS = ['Time', 'State', 'Bat(V)', 'Drive(A)', 'Jack(A)', 'Aux(A)',
-            'Counter', 'Stable', 'Raw', 'DrHeat', 'JkHeat', 'AxHeat']
+_HEADERS = ['Time', 'State', 'Bat(V)', 'Cur(A)',
+            'Counter', 'Stable', 'Raw', 'Heat', 'I2COut']
 
 
 def print_table(entries: list, type_filter: str = None):

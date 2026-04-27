@@ -21,6 +21,7 @@
 #include "string.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 #include "esp_task_wdt.h"
 #include "esp_wifi.h"
 #include "esp_system.h"
@@ -61,7 +62,32 @@ extern const uint8_t prvtkey_pem_end[] asm("_binary_prvtkey_pem_end");
 
 static httpd_handle_t http_server_instance = NULL;
 
+/* Shared scratch buffer used by log/post/ota handlers. The httpd default
+ * config uses a single worker task, so handlers don't normally race — but
+ * with config.lru_purge_enable + 7 sockets some IDF configurations allow
+ * concurrent invocations. The mutex below is defense in depth: each
+ * handler that touches http_buffer takes it on entry via the wrap_*
+ * dispatcher below and releases on exit. */
 char http_buffer[4096];
+static SemaphoreHandle_t http_buffer_mutex = NULL;
+
+static esp_err_t with_http_buffer(httpd_req_t *req,
+                                   esp_err_t (*body)(httpd_req_t *)) {
+    if (http_buffer_mutex != NULL) {
+        if (xSemaphoreTake(http_buffer_mutex, pdMS_TO_TICKS(2000)) != pdTRUE) {
+            /* esp_http_server's httpd_err_code_t enum doesn't include 503,
+             * so emit it via the lower-level set_status + send pair. */
+            ESP_LOGW(TAG, "http_buffer busy — rejecting request");
+            httpd_resp_set_status(req, "503 Service Unavailable");
+            httpd_resp_set_type(req, "text/plain");
+            httpd_resp_send(req, "busy", HTTPD_RESP_USE_STRLEN);
+            return ESP_FAIL;
+        }
+    }
+    esp_err_t ret = body(req);
+    if (http_buffer_mutex != NULL) xSemaphoreGive(http_buffer_mutex);
+    return ret;
+}
 
 /* Handler to serve the HTML page */
 static esp_err_t root_get_handler(httpd_req_t *req) {
@@ -107,7 +133,11 @@ static const esp_partition_t *cached_log_partition = NULL;
 
 // In webserver.c - Replace the log_handler function
 
+static esp_err_t log_handler_locked(httpd_req_t *req);
 static esp_err_t log_handler(httpd_req_t *req) {
+    return with_http_buffer(req, log_handler_locked);
+}
+static esp_err_t log_handler_locked(httpd_req_t *req) {
     if (req == NULL) {
         ESP_LOGE(TAG, "Null request pointer");
         return ESP_FAIL;
@@ -443,7 +473,11 @@ static void webserver_restart_wifi_cb(void *arg) { webserver_restart_wifi(); }
 /**
  * Unified POST handler - handles commands, parameter updates, time updates
  */
+static esp_err_t post_handler_locked(httpd_req_t *req);
 static esp_err_t post_handler(httpd_req_t *req) {
+    return with_http_buffer(req, post_handler_locked);
+}
+static esp_err_t post_handler_locked(httpd_req_t *req) {
     ESP_LOGI(TAG, "post_handler");
     
     if (req == NULL) {
@@ -575,7 +609,11 @@ static esp_err_t post_handler(httpd_req_t *req) {
     return err;
 }
 
+static esp_err_t ota_post_handler_locked(httpd_req_t *req);
 static esp_err_t ota_post_handler(httpd_req_t *req) {
+    return with_http_buffer(req, ota_post_handler_locked);
+}
+static esp_err_t ota_post_handler_locked(httpd_req_t *req) {
     ESP_LOGI(TAG, "OTA POST request received");
     
     if (req == NULL) {
@@ -670,8 +708,10 @@ static esp_err_t ota_post_handler(httpd_req_t *req) {
         remaining -= recv_len;
         received += recv_len;
         
-        // Log progress every 10%
-        if (total_len > 0 && (received % (total_len / 10)) < recv_len) {
+        // Log progress every 10%. Guard against total_len < 10 (would
+        // otherwise divide by zero in the modulo) and total_len == 0
+        // (chunked transfer with unknown length).
+        if (total_len >= 10 && (received % (total_len / 10)) < recv_len) {
             ESP_LOGI(TAG, "OTA progress: %d%%", (received * 100) / total_len);
         }
     }
@@ -834,6 +874,9 @@ static bool              s_wifi_initted  = false;
 static esp_err_t start_http_server(void) {
 	if (server_running) return ESP_OK;
 	ESP_LOGI(TAG, "STARTING HTTP");
+    if (http_buffer_mutex == NULL) {
+        http_buffer_mutex = xSemaphoreCreateMutex();
+    }
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = 80;
     config.max_open_sockets = 7;
@@ -891,20 +934,33 @@ static esp_err_t stop_http_server(void) {
 
 int n_connected = 0;
 
+/* Signaled by the WiFi event task when the AP fully stops. Used by
+ * webserver_restart_wifi() to deterministically wait for teardown to
+ * complete instead of racing on a fixed delay. */
+static SemaphoreHandle_t s_ap_stopped_sem = NULL;
+
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data) {
     if (event_base == WIFI_EVENT) {
+        if (event_id == WIFI_EVENT_AP_STOP) {
+            ESP_LOGI(TAG, "WIFI_EVENT_AP_STOP");
+            if (s_ap_stopped_sem) xSemaphoreGive(s_ap_stopped_sem);
+            return;
+        }
         if (event_id == WIFI_EVENT_AP_STACONNECTED) {
             wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
             ESP_LOGI(TAG, "Station connected, AID=%d", event->aid);
             rtc_reset_shutdown_timer();
             n_connected++;
-            if (n_connected > 0) start_http_server();
+            /* HTTP lifecycle is no longer tied to client count — the server
+             * is started once in webserver_init() and stays up. Tying
+             * start/stop to events created races where rapid connect/
+             * disconnect bursts could call httpd_start twice or stop on
+             * the wrong tick. */
         } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
             wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
             ESP_LOGI(TAG, "Station disconnected, AID=%d", event->aid);
-            n_connected--;
-            if (n_connected <= 0) stop_http_server();
+            if (n_connected > 0) n_connected--;
         }
     }
 }
@@ -939,11 +995,24 @@ static esp_err_t wifi_common_init(void) {
         return err;
     }
 
+    if (s_ap_stopped_sem == NULL) {
+        s_ap_stopped_sem = xSemaphoreCreateBinary();
+    }
+
     s_wifi_initted = true;
     return ESP_OK;
 }
 
 static esp_err_t launch_soft_ap(void) {
+    /* If WiFi is already up, don't re-issue set_mode/set_config/start —
+     * those modify driver state on a running AP and can de-associate
+     * existing clients. The caller (typically webserver_init or
+     * BU.WIFI.START) just gets ESP_OK as if a fresh launch succeeded. */
+    if (s_wifi_running) {
+        ESP_LOGI(TAG, "AP already running — launch_soft_ap is a no-op");
+        return ESP_OK;
+    }
+
     ESP_LOGI(TAG, "AP LAUNCHING");
 
     if (s_ap_netif == NULL) {
@@ -987,7 +1056,15 @@ static esp_err_t launch_soft_ap(void) {
         wifi_config.ap.channel = 6;
     }
 
-    wifi_config.ap.ssid_len = strlen(ssid_str);
+    /* Clamp explicitly: the param store currently caps SSIDs at 16 bytes so
+     * the value is always within `wifi_config.ap.ssid` (32-byte) bounds, but
+     * if the param size ever grows the WiFi driver would read past the
+     * buffer. */
+    {
+        size_t len = strlen(ssid_str);
+        if (len > sizeof(wifi_config.ap.ssid)) len = sizeof(wifi_config.ap.ssid);
+        wifi_config.ap.ssid_len = (uint8_t)len;
+    }
 
     err = esp_wifi_set_mode(WIFI_MODE_AP);
     if (err != ESP_OK) { ESP_LOGE(TAG, "set_mode AP: %s", esp_err_to_name(err)); return err; }
@@ -1049,11 +1126,20 @@ esp_err_t webserver_restart_wifi(void) {
 
     stop_http_server();
     if (s_wifi_running) {
+        /* Drain any pre-existing token so xSemaphoreTake below blocks for a
+         * fresh AP_STOP event rather than returning immediately on stale
+         * state. */
+        if (s_ap_stopped_sem) xSemaphoreTake(s_ap_stopped_sem, 0);
         esp_wifi_stop();
         s_wifi_running = false;
-        /* Allow the event loop to drain the AP-stop event that
-         * esp_wifi_stop() queues asynchronously before we relaunch. */
-        vTaskDelay(pdMS_TO_TICKS(200));
+        /* Wait for the WiFi driver to finish tearing the AP down. The
+         * 1-second deadline is generous; on healthy hardware the event
+         * arrives within a few tens of ms. */
+        if (s_ap_stopped_sem) {
+            xSemaphoreTake(s_ap_stopped_sem, pdMS_TO_TICKS(1000));
+        } else {
+            vTaskDelay(pdMS_TO_TICKS(200));
+        }
     }
 
     esp_err_t err = start_wifi(false);  // called from esp_timer task, not subscribed to WDT

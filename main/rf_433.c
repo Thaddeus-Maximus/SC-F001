@@ -37,8 +37,13 @@ typedef struct {
     size_t num_symbols;
 } rf_code_t;
 
-int learn_flag = -1;
-bool controls_enabled = true;
+/* These are written by the comms task (HTTP/UART) and read by the RF
+ * receiver task. `volatile` forces the RF task to re-read each iteration
+ * rather than caching in a register; on a dual-core ESP32 the writer's
+ * memory is also flushed by the FreeRTOS task switch / queue ops the
+ * comms task does around updates. */
+volatile int learn_flag = -1;
+volatile bool controls_enabled = true;
 
 // Temporary storage for learned keycodes (not committed to params yet)
 static int64_t temp_keycodes[NUM_RF_BUTTONS] = {0};

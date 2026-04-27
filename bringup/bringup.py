@@ -130,40 +130,50 @@ def main() -> int:
         t.passed, t.failed, t.warnings, t.skipped = snap
 
     try:
-        for stage in stages:
-            while True:
-                snap = _snapshot(tally)
-                try:
-                    stage(link, tally)
-                except TimeoutError as e:
-                    print(f"  TIMEOUT: {e}")
-                    tally.note_fail()
-                except Exception as e:
-                    print(f"  EXCEPTION in stage: {e!r}")
-                    tally.note_fail()
-                if tally.failed > snap[1]:
-                    ans = input(fmt.prompt("  Stage had FAILs — retry? [y/n]") + ": ").strip().lower()
-                    if ans.startswith("y"):
-                        _restore(tally, snap)
-                        continue
-                break
-    except KeyboardInterrupt:
-        print(fmt.warn("\nAborted by operator"))
         try:
-            link.send("BU.END")
+            for stage in stages:
+                while True:
+                    snap = _snapshot(tally)
+                    try:
+                        stage(link, tally)
+                    except TimeoutError as e:
+                        print(f"  TIMEOUT: {e}")
+                        tally.note_fail()
+                    except Exception as e:
+                        print(f"  EXCEPTION in stage: {e!r}")
+                        tally.note_fail()
+                    if tally.failed > snap[1]:
+                        ans = input(fmt.prompt("  Stage had FAILs — retry? [y/n]") + ": ").strip().lower()
+                        if ans.startswith("y"):
+                            _restore(tally, snap)
+                            continue
+                    break
+        except KeyboardInterrupt:
+            print(fmt.warn("\nAborted by operator"))
+            try:
+                link.send("BU.END")
+            except Exception:
+                pass
+
+        print(fmt.stage("Bring-up summary"))
+        print(fmt.summary_line(tally.passed, tally.failed, tally.warnings, tally.skipped))
+        if tally.failed == 0:
+            print(f"  {fmt.pass_('ALL PASS')}")
+        else:
+            print(f"  {fmt.fail('FAILURES PRESENT — review above')}")
+    finally:
+        # Close link + transcript deterministically — Python would clean up
+        # on interpreter exit, but on KeyboardInterrupt or other unexpected
+        # exits the file handle should be released as soon as we leave main.
+        try:
+            link.close()
         except Exception:
             pass
-
-    print(fmt.stage("Bring-up summary"))
-    print(fmt.summary_line(tally.passed, tally.failed, tally.warnings, tally.skipped))
-    if tally.failed == 0:
-        print(f"  {fmt.pass_('ALL PASS')}")
-    else:
-        print(f"  {fmt.fail('FAILURES PRESENT — review above')}")
-
-    link.close()
-    if transcript_file:
-        transcript_file.close()
+        if transcript_file:
+            try:
+                transcript_file.close()
+            except Exception:
+                pass
 
     return 0 if tally.failed == 0 else 1
 

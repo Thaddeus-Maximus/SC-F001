@@ -109,28 +109,32 @@ def _ts_to_str(ts_ms: int) -> str:
 
 
 def _unpack_fsm(payload: bytes, fsm_states: dict) -> dict:
-    if len(payload) < 27:
-        raise ValueError(f"FSM payload too short: {len(payload)} < 27")
-    ts_ms, bat_V, drive_A, jack_A, aux_A, counter, sensors = \
-        struct.unpack_from('<QffffhB', payload, 0)
-    drive_heat = jack_heat = aux_heat = 0.0
-    if len(payload) >= 31:
-        drive_heat, = struct.unpack_from('<f', payload, 27)
-    if len(payload) >= 39:
-        jack_heat, aux_heat = struct.unpack_from('<ff', payload, 31)
+    """Single-current FSM payload (25 bytes):
+       ts(8) bat(4) current(4) counter(2) sensors(1) heat(4) i2c_out(2).
+       V5 hardware has one shared current sensor; V4 had three but only one
+       bridge is active at a time, so the single channel suffices.
+       i2c_out is the last-written 16-bit TCA9555 output state
+       (high byte = OUTPUT0 / LEDs, low byte = OUTPUT1 / relays)."""
+    if len(payload) < 19:
+        raise ValueError(f"FSM payload too short: {len(payload)} < 19")
+    ts_ms, bat_V, current_A, counter, sensors = \
+        struct.unpack_from('<QffhB', payload, 0)
+    heat = 0.0
+    i2c_out = 0
+    if len(payload) >= 23:
+        heat, = struct.unpack_from('<f', payload, 19)
+    if len(payload) >= 25:
+        i2c_out, = struct.unpack_from('<H', payload, 23)
     return {
         'ts_ms':       ts_ms,
         'time_str':    _ts_to_str(ts_ms),
         'bat_V':       round(bat_V, 3),
-        'drive_A':     round(drive_A, 3),
-        'jack_A':      round(jack_A, 3),
-        'aux_A':       round(aux_A, 3),
+        'current_A':   round(current_A, 3),
         'counter':     counter,
         'sensors_stable': sensors & 0x0F,
         'sensors_raw':    (sensors >> 4) & 0x0F,
-        'drive_heat':  round(drive_heat, 2),
-        'jack_heat':   round(jack_heat, 2),
-        'aux_heat':    round(aux_heat, 2),
+        'heat':        round(heat, 2),
+        'i2c_out':     i2c_out,
     }
 
 

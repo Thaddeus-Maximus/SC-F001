@@ -80,15 +80,29 @@ static float elapsed_s(void)
 
 /* -------- output helpers -------- */
 
+/* Build the line in a stack buffer and emit with a single write so concurrent
+ * ESP_LOGx output (notably the wifi driver during BU.WIFI.START) cannot slice
+ * into the middle of it. Leading '\n' protects against partial lines that
+ * another task may have written without a terminator. */
 __attribute__((format(printf, 2, 3)))
 static void emit(const char *kind, const char *fmt, ...)
 {
-    printf("BU.%s ", kind);
+    char buf[256];
+    /* Reserve one byte at the end for the trailing '\n' so a long line is
+     * truncated within the body rather than dropping the newline. Without
+     * this, a body that filled the buffer would produce a line glued to
+     * whatever came next on the wire. */
+    const int cap = (int)sizeof(buf) - 1;  // room for '\n'
+    int n = snprintf(buf, cap, "\nBU.%s ", kind);
+    if (n < 0) n = 0;
+    if (n > cap) n = cap;
     va_list ap;
     va_start(ap, fmt);
-    vprintf(fmt, ap);
+    int m = vsnprintf(buf + n, cap - n, fmt, ap);
     va_end(ap);
-    printf("\n");
+    if (m > 0) n += (m < cap - n) ? m : cap - n;
+    buf[n++] = '\n';
+    fwrite(buf, 1, n, stdout);
     fflush(stdout);
 }
 
@@ -295,7 +309,12 @@ static void cmd_led_watch(char *args)
 static void cmd_adc_once(void)
 {
     int bat_mv = get_bat_raw_mv();
-    float bat_V = get_battery_V();
+    /* Bypass the EMA — process_battery_voltage() runs in the FSM task,
+     * which is paused while bring-up is active, so get_battery_V() returns
+     * a stale value that never reflects V_SENS_K / V_SENS_OFFSET writes
+     * issued during calibration. Compute fresh from raw mV + current params. */
+    float bat_V = bat_mv * get_param_value_t(PARAM_V_SENS_K).f32
+                + get_param_value_t(PARAM_V_SENS_OFFSET).f32;
 #ifdef BOARD_V5
     /* VOC and FAULT pins are unusable on V5 (input-only ESP32 GPIOs
      * without external pulls — see README "V5 hardware caveats"); skip. */
@@ -345,6 +364,9 @@ static void cmd_sensors_watch(char *args)
      *                      on UART0 (operator hit Enter on the host side).
      *   sec > 0          → watch for that many seconds, then return.
      */
+    /* Force the sensor rail (P10) up before we observe — covers cases where
+     * the FSM or sensor task drove it low between boot and BU.BEGIN. */
+    i2c_relays_idle();
     char *s = args;
     char *t = next_tok(&s);
     int sec = t ? atoi(t) : 0;
@@ -462,7 +484,12 @@ static void cmd_relay(char *args)
     if (ms < 10)   ms = 10;
     if (ms > 2000) ms = 2000;
 
-    if (!get_is_safe()) { SKIP("relay reason=\"safety open\""); return; }
+    /* Read SAFETY directly: sensors_check() runs in the FSM task, which is
+     * paused while bring-up is active, so is_safe / get_is_safe() are stale.
+     * Safety pin is active-LOW. */
+    extern uint8_t sensor_pins[N_SENSORS];
+    #define _BU_SAFETY_OPEN() (gpio_get_level(sensor_pins[SENSOR_SAFETY]) != 0)
+    if (_BU_SAFETY_OPEN()) { SKIP("relay reason=\"safety open\""); return; }
 
     /* P10 / sensor power rail. Default is ON; pulse it OFF to prove the line
      * can be driven, then restore. */
@@ -511,11 +538,44 @@ static void cmd_relay(char *args)
     last_relay_state = rs;
     i2c_set_relays(rs);
 
-    vTaskDelay(pdMS_TO_TICKS(ms / 2));
-    fsm_now = esp_timer_get_time();
-    process_bridge_current(b);
-    float I_mid = get_bridge_A(b);
-    vTaskDelay(pdMS_TO_TICKS(ms - ms / 2));
+    /* JACK DOWN should stop as soon as the JACK sensor goes active (LOW) so
+     * the bring-up pulse can't drive the actuator into its mechanical limit.
+     * Other directions/bridges run for the full requested duration. SAFETY
+     * is checked every iteration regardless of bridge — multi-second pulses
+     * during bring-up must still kill the motor on a safety break. */
+    bool jack_down = (b == BRIDGE_JACK && dir == BRIDGE_REV);
+    bool stopped_by_sensor = false;
+    bool stopped_by_safety = false;
+
+    int64_t pulse_start_us = esp_timer_get_time();
+    int64_t mid_us = pulse_start_us + (int64_t)(ms / 2) * 1000;
+    int64_t end_us = pulse_start_us + (int64_t)ms * 1000;
+
+    float I_mid = NAN;
+    while (esp_timer_get_time() < end_us) {
+        if (_BU_SAFETY_OPEN()) {
+            stopped_by_safety = true;
+            break;
+        }
+        if (jack_down && gpio_get_level(sensor_pins[SENSOR_JACK]) == 0) {
+            stopped_by_sensor = true;
+            break;
+        }
+        if (isnan(I_mid) && esp_timer_get_time() >= mid_us) {
+            fsm_now = esp_timer_get_time();
+            process_bridge_current(b);
+            I_mid = get_bridge_A(b);
+        }
+        esp_task_wdt_reset();
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    if (isnan(I_mid)) {
+        /* Sensor tripped before we hit the midpoint; sample current now so
+         * the response still has a meaningful I_mid. */
+        fsm_now = esp_timer_get_time();
+        process_bridge_current(b);
+        I_mid = get_bridge_A(b);
+    }
 
     relay_port_t idle = {.bridges = {.SENSORS = 1}};
     last_relay_state = idle;
@@ -530,8 +590,15 @@ static void cmd_relay(char *args)
         ? get_sensor_isr_edges(which_sensor) : 0;
     uint32_t edges = edges_after - edges_before;
 
-    OK("relay bridge=%s dir=%s ms=%d I_before=%+.2f I_mid=%+.2f I_after=%+.2f heat=%.3f tripped=%d edges=%u",
-       t_bridge, t_dir, ms, I_before, I_mid, I_after, heat, tripped, (unsigned)edges);
+    int actual_ms = (int)((esp_timer_get_time() - pulse_start_us) / 1000);
+    const char *stop_reason =
+        stopped_by_safety ? "safety" :
+        stopped_by_sensor ? "sensor" : "time";
+    OK("relay bridge=%s dir=%s ms=%d actual_ms=%d stop=%s "
+       "I_before=%+.2f I_mid=%+.2f I_after=%+.2f heat=%.3f tripped=%d edges=%u",
+       t_bridge, t_dir, ms, actual_ms, stop_reason,
+       I_before, I_mid, I_after, heat, tripped, (unsigned)edges);
+    #undef _BU_SAFETY_OPEN
 }
 
 static void cmd_rf_watch(char *args)
@@ -588,7 +655,24 @@ static void cmd_wifi_wait(char *args)
     (void)args;  /* no timeout — BRINGUP.md §4 Stage 6. Operator aborts via Ctrl+C. */
     wifi_sta_list_t sta = {0};
     int last_n = 0;
+    bool aborted = false;
     while (1) {
+        /* Abort on any UART input — the host sends a stray byte to break out
+         * of the wait so that a follow-up BU.END is actually dispatched
+         * (otherwise the dispatcher stays blocked here forever). */
+        size_t available = 0;
+        if (uart_get_buffered_data_len(UART_NUM_0, &available) == ESP_OK
+            && available > 0) {
+            uint8_t drain[64];
+            while (available > 0) {
+                int n = uart_read_bytes(UART_NUM_0, drain, sizeof(drain), 0);
+                if (n <= 0) break;
+                available = (size_t)n < available ? available - (size_t)n : 0;
+            }
+            aborted = true;
+            break;
+        }
+
         if (esp_wifi_ap_get_sta_list(&sta) == ESP_OK && sta.num > last_n) {
             EVT("wifi.assoc n=%d t=%.2f", sta.num, elapsed_s());
             last_n = sta.num;
@@ -599,7 +683,8 @@ static void cmd_wifi_wait(char *args)
         esp_task_wdt_reset();
         vTaskDelay(pdMS_TO_TICKS(200));
     }
-    OK("wifi.wait clients=%d http_reqs=%d", last_n, s_http_reqs);
+    OK("wifi.wait clients=%d http_reqs=%d aborted=%d",
+       last_n, s_http_reqs, aborted ? 1 : 0);
 }
 
 static void cmd_fsm(char *args)
@@ -652,6 +737,11 @@ static void cmd_param(char *args)
     }
 
     if (strcmp(op, "SET") == 0) {
+        /* SET writes flash. Require BU.BEGIN to prevent accidental persistence
+         * from stray BU.PARAM lines outside of an active bring-up session. */
+        if (!s_active) {
+            ERR("param reason=\"BU.BEGIN required first\""); return;
+        }
         char *val = next_tok(&s);
         if (!val) { ERR("param reason=\"missing value\""); return; }
         esp_err_t e = ESP_OK;
@@ -673,11 +763,44 @@ static void cmd_param(char *args)
         if (e != ESP_OK) { ERR("param reason=\"set failed\" err=%s", esp_err_to_name(e)); return; }
         e = commit_params();
         if (e != ESP_OK) { ERR("param reason=\"commit failed\" err=%s", esp_err_to_name(e)); return; }
+        /* If the conversion params changed, refresh the battery EMA so
+         * get_battery_V() returns a value consistent with the new K/OFFSET
+         * immediately rather than decaying through the EMA. */
+        if (idx == PARAM_V_SENS_K || idx == PARAM_V_SENS_OFFSET) {
+            reset_battery_ema();
+        }
         OK("param key=%s set=ok committed=yes", key);
         return;
     }
 
     ERR("param reason=\"unknown op\" op=%s", op);
+}
+
+/* BU.FACTORY_RESET — wipe all params back to defaults, erase log partition,
+ * then reboot. Equivalent to the cold-boot button-hold path in main.c, but
+ * reachable from a host without physical access. Destructive — operator
+ * must explicitly invoke it. */
+static void cmd_factory_reset(char *args)
+{
+    (void)args;
+    /* Refuse without an explicit BU.BEGIN. Without this guard, any party
+     * that can write to UART0 can wipe params/log just by sending the
+     * command — and uart_comms.c forwards bare BU.* lines to the dispatcher
+     * even when bring-up mode is off. */
+    if (!s_active) {
+        ERR("factory_reset reason=\"BU.BEGIN required first\"");
+        return;
+    }
+    OK("factory_reset stage=start");
+    esp_err_t e = factory_reset();
+    if (e != ESP_OK) {
+        ERR("factory_reset stage=apply err=%s", esp_err_to_name(e));
+        return;
+    }
+    OK("factory_reset stage=done reboot=2s");
+    fflush(stdout);
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    esp_restart();
 }
 
 /* -------- dispatcher -------- */
@@ -707,6 +830,7 @@ static const struct cmd_entry CMDS[] = {
     { "FSM",            cmd_fsm          },
     { "SOLAR.TICK",     cmd_solar_tick   },
     { "PARAM",          cmd_param        },
+    { "FACTORY_RESET",  cmd_factory_reset},
 };
 
 void bringup_handle_line(char *line)

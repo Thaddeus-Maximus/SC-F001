@@ -73,15 +73,12 @@ def show_plots(entries: list, title: str = "SC-F001 Log"):
     add_crash_lines(ax0)
     ax0.grid(True, alpha=0.3)
 
-    # 2. Currents
+    # 2. Current (single channel — V5 has one shared sensor)
     ax1 = axes[1]
     ax1.set_ylabel('Current (A)')
     if fsm:
         ts = to_dt(_ts_arr(fsm))
-        ax1.plot(ts, _val_arr(fsm, 'drive_A'), label='Drive', linewidth=1)
-        ax1.plot(ts, _val_arr(fsm, 'jack_A'),  label='Jack',  linewidth=1)
-        ax1.plot(ts, _val_arr(fsm, 'aux_A'),   label='Aux',   linewidth=1)
-        ax1.legend(fontsize=8, loc='upper right')
+        ax1.plot(ts, _val_arr(fsm, 'current_A'), color='orange', linewidth=1)
     add_crash_lines(ax1)
     ax1.grid(True, alpha=0.3)
 
@@ -102,15 +99,12 @@ def show_plots(entries: list, title: str = "SC-F001 Log"):
     add_crash_lines(ax2)
     ax2.grid(True, alpha=0.3)
 
-    # 4. Thermal accumulators
+    # 4. Thermal accumulator (single — max of bridge heats)
     ax3 = axes[3]
     ax3.set_ylabel('Heat (I²t)')
     if fsm:
         ts = to_dt(_ts_arr(fsm))
-        ax3.plot(ts, _val_arr(fsm, 'drive_heat'), label='Drive', linewidth=1)
-        ax3.plot(ts, _val_arr(fsm, 'jack_heat'),  label='Jack',  linewidth=1)
-        ax3.plot(ts, _val_arr(fsm, 'aux_heat'),   label='Aux',   linewidth=1)
-        ax3.legend(fontsize=8, loc='upper right')
+        ax3.plot(ts, _val_arr(fsm, 'heat'), color='red', linewidth=1)
     add_crash_lines(ax3)
     ax3.grid(True, alpha=0.3)
 
@@ -140,17 +134,11 @@ def live_plot(url: str, interval_s: float = 2.0):
         ax.grid(True, alpha=0.3)
 
     lines = {
-        'bat':   axes[0].plot([], [], color='green', linewidth=1)[0],
-        'drive': axes[1].plot([], [], label='Drive', linewidth=1)[0],
-        'jack':  axes[1].plot([], [], label='Jack',  linewidth=1)[0],
-        'aux':   axes[1].plot([], [], label='Aux',   linewidth=1)[0],
-        'state': axes[2].step([], [], where='post', linewidth=1, color='navy')[0],
-        'drheat': axes[3].plot([], [], label='Drive', linewidth=1)[0],
-        'jkheat': axes[3].plot([], [], label='Jack',  linewidth=1)[0],
-        'axheat': axes[3].plot([], [], label='Aux',   linewidth=1)[0],
+        'bat':     axes[0].plot([], [], color='green',  linewidth=1)[0],
+        'current': axes[1].plot([], [], color='orange', linewidth=1)[0],
+        'state':   axes[2].step([], [], where='post', linewidth=1, color='navy')[0],
+        'heat':    axes[3].plot([], [], color='red',    linewidth=1)[0],
     }
-    axes[1].legend(fontsize=8, loc='upper right')
-    axes[3].legend(fontsize=8, loc='upper right')
     axes[3].xaxis.set_major_formatter(mdates.AutoDateFormatter(axes[3].xaxis.get_major_locator()))
 
     state = {'current_tail': 0, 'first': True}
@@ -181,13 +169,9 @@ def live_plot(url: str, interval_s: float = 2.0):
 
         if fsm:
             ts = to_dt([e['ts_ms'] for e in fsm])
-            lines['drive'].set_data(ts, [e.get('drive_A', 0) for e in fsm])
-            lines['jack'].set_data( ts, [e.get('jack_A', 0)  for e in fsm])
-            lines['aux'].set_data(  ts, [e.get('aux_A', 0)   for e in fsm])
+            lines['current'].set_data(ts, [e.get('current_A', 0) for e in fsm])
             lines['state'].set_data(ts, [e.get('entry_type', 0) for e in fsm])
-            lines['drheat'].set_data(ts, [e.get('drive_heat', 0) for e in fsm])
-            lines['jkheat'].set_data(ts, [e.get('jack_heat', 0)  for e in fsm])
-            lines['axheat'].set_data(ts, [e.get('aux_heat', 0)   for e in fsm])
+            lines['heat'].set_data(ts, [e.get('heat', 0) for e in fsm])
 
         all_bat = sorted(
             [e for e in all_entries if 'bat_V' in e],

@@ -40,8 +40,14 @@ esp_err_t fsm_get_error() { return fsm_error; }
 void fsm_clear_error() { fsm_error = ESP_OK; }
 
 
+/* override_time + override_cmd are written from RF/BT/comms tasks and read
+ * from the control task. int64_t isn't atomic on a 32-bit MCU, so we wrap
+ * read/write in a critical section to prevent torn reads (which could land
+ * override_time far in the future and run a motor for seconds longer than
+ * RF_PULSE_LENGTH). */
+static portMUX_TYPE override_spin = portMUX_INITIALIZER_UNLOCKED;
 int64_t override_time = -1;
-fsm_override_t override_cmd;
+fsm_override_t override_cmd = FSM_OVERRIDE_DRIVE_FWD;
 bool enabled = false;
 
 float this_move_dist = 0.0f;
@@ -82,9 +88,20 @@ void pulse_override(fsm_override_t cmd) {
     if (soft_idle_is_active()) return;
     if (current_state == STATE_IDLE) {
         rtc_reset_shutdown_timer();
+        int64_t deadline = fsm_now + (int64_t)get_param_value_t(PARAM_RF_PULSE_LENGTH).u32;
+        portENTER_CRITICAL(&override_spin);
         override_cmd = cmd;
-        override_time = fsm_now + get_param_value_t(PARAM_RF_PULSE_LENGTH).u32;
+        override_time = deadline;
+        portEXIT_CRITICAL(&override_spin);
     }
+}
+
+/* Atomic snapshot of override_time + override_cmd for the control task. */
+static inline void override_snapshot(int64_t *time_out, fsm_override_t *cmd_out) {
+    portENTER_CRITICAL(&override_spin);
+    *time_out = override_time;
+    *cmd_out  = override_cmd;
+    portEXIT_CRITICAL(&override_spin);
 }
 
 int64_t fsm_cal_t, fsm_cal_e;
@@ -130,49 +147,69 @@ int8_t fsm_get_current_progress(int8_t denominator) {
 
 
 #define JACK_TIME  get_param_value_t(PARAM_JACK_KT).f32  * get_param_value_t(PARAM_JACK_DIST ).f32
-#define JACK_DOWN_TIME  (jack_finish_us - jack_start_us) * 105/100
+
+/* Symmetric jack-down duration: how long jack-up actually ran, plus 5%.
+ * If jack_start_us / jack_finish_us are zero or negative (panic recovery,
+ * or a transition that skipped the normal path) the delta is unsafe — fall
+ * back to the parameter-derived JACK_TIME as a floor so we don't either
+ * (a) cut the jack-down to ~0 and leave the actuator extended, or (b) run
+ * forever. */
+static inline int64_t _jack_down_time_us(void) {
+    int64_t delta = jack_finish_us - jack_start_us;
+    int64_t floor_us = (int64_t)JACK_TIME;
+    if (delta < floor_us) delta = floor_us;
+    return delta * 105 / 100;
+}
+#define JACK_DOWN_TIME _jack_down_time_us()
 #define DRIVE_TIME get_param_value_t(PARAM_DRIVE_KT).f32 * this_move_dist
 #define DRIVE_DIST get_param_value_t(PARAM_DRIVE_KE).f32 * this_move_dist
 
 int64_t last_log_time = 0;
-#define LOGSIZE 39
+/* FSM log payload (single current channel — V5 has one shared ACS sensor; V4
+ * had three but the per-bridge values are redundant since only one bridge is
+ * active at a time). Layout:
+ *   [0:8]   ts_ms     u64
+ *   [8:12]  bat_V     f32
+ *   [12:16] current_A f32  — sum of bridge currents (mutually exclusive)
+ *   [16:18] counter   i16
+ *   [18:19] sensors   u8
+ *   [19:23] heat      f32  — max bridge heat
+ *   [23:25] i2c_out   u16  — last 16-bit TCA9555 output state
+ *                            (high byte = OUTPUT0 / LEDs, low = OUTPUT1 / relays) */
+#define LOGSIZE 25
 esp_err_t send_fsm_log() {
 	if(!rtc_is_set()) return ESP_OK;
-	
+
 	uint8_t entry[LOGSIZE] = {};
-    
-    // Pack 64-bit timestamp into bytes 1-8
+
     uint64_t be_timestamp = rtc_get_ms();
     memcpy(&entry[0], &be_timestamp, 8);
-    
-    // Pack 32-bit voltages/currents into bytes 9-24
+
     float be_voltage = get_battery_V();
     memcpy(&entry[8],  &be_voltage,  4);
-    float be_current1 = get_bridge_raw_A(BRIDGE_DRIVE);
-    memcpy(&entry[12], &be_current1, 4);
-    float be_current2 = get_bridge_raw_A(BRIDGE_JACK);
-    memcpy(&entry[16], &be_current2, 4);
-    float be_current3 = get_bridge_raw_A(BRIDGE_AUX);
-    memcpy(&entry[20], &be_current3, 4);
-    
+
+    float current_A = get_bridge_raw_A(BRIDGE_DRIVE)
+                    + get_bridge_raw_A(BRIDGE_JACK)
+                    + get_bridge_raw_A(BRIDGE_AUX);
+    memcpy(&entry[12], &current_A, 4);
+
     int16_t be_counter = get_sensor_counter(SENSOR_DRIVE);
-    memcpy(&entry[24], &be_counter, 2);
-    
-    entry[26] = pack_sensors();
-    
-    
-    
-    
-    float heat1 = efuse_get_heat(BRIDGE_DRIVE);
-    memcpy(&entry[27], &heat1, 4);
-    float heat2 = efuse_get_heat(BRIDGE_JACK);
-    memcpy(&entry[31], &heat2, 4);
-    float heat3 = efuse_get_heat(BRIDGE_AUX);
-    memcpy(&entry[35], &heat3, 4);
-    
+    memcpy(&entry[16], &be_counter, 2);
+
+    entry[18] = pack_sensors();
+
+    float heat = efuse_get_heat(BRIDGE_DRIVE);
+    float h2 = efuse_get_heat(BRIDGE_JACK);
+    float h3 = efuse_get_heat(BRIDGE_AUX);
+    if (h2 > heat) heat = h2;
+    if (h3 > heat) heat = h3;
+    memcpy(&entry[19], &heat, 4);
+
+    uint16_t i2c_out = i2c_get_outputs();
+    memcpy(&entry[23], &i2c_out, 2);
+
     last_log_time = esp_timer_get_time();
-    
-    
+
     log_write(entry, LOGSIZE, fsm_get_state());
     
     //ESP_LOGI(TAG, "WROTE LOG; %lld / %ld/%ld; %5.2f %5.2f %5.2f", (long long)rtc_get_ms(), (unsigned long)log_get_tail(), (unsigned long)log_get_head(), heat1, heat2, heat3);
@@ -257,6 +294,11 @@ void control_task(void *param) {
 						
 						ESP_LOGI(TAG, "STARTING");
 						fsm_error = ESP_OK; // if everything is OK now, we're OK.
+						/* Zero jack timestamps so JACK_DOWN_TIME on this cycle
+						 * never inherits a stale value from a prior run. */
+						jack_start_us  = 0;
+						jack_trans_us  = 0;
+						jack_finish_us = 0;
 						current_state = STATE_MOVE_START_DELAY;
                 		log = true;
 						set_timer(TRANSITION_DELAY_US);
@@ -454,12 +496,25 @@ void control_task(void *param) {
 					current_state = STATE_UNDO_JACK_START;
 					set_timer(JACK_DOWN_TIME);
             		log = true;
-				} else {
+				} else if (efuse_get(BRIDGE_DRIVE)) {
+					// Fault — deduct actual distance traveled (may be partial).
+					// Checked before the normal-completion branch so a tick
+					// that satisfies both conditions doesn't double-deduct
+					// remaining_distance.
 					int32_t current_encoder = get_sensor_counter(SENSOR_DRIVE);
 					int32_t ticks_traveled = current_encoder - move_start_encoder;
 					float ke = get_param_value_t(PARAM_DRIVE_KE).f32;
 					float distance_traveled = ticks_traveled / ke;
 
+					remaining_distance -= distance_traveled;
+					if (remaining_distance < 0.0f) remaining_distance = 0.0f;
+
+					fsm_error = SC_ERR_EFUSE_TRIP_1;
+					current_state = STATE_UNDO_JACK_START;
+					set_timer(JACK_DOWN_TIME);
+            		log = true;
+				} else {
+					int32_t current_encoder = get_sensor_counter(SENSOR_DRIVE);
 					if (timer_done() || current_encoder > 0) {
 						// Normal completion — deduct planned distance from leash
 						remaining_distance -= this_move_dist;
@@ -468,28 +523,23 @@ void control_task(void *param) {
                 		log = true;
 						set_timer(TRANSITION_DELAY_US);
 					}
-
-					if (efuse_get(BRIDGE_DRIVE)) {
-						// Fault — deduct actual distance traveled (may be partial)
-						remaining_distance -= distance_traveled;
-						if (remaining_distance < 0.0f) remaining_distance = 0.0f;
-
-						fsm_error = SC_ERR_EFUSE_TRIP_1;
-						current_state = STATE_UNDO_JACK_START;
-						set_timer(JACK_DOWN_TIME);
-                		log = true;
-					}
 				}
                 break;
 
             case STATE_DRIVE_END_DELAY:
-            	// 1s pause after drive — then lower jack
+            	// 1s pause after drive — then lower jack normally.
+            	// Goes straight to STATE_JACK_DOWN so the LED/comms message
+            	// reads "MOVING…" rather than "CANCELLING MOVE" on a normal
+            	// cycle. STATE_UNDO_JACK_START remains the path for explicit
+            	// undo / safety-break / efuse-trip recovery.
             	if (!get_is_safe()) {
 					fsm_error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
+					set_timer(JACK_DOWN_TIME);
                 	log = true;
 				} else if (timer_done()) {
-					current_state = STATE_UNDO_JACK_START;
+					current_state = STATE_JACK_DOWN;
+					set_timer(JACK_DOWN_TIME);
             		log = true;
 				}
 				break;
@@ -551,10 +601,14 @@ void control_task(void *param) {
         
 		/**** SET OUTPUTS ****/
         switch (current_state) {
-            case STATE_IDLE:
-            	// In idle we still accept override commands
-			    if (override_time > fsm_now) {
-					switch(override_cmd) {
+            case STATE_IDLE: {
+            	// In idle we still accept override commands. Snapshot both fields
+            	// atomically to defend against the int64 torn read on writers.
+            	int64_t local_time;
+            	fsm_override_t local_cmd;
+            	override_snapshot(&local_time, &local_cmd);
+			    if (local_time > fsm_now) {
+					switch(local_cmd) {
 						case FSM_OVERRIDE_DRIVE_FWD:
 	                        if (efuse_get(BRIDGE_DRIVE)){
 				            	drive_relays((relay_port_t){.bridges = {
@@ -653,6 +707,7 @@ void control_task(void *param) {
 					}});
 				}
 			    break;
+			} /* close STATE_IDLE block scope */
 			case STATE_CALIBRATE_JACK_MOVE:
             case STATE_JACK_UP_START:
             case STATE_JACK_UP:

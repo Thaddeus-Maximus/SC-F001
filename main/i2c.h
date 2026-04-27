@@ -55,6 +55,11 @@ esp_err_t i2c_stop(void);
 esp_err_t i2c_set_relays(relay_port_t states);
 esp_err_t i2c_set_led1(uint8_t state);
 
+/* Returns the last-written 16-bit TCA9555 output state.
+ * High byte: OUTPUT0 (P00..P07, LEDs in P05..P07).
+ * Low  byte: OUTPUT1 (P10..P17, relay_port_t.raw). */
+uint16_t i2c_get_outputs(void);
+
 /* Normal run state: all bridges off, but P10 (sensor rail) held high.
  * Use whenever "everything off" is really "all motors off, system is still on". */
 esp_err_t i2c_relays_idle(void);

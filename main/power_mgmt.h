@@ -46,6 +46,13 @@ bool get_bridge_spike(bridge_t bridge, float threshold);
 esp_err_t process_bridge_current(bridge_t bridge);
 esp_err_t process_battery_voltage();
 
+/* Force the battery EMA to re-seed from the next raw read. Call after a
+ * V_SENS_K / V_SENS_OFFSET change so get_battery_V() reflects the new
+ * calibration immediately instead of decaying through the EMA — which
+ * otherwise stays stale across bringup mode (FSM is paused, so
+ * process_battery_voltage doesn't tick) until alpha catches up. */
+void reset_battery_ema(void);
+
 esp_err_t adc_init();
 esp_err_t adc_post(void);
 esp_err_t power_init();

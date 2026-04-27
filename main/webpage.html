@@ -1,55 +1,136 @@
 <!DOCTYPE html>
 <html>
-<!--
-tan: #ba965b
-light tan: #efede9
-white: #ffffff
-green: #2a493d
-black: #2f2f2f
--->
 <head>
     <meta charset="utf-8">
     <title>Control Panel</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-       
+        /* === COLOR TOKENS ===
+         * Single source of truth for every color used in the UI. Item 14:
+         * green/red/yellow each appear in exactly one place here and are
+         * referenced everywhere else via var(--…). */
+        :root {
+            --green:  #38B000;
+            --red:    #C1121F;
+            --yellow: #FFDD00;
+
+            /* Dark theme surfaces (item 15) */
+            --bg:        #1a1a1a;   /* page background */
+            --surface:   #262626;   /* cards, inputs, popups */
+            --surface-2: #333333;   /* hover / readonly tint */
+            --text:      #f0f0f0;   /* primary text */
+            --text-dim:  #a0a0a0;   /* secondary text */
+            --border:    #444444;
+            --accent:    #ba965b;   /* brand tan kept as accent */
+        }
+
+        html, body { background-color: var(--bg); color: var(--text); }
+        body { text-align: center; margin: 0; padding: 0; }
         #wrapper { text-align: center; box-sizing: border-box; }
         #content { max-width: 500px; margin: auto; padding: 0 10px; }
-        body { text-align: center; margin: 0; padding: 0; }
-    
+
         * {
-        font-size: 1.2rem;
-        background-color: #ffffff;
-        color: #2f2f2f;
-        font-family: "Noto Sans", "Verdana", sans-serif;
+            font-size: 1.2rem;
+            color: var(--text);
+            font-family: system-ui, sans-serif;
+            background-color: transparent;
         }
-        input, button { width: 100%; }
-        input, button {  background-color: #efede9; text-align: right; box-sizing: border-box; border: 1px; border-radius: 5px; margin: 5px;}
-        input[type="text"], input[type="number"],input[type="time"] { font-family: monospace;border: 1px solid #ba965b; border-radius: 5px; }
-        
-        
-        input[readonly] { background-color: #e4e4e4; border-radius: 5px;}
-        
-        
-        button { text-align: center; border: 1px solid #ba965b; border-radius: 5px;  }
-        .changed, #commit_btn { background-color: #2a493d !important; color: #ffffff !important;  }
-        #cancel_btn { background-color: #723 !important; color: #ffffff !important;  }
-        #commit_btn, #cancel_btn { width: 45%; margin-top: 10px; padding: 10px; cursor: pointer; border: none; font-weight: bold; }
-        #commit_btn[disabled], #cancel_btn[disabled] { background-color: #444 !important; color: #888; cursor: not-allowed; }
+
+        /* === FORM CONTROLS === */
+        input, button {
+            width: 100%;
+            background-color: var(--surface);
+            color: var(--text);
+            text-align: right;
+            box-sizing: border-box;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            margin: 5px;
+        }
+        input[type="text"], input[type="number"], input[type="time"] {
+            /* Numerical / freeform-text inputs keep monospace per CHANGELIST. */
+            font-family: monospace;
+            border: 1px solid var(--accent);
+        }
+        input[readonly] {
+            background-color: var(--surface-2);
+            color: var(--text-dim);
+        }
+
+        button {
+            text-align: center;
+            border: 1px solid var(--accent);
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover { background-color: var(--surface-2); }
+
+        /* Save / Discard footer buttons. */
+        .changed, #commit_btn { background-color: var(--green) !important; color: #ffffff !important; border-color: var(--green) !important; }
+        #cancel_btn { background-color: var(--red) !important; color: #ffffff !important; border-color: var(--red) !important; }
+        #commit_btn, #cancel_btn { width: 45%; margin-top: 10px; padding: 10px; font-weight: bold; }
+        #commit_btn[disabled], #cancel_btn[disabled] {
+            background-color: var(--surface-2) !important;
+            color: var(--text-dim) !important;
+            border-color: var(--border) !important;
+            cursor: not-allowed;
+        }
+
         table { width: 100%; border-collapse: collapse; text-align: left; }
-        td { padding: 8px; border-bottom: 1px solid #efede9; }
+        td { padding: 8px; border-bottom: 1px solid var(--border); }
         #log_viewer_table td { padding: 2px 6px; font-size: 0.65rem; }
         #log_viewer_table td:first-child { white-space: nowrap; }
-        summary { border-radius: 5px; font-weight: bold; text-align: left; color: #fff; background-color: #723; padding: 0.3rem;}
-        
-        .cmd { font-size: 1.5rem; border: none;}
-        
-        #msg {text-align: center;}
 
-        /* Status box: state label plus a flex row of per-error pills. */
+        summary {
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: left;
+            color: #ffffff;
+            background-color: var(--red);
+            padding: 0.3rem;
+            cursor: pointer;
+        }
+
+        /* === ACTION BUTTON ROW (item 12) ===
+         * Flex layout instead of a table: each button gets exactly 50% of
+         * the row width with a 10px gap, regardless of label width. The
+         * `.cmd` text wraps when "START MOVE" doesn't fit on one line. */
+        .action_row {
+            display: flex;
+            gap: 10px;
+            padding: 5px 0;
+            align-items: stretch;
+        }
+        .action_row > button {
+            flex: 1 1 0;        /* equal width — both buttons take 50% */
+            margin: 0;
+            min-height: 64px;
+        }
+        .cmd {
+            font-size: 1.5rem;
+            font-weight: bold;
+            white-space: normal;
+            word-break: break-word;
+            border: none;
+            line-height: 1.15;
+        }
+        .cmd_action { background-color: var(--green); color: #ffffff; }
+        .cmd_action.moving { background-color: var(--yellow); color: #1a1a1a; }
+        .cmd_estop  { background-color: var(--red);   color: #ffffff; }
+
+        #msg { text-align: center; }
+
+        /* === STATUS BOX === */
         #status_box { text-align: center; padding: 6px 0; }
-        #status_state { font-weight: bold; font-size: 1.3rem; padding: 4px 0; color: #2a493d; }
-        #status_state.error { color: #c33; }
+        /* Item 13: status text always uses the default theme color — no
+         * error-class override that flips it red. The pill row below does
+         * the error signaling. */
+        #status_state {
+            font-weight: bold;
+            font-size: 1.3rem;
+            padding: 4px 0;
+            color: var(--text);
+        }
         #status_indicators { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 4px; }
         #status_indicators:empty { display: none; }
         .status_pill {
@@ -58,18 +139,19 @@ black: #2f2f2f
             font-size: 0.85rem;
             font-weight: bold;
             color: #ffffff;
-            background-color: #888;
+            background-color: var(--surface-2);
             white-space: nowrap;
         }
-        .status_pill.error { background-color: #c33; }
-        .status_pill.warn  { background-color: #c90; }
-        .status_pill.info  { background-color: #479; }
-        
+        .status_pill.error { background-color: var(--red); }
+        .status_pill.warn  { background-color: var(--yellow); color: #1a1a1a; }
+        .status_pill.info  { background-color: var(--accent); }
+
         h1 {
-        font-size: 2.5rem;
+            font-size: 2.5rem;
+            color: var(--text);
         }
-        
-        /* Popup modal styles */
+
+        /* === POPUP MODAL === */
         #popup-overlay {
             display: none;
             position: fixed;
@@ -77,101 +159,87 @@ black: #2f2f2f
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.75);
             z-index: 1000;
             justify-content: center;
             align-items: center;
         }
-        
         #popup-content {
-            background-color: #2a493d;
-            color: #ffffff;
+            background-color: var(--surface);
+            color: var(--text);
             padding: 30px;
             border-radius: 10px;
+            border: 1px solid var(--border);
             text-align: center;
             max-width: 400px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         }
-        
-        #popup-content h2 {
-            margin-top: 0;
-            color: #ffffff;
-            background-color: #2a493d;
-        }
-        
+        #popup-content h2,
         #popup-content p {
-            background-color: #2a493d;
-            color: #ffffff;
-            font-size: 1.1rem;
+            background-color: var(--surface);
+            color: var(--text);
         }
-        
+        #popup-content h2 { margin-top: 0; }
+        #popup-content p { font-size: 1.1rem; }
+
         @media screen and (max-width: 350px) {
             #content { max-width: 100%; padding: 0 5px; }
-            /* Stack table cells vertically on mobile for better usability,
-             * but exempt the log viewer — it stays as a wide table with
-             * horizontal scroll provided by its wrapping div. */
+            /* Stack table cells vertically on mobile, but exempt the log
+             * viewer — it stays as a wide table with horizontal scroll. */
             table:not(#log_viewer_table) tr td { display: block; width: 100%; box-sizing: border-box; }
             table:not(#log_viewer_table) tr { display: block; margin-bottom: 10px; }
         }
-        
+
         #popup-buttons {
-            background-color: #2a493d;
+            background-color: var(--surface);
             margin-top: 20px;
             display: flex;
             gap: 10px;
             justify-content: center;
             flex-wrap: wrap;
         }
-        
         #popup-buttons button {
-            background-color: #efede9;
-            color: #2f2f2f;
-            border: 1px solid #ba965b;
+            background-color: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--accent);
             padding: 10px 20px;
             cursor: pointer;
             border-radius: 5px;
             font-weight: bold;
             min-width: 100px;
         }
-        
         #popup-buttons button:hover {
-            background-color: #ba965b;
-            color: #ffffff;
+            background-color: var(--accent);
+            color: #1a1a1a;
         }
-        
         #popup-buttons button.primary {
-            background-color: #ba965b;
-            color: #ffffff;
+            background-color: var(--accent);
+            color: #1a1a1a;
         }
-        
         #popup-buttons button.primary:hover {
-            background-color: #8a7045;
+            background-color: #d4b27e;
         }
-        
+
         #popup-input-container {
-            background-color: #2a493d;
+            background-color: var(--surface);
             margin: 20px 0;
         }
-        
         #popup-input {
             width: 100%;
             padding: 10px;
-            border: 1px solid #ba965b;
+            border: 1px solid var(--accent);
             border-radius: 5px;
-            background-color: #efede9;
-            color: #2f2f2f;
+            background-color: var(--surface-2);
+            color: var(--text);
             text-align: center;
             font-size: 1.1rem;
         }
-        
-        .sqbtn {
-        	width: 35%;
-        	padding: 30px;
-        	font-weight: bold;
-        }
-        
-        
 
+        .sqbtn {
+            width: 35%;
+            padding: 30px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -181,14 +249,11 @@ black: #2f2f2f
     
     <h1>CluckCommand</h1>
 
-    <table>
-        <tr>
-            <td><button class="cmd" onclick="sendCommand('start')">START</button></td>
-            <td><button class="cmd" onclick="sendCommand('stop')" style="background-color:#723; color: #fff">STOP</button></td>
-            <td><button class="cmd" onclick="sendCommand('undo')">UNDO</button></td>
-        </tr>
-    </table>
-    
+    <div class="action_row">
+        <button class="cmd cmd_action" id="action_btn" onclick="actionBtnClick()">START MOVE</button>
+        <button class="cmd cmd_estop" onclick="sendCommand('stop')">E-STOP</button>
+    </div>
+
 
 
     <table>
@@ -325,7 +390,7 @@ black: #2f2f2f
     <br/>
 
     <details id="log_viewer_details">
-    <summary style="background-color:#2a493d;">EVENT LOG</summary>
+    <summary style="background-color:var(--surface-2);">EVENT LOG</summary>
     <!-- Body breaks out of the 500px #content column so the table has
          room to breathe. The summary above stays inside the column. -->
     <div id="log_viewer_body" style="position:relative;width:100vw;left:50%;margin-left:-50vw;padding:0 8px;box-sizing:border-box;">
@@ -365,8 +430,8 @@ black: #2f2f2f
     </table>
     
     <table id="table"></table>
-    <button class="cmd" onclick="sendCommand('reboot')" style="background-color:#723; color: #fff">REBOOT</button>
-    <button class="cmd" onclick="sendCommand('sleep')" style="background-color:#237; color: #fff">SLEEP</button>
+    <button class="cmd" onclick="sendCommand('reboot')" style="background-color:var(--red); color:#fff">REBOOT</button>
+    <button class="cmd" onclick="sendCommand('sleep')" style="background-color:var(--surface-2); color:var(--text)">SLEEP</button>
     </details>
     </div>
     </div>
@@ -665,6 +730,14 @@ black: #2f2f2f
 		  }
 		}
         
+        // Single action-button dispatcher. STATE_IDLE (0) → start, anything else
+        // → undo. Uses last polled FSM state so the click matches what the
+        // operator sees on the button label.
+        function actionBtnClick() {
+            const isIdle = !data.state || data.state === 0;
+            sendCommand(isIdle ? 'start' : 'undo');
+        }
+
         async function sendCommand(cmdName) {
             if (cmdName === 'start') {
                 if (!await modalConfirm("Will begin moving - please confirm."))
@@ -929,6 +1002,16 @@ black: #2f2f2f
                 const stateEl = ge('status_state');
                 stateEl.textContent = state || '—';
                 stateEl.classList.toggle('error', activePills.length > 0);
+
+                // Action button: STATE_IDLE (0) → "START MOVE" (green);
+                // any other state → "UNDO" (yellow). Single button replaces
+                // the old separate START/UNDO controls.
+                const actionBtn = ge('action_btn');
+                if (actionBtn) {
+                    const isIdle = !data.state || data.state === 0;
+                    actionBtn.textContent = isIdle ? 'START MOVE' : 'UNDO';
+                    actionBtn.classList.toggle('moving', !isIdle);
+                }
 
                 const box = ge('status_indicators');
                 box.innerHTML = '';
@@ -1557,15 +1640,22 @@ black: #2f2f2f
                 const payloadStart = i + 1;
                 const entry = { type };
                 try {
-                    if (type >= 0 && type <= 13 && payloadSize >= 27) {
-                        entry.ts_ms   = Number(dv.getBigUint64(payloadStart + 0, true));
-                        entry.bat_V   = dv.getFloat32(payloadStart + 8, true);
-                        entry.drive_A = dv.getFloat32(payloadStart + 12, true);
-                        entry.jack_A  = dv.getFloat32(payloadStart + 16, true);
-                        entry.aux_A   = dv.getFloat32(payloadStart + 20, true);
-                        entry.counter = dv.getInt16(payloadStart + 24, true);
-                        entry.sensors = bytes[payloadStart + 26];
-                        entry.name    = LOG_FSM_NAMES[type] || `STATE_${type}`;
+                    if (type >= 0 && type <= 13 && payloadSize >= 19) {
+                        // Single-current FSM payload (25 bytes):
+                        // ts(8) bat(4) current(4) counter(2) sensors(1)
+                        // heat(4) i2c_out(2)
+                        entry.ts_ms     = Number(dv.getBigUint64(payloadStart + 0, true));
+                        entry.bat_V     = dv.getFloat32(payloadStart + 8, true);
+                        entry.current_A = dv.getFloat32(payloadStart + 12, true);
+                        entry.counter   = dv.getInt16(payloadStart + 16, true);
+                        entry.sensors   = bytes[payloadStart + 18];
+                        if (payloadSize >= 23) {
+                            entry.heat = dv.getFloat32(payloadStart + 19, true);
+                        }
+                        if (payloadSize >= 25) {
+                            entry.i2c_out = dv.getUint16(payloadStart + 23, true);
+                        }
+                        entry.name      = LOG_FSM_NAMES[type] || `STATE_${type}`;
                     } else if (type === LOG_TYPE_BAT && payloadSize >= 12) {
                         entry.ts_ms = Number(dv.getBigUint64(payloadStart, true));
                         entry.bat_V = dv.getFloat32(payloadStart + 8, true);
@@ -1596,16 +1686,22 @@ black: #2f2f2f
             const sensorHex = e.sensors !== undefined
                 ? '0x' + e.sensors.toString(16).padStart(2,'0')
                 : '';
+            const i2cHex = e.i2c_out !== undefined
+                ? '0x' + e.i2c_out.toString(16).padStart(4,'0')
+                : '';
             return [
                 { text: _logFormatTs(e.ts_ms) },
                 { text: e.name || '' },
-                { text: e.bat_V   !== undefined ? e.bat_V.toFixed(2)   : '' },
-                { text: e.drive_A !== undefined ? e.drive_A.toFixed(2) : '' },
-                { text: e.jack_A  !== undefined ? e.jack_A.toFixed(2)  : '' },
-                { text: e.aux_A   !== undefined ? e.aux_A.toFixed(2)   : '' },
-                { text: e.counter !== undefined ? String(e.counter)    : '' },
+                { text: e.bat_V     !== undefined ? e.bat_V.toFixed(2)     : '' },
+                { text: e.current_A !== undefined ? e.current_A.toFixed(2) : '' },
+                { text: e.counter   !== undefined ? String(e.counter)      : '' },
                 { text: sensorHex,
                   title: e.sensors !== undefined ? _decodeSensors(e.sensors) : undefined },
+                { text: e.heat      !== undefined ? e.heat.toFixed(2)      : '' },
+                { text: i2cHex,
+                  title: e.i2c_out !== undefined
+                       ? '0b' + e.i2c_out.toString(2).padStart(16,'0')
+                       : undefined },
                 { text: e.reason || '' },
             ];
         }
@@ -1635,7 +1731,7 @@ black: #2f2f2f
         function _renderLogEntries(entries) {
             const table = ge('log_viewer_table');
             table.innerHTML = '';
-            const cols = ['Time','Type','Battery V','Drive A','Jack A','Aux A','Counter','Sensors','Extra'];
+            const cols = ['Time','Type','Battery V','Current A','Counter','Sensors','Heat','I2C Out','Extra'];
             _appendRow(table, cols.map(h => ({ text: h, bold: true })));
 
             // Walk newest-first, group contiguous entries sharing the same
@@ -1663,10 +1759,11 @@ black: #2f2f2f
                 const header = _appendRow(table, [{
                     text: `[+] ${name} × ${group.length}   ${firstTs}  →  ${lastTs}`,
                     colSpan: cols.length,
-                    style: { cursor: 'pointer', background: '#efede9',
+                    style: { cursor: 'pointer', background: 'var(--surface-2)',
+                             color: 'var(--text)',
                              fontWeight: 'bold', fontSize: '0.7rem' },
                 }], {
-                    style: { background: '#efede9' },
+                    style: { background: 'var(--surface-2)' },
                 });
                 // Defer wiring the onclick until we've appended the child rows.
                 const childRows = group.map(e =>

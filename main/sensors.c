@@ -140,28 +140,36 @@ esp_err_t sensors_init() {
 }
 
 void sensors_check() {
-	sensor_event_t evt;
-    
-    uint8_t i = 0;
-    
-	if (xQueueReceive(sensor_event_queue, &evt, pdMS_TO_TICKS(10)) == pdTRUE) {
-        i = evt.sensor_id;
-        
-        ESP_LOGI("SENS", "EVENT %d", i);
-        
-        bool current_raw = !gpio_get_level(sensor_pins[i]);
+    /* Drain ALL queued events with a non-blocking receive. Previously this
+     * was a single blocking receive with a 10 ms timeout, which (a) chewed up
+     * half the FSM tick window waiting on quiet sensors, and (b) consumed
+     * only one edge per tick — encoder bursts above 50 Hz overflowed the
+     * 16-entry queue and undercounted distance. Now each tick consumes the
+     * full queue contents and applies a per-sensor debounce. */
+    sensor_event_t evt;
+    static uint64_t last_counted_us[N_SENSORS] = {0};
+    while (xQueueReceive(sensor_event_queue, &evt, 0) == pdTRUE) {
+        uint8_t i = evt.sensor_id;
+        if (i >= N_SENSORS) continue;
+
+        /* Use the ISR-captured level (snapshot at edge time) rather than a
+         * fresh GPIO read here — by the time the FSM tick drains the queue,
+         * the line may have toggled again and a re-read would miss the
+         * transition we're processing. */
+        bool current_raw = evt.level;
+
+        /* Software debounce on non-safety sensors. The safety sensor has its
+         * own asymmetric debouncer below, so we don't double-count there. */
+        uint64_t now = esp_timer_get_time();
+        if (i != SENSOR_SAFETY) {
+            if (now - last_counted_us[i] < DEBOUNCE_TIME_US) continue;
+        }
+        last_counted_us[i] = now;
 
         sensor_stable_state[i] = current_raw;
-       
-        if (current_raw && !last_raw_state[i]){
-            ESP_LOGI("SENS", "FALLING");
+        if (current_raw != last_raw_state[i]) {
             sensor_count[i]++;
         }
-        if (!current_raw && last_raw_state[i]){
-            ESP_LOGI("SENS", "RISING");
-            sensor_count[i]++;
-        }
-        
         last_raw_state[i] = current_raw;
     }
     
@@ -214,8 +222,7 @@ bool get_sensor(sensor_t i) {
 }
 
 bool get_is_safe(void) {
-	return true;
-    //return is_safe;
+    return is_safe;
 }
 
 int16_t get_sensor_counter(sensor_t i) {

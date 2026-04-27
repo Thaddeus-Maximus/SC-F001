@@ -168,6 +168,7 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
     bool reboot_requested = false;
     bool wifi_params_changed = false;
     bool wifi_restart_requested = false;
+    bool refresh_battery_ema = false;
     const char *error_msg = NULL;
     int params_updated = 0;
     int params_failed = 0;
@@ -183,8 +184,8 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
     // Process remaining_dist if present
     cJSON *remaining_dist = cJSON_GetObjectItem(root, "remaining_dist");
     if (cJSON_IsNumber(remaining_dist)) {
-        int64_t new_dist = (int64_t)cJSON_GetNumberValue(remaining_dist);
-        ESP_LOGI(TAG, "Setting remaining_dist to %lld", new_dist);
+        float new_dist = (float)cJSON_GetNumberValue(remaining_dist);
+        ESP_LOGI(TAG, "Setting remaining_dist to %.3f", new_dist);
         fsm_set_remaining_distance(new_dist);
     }
     
@@ -362,6 +363,12 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
                 param_idx == PARAM_NET_PASS) {
                 wifi_params_changed = true;
             }
+
+            /* If the battery conversion params change, refresh the EMA
+             * so get_battery_V() reflects the new K/OFFSET immediately. */
+            if (param_idx == PARAM_V_SENS_K || param_idx == PARAM_V_SENS_OFFSET) {
+                refresh_battery_ema = true;
+            }
             
             cJSON *value_json = cJSON_GetObjectItem(parameters, key);
             
@@ -440,6 +447,9 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
         if (params_updated > 0) {
             rtc_schedule_next_alarm();
             commit_params();
+            if (refresh_battery_ema) {
+                reset_battery_ema();
+            }
             if (wifi_params_changed) {
                 ESP_LOGI(TAG, "WiFi params changed — restarting WiFi AP");
                 wifi_restart_requested = true;

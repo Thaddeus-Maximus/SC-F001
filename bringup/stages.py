@@ -3,11 +3,12 @@ runnable from the operator prompt — no implicit sequencing between them."""
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from typing import Callable
 
 import fmt
-from protocol import Link, Response, Event
+from protocol import Link, Response, Event, parse_line
 
 
 @dataclass
@@ -23,18 +24,9 @@ class Tally:
     def note_warn(self) -> None: self.warnings += 1
 
 
-def _prompt(msg: str, accept_skip: bool = True) -> str:
-    """Block for operator input. Returns 'run', 'skip', or 'quit'."""
-    hint = fmt.dim(" [Enter=run" + (", s=skip" if accept_skip else "") + ", q=quit]")
-    ans = input(fmt.prompt(msg) + hint + ": ").strip().lower()
-    if ans in ("", "y", "yes", "r", "run"):
-        return "run"
-    if ans in ("s", "skip") and accept_skip:
-        return "skip"
-    if ans in ("q", "quit", "exit"):
-        return "quit"
-    # anything else — treat as run, operator can always quit with Ctrl-C
-    return "run"
+def _prompt(msg: str) -> None:
+    """Block until operator presses Enter (Ctrl-C still aborts)."""
+    input(fmt.prompt(msg) + fmt.dim(" [Enter to continue]") + ": ")
 
 
 def _show_response(label: str, r: Response) -> None:
@@ -66,8 +58,7 @@ def stage_begin(link: Link, t: Tally) -> None:
 
 def stage_flash(link: Link, t: Tally) -> None:
     print(fmt.stage("Stage 1 — Flash & storage"))
-    if _prompt("  Run flash roundtrip + log head/tail check") != "run":
-        t.note_skip(); return
+    _prompt("  Run flash roundtrip + log head/tail check")
     r = link.request("BU.FLASH", overall_timeout_s=10)
     _show_response("flash", r)
     (t.note_pass if r.status == "OK" else t.note_fail)()
@@ -81,8 +72,7 @@ def stage_i2c_led(link: Link, t: Tally) -> None:
     import threading
 
     print(fmt.stage("Stage 2 — I2C / TCA9555 / LEDs"))
-    if _prompt("  Probe TCA9555 and run LED check") != "run":
-        t.note_skip(); return
+    _prompt("  Probe TCA9555 and run LED check")
 
     r = link.request("BU.I2C")
     _show_response("i2c", r)
@@ -133,8 +123,7 @@ def stage_i2c_led(link: Link, t: Tally) -> None:
 
 def stage_adc(link: Link, t: Tally, calibrate: bool = True) -> None:
     print(fmt.stage("Stage 3 — Analog front-end"))
-    if _prompt("  Read ADC snapshot (battery / motor current)") != "run":
-        t.note_skip(); return
+    _prompt("  Read ADC snapshot (battery / motor current)")
 
     r = link.request("BU.ADC")
     _show_response("adc", r)
@@ -158,12 +147,6 @@ def _run_battery_cal(link: Link, t: Tally) -> None:
     from calibrate import single_point_offset, verify
 
     print(fmt.section("Battery voltage calibration"))
-    while True:
-        ans = input("  Run calibration now? [y/n]: ").strip().lower()
-        if ans.startswith("n"):
-            t.note_skip(); return
-        if ans.startswith("y"):
-            break
 
     # Read current K and raw mV.
     k_r = link.request("BU.PARAM GET V_SENS_K")
@@ -173,8 +156,10 @@ def _run_battery_cal(link: Link, t: Tally) -> None:
 
     adc_r = link.request("BU.ADC")
     bat_mv = adc_r.getf("bat_mv")
-    if bat_mv == 0.0:
-        print("  ADC read looks bogus (mv=0)"); t.note_fail(); return
+    # ADC noise rarely lands on exactly 0; check against a small range so a
+    # near-floor reading still flags as bogus.
+    if bat_mv < 50:
+        print(f"  ADC read looks bogus (mv={bat_mv:.0f})"); t.note_fail(); return
 
     raw_ans = input("  Measure the battery at the board terminals with a DMM.\n"
                     "  Enter true voltage (V): ").strip()
@@ -183,29 +168,55 @@ def _run_battery_cal(link: Link, t: Tally) -> None:
     except ValueError:
         print("  Not a number — skipping cal"); t.note_skip(); return
 
+    # Sanity-check the operator-supplied true voltage. The system runs on a
+    # nominal 12-24 V battery; values outside 5..30 V are almost certainly a
+    # typo or DMM unit mistake (e.g. mV instead of V).
+    if not (5.0 <= v_true <= 30.0):
+        print(f"  v_true={v_true:.3f} V is outside plausible 5..30 V range")
+        t.note_fail(); return
+
     cal = single_point_offset(bat_mv, v_true, k)
     predicted = verify(bat_mv, cal)
     print(f"  bat_mv={bat_mv:.0f}  K={k:.10f}  new OFFSET={cal.offset:+.6f} V")
     print(f"  predicted V_bat after cal = {predicted:.3f}  (true = {v_true:.3f})")
 
-    if input("  Write this to the device? [y/n]: ").strip().lower().startswith("y"):
-        wr = link.request(f"BU.PARAM SET V_SENS_OFFSET {cal.offset:.6f}")
-        _show_response("param.set", wr)
-        if wr.status != "OK":
-            t.note_fail(); return
-        # Verify by re-reading the ADC
-        check = link.request("BU.ADC")
-        new_V = check.getf("bat_V")
-        err = new_V - v_true
-        print(f"  Post-cal bat_V = {new_V:.3f}  (err {err*1000:+.1f} mV)")
-        if abs(err) < 0.05:
-            t.note_pass()
-        else:
-            print("  WARN: residual error > 50 mV")
-            t.note_warn()
+    # Sanity-check the computed offset. Default is 0.4 V; |offset| > 2 V means
+    # something else is wrong (broken divider, wrong K, ADC ref off).
+    if abs(cal.offset) > 2.0:
+        print(f"  {fmt.fail('FAIL')}: |offset|={abs(cal.offset):.3f} V exceeds 2 V — "
+              f"check divider / K / DMM units")
+        t.note_fail(); return
+
+    wr = link.request(f"BU.PARAM SET V_SENS_OFFSET {cal.offset:.6f}")
+    _show_response("param.set", wr)
+    if wr.status != "OK":
+        t.note_fail(); return
+
+    # Read it back to confirm storage actually persisted what we sent.
+    rb = link.request("BU.PARAM GET V_SENS_OFFSET")
+    if rb.status != "OK":
+        print("  Could not read back V_SENS_OFFSET"); t.note_fail(); return
+    stored = rb.getf("value")
+    if abs(stored - cal.offset) > 1e-4:
+        print(f"  {fmt.fail('FAIL')}: readback {stored:+.6f} != written {cal.offset:+.6f}")
+        t.note_fail(); return
+
+    # Verify by re-reading the ADC. Firmware's cmd_adc_once now bypasses the
+    # EMA, so bat_V here reflects the new offset immediately.
+    check = link.request("BU.ADC")
+    new_V = check.getf("bat_V")
+    err = new_V - v_true
+    print(f"  Post-cal bat_V = {new_V:.3f}  (err {err*1000:+.1f} mV)")
+    abs_err = abs(err)
+    if abs_err < 0.020:
+        print(f"  {fmt.pass_('PASS')}: cal residual within ±20 mV")
+        t.note_pass()
+    elif abs_err < 0.050:
+        print(f"  {fmt.warn('WARN')}: residual {err*1000:+.1f} mV (>20, <50 mV)")
+        t.note_warn()
     else:
-        print("  Calibration not written (operator declined)")
-        t.note_skip()
+        print(f"  {fmt.fail('FAIL')}: residual {err*1000:+.1f} mV exceeds 50 mV")
+        t.note_fail()
 
 
 # ---------------------------------------------------------------------------
@@ -293,11 +304,11 @@ def stage_sensors(link: Link, t: Tally) -> None:
 #  check_edges → bridge has an encoder-style sensor; pulse must produce
 #                at least one edge on it.
 RELAY_TESTS = [
-    ("SENSORS", "ON",   200, (0.0, 0.0),  False),
-    ("DRIVE",   "FWD",  1000, (0.5, 25.0), True),
-    ("DRIVE",   "REV",  1000, (0.5, 25.0), True),
-    ("JACK",    "UP",   500, (0.2, 25.0), True),
-    ("JACK",    "DOWN", 500, (0.2, 25.0), True),
+    ("SENSORS", "ON",   500, (0.0, 0.0),  False),
+    ("DRIVE",   "FWD",  3000, (0.5, 25.0), True),
+    ("DRIVE",   "REV",  3000, (0.5, 25.0), True),
+    ("JACK",    "UP",   1200, (0.2, 25.0), True),
+    ("JACK",    "DOWN", 1200, (0.2, 25.0), True),
     ("AUX",     "FWD",  150, (0.1, 25.0), False),
 ]
 
@@ -308,13 +319,9 @@ def stage_relays(link: Link, t: Tally) -> None:
     print("   - Battery connected, fuse in place")
     print("   - Drive wheels off ground / disengaged")
     print("   - Safety interlock asserted (SAFETY sensor HIGH)")
-    if _prompt("  Proceed with live relay tests", accept_skip=True) != "run":
-        print("  Relay stage SKIPPED"); t.note_skip(); return
 
     for bridge, direction, ms, (lo, hi), check_edges in RELAY_TESTS:
-        prompt = f"  Pulse {bridge} {direction} for {ms} ms"
-        if _prompt(prompt) != "run":
-            t.note_skip(); continue
+        _prompt(f"  Pulse {bridge} {direction} for {ms} ms")
         r = link.request(f"BU.RELAY {bridge} {direction} {ms}",
                          overall_timeout_s=ms / 1000.0 + 5.0)
         _show_response(f"{bridge}/{direction}", r)
@@ -330,9 +337,12 @@ def stage_relays(link: Link, t: Tally) -> None:
         delta = abs(i_mid - i_before)
         tripped = r.geti("tripped") == 1
         edges = r.geti("edges")
+        stop = r.get("stop", "time")
+        actual_ms = r.geti("actual_ms", ms)
         edge_str = f"  edges={edges}" if check_edges else ""
+        stop_str = f"  stop={stop} ({actual_ms}/{ms} ms)" if stop != "time" else ""
         print(f"    |ΔI| = {delta:.2f} A (expected {lo}-{hi})  "
-              f"tripped={tripped}{edge_str}")
+              f"tripped={tripped}{edge_str}{stop_str}")
 
         if tripped:
             print(f"    {fmt.fail('FAIL')}: efuse tripped"); t.note_fail(); continue
@@ -354,8 +364,7 @@ def stage_rf(link: Link, t: Tally) -> None:
     import threading
 
     print(fmt.stage("Stage 6a — RF 433 MHz"))
-    if _prompt("  Watch for RF remote codes") != "run":
-        t.note_skip(); return
+    _prompt("  Watch for RF remote codes")
 
     print("  Press buttons on the RF remote. Codes will print live.")
     print("  Press Enter to stop.")
@@ -388,8 +397,7 @@ def stage_rf(link: Link, t: Tally) -> None:
 
 def stage_wifi(link: Link, t: Tally) -> None:
     print(fmt.stage("Stage 6b — WiFi + web UI"))
-    if _prompt("  Start SoftAP and wait for a client to load the web UI") != "run":
-        t.note_skip(); return
+    _prompt("  Start SoftAP and wait for a client to load the web UI")
     r = link.request("BU.WIFI.START", overall_timeout_s=20)
     _show_response("wifi.start", r)
     if r.status != "OK":
@@ -407,6 +415,22 @@ def stage_wifi(link: Link, t: Tally) -> None:
                 break
     except KeyboardInterrupt:
         print("  WiFi wait aborted by operator"); t.note_skip()
+        # Push a byte so the firmware's cmd_wifi_wait breaks out of its
+        # loop and unblocks the bring-up dispatcher; otherwise BU.END
+        # never reaches the device and the reboot doesn't happen.
+        # Then drain the resulting wifi.wait OK so it doesn't get
+        # mistaken for the response to a later command.
+        try:
+            link.send("")
+            deadline = time.monotonic() + 2.0
+            while time.monotonic() < deadline:
+                line = link._readline(deadline)
+                if line is None:
+                    break
+                if isinstance(parse_line(line), Response):
+                    break
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------
@@ -415,9 +439,7 @@ def stage_wifi(link: Link, t: Tally) -> None:
 
 def stage_end(link: Link, t: Tally) -> None:
     print(fmt.stage("Stage — End"))
-    if _prompt("  Exit bring-up mode (device will reboot)") != "run":
-        print("  Leaving device in bring-up mode — reset manually to resume normal firmware.")
-        return
+    _prompt("  Exit bring-up mode (device will reboot)")
     r = link.request("BU.END", overall_timeout_s=5)
     _show_response("end", r)
     # Device reboots; no further response expected.

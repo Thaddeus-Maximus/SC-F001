@@ -37,20 +37,9 @@ typedef struct {
     uint8_t type;
 } log_queue_entry_t;
 
-// ============================================================================
-// LOG TYPE DEFINITIONS (Magic values 0xC0-0xCF)
-// ============================================================================
-#define LOG_TYPE_DATA       0xC0  // Generic data log
-#define LOG_TYPE_EVENT      0xC1  // Event marker
-#define LOG_TYPE_ERROR      0xC2  // Error log
-#define LOG_TYPE_DEBUG      0xC3  // Debug message
-#define LOG_TYPE_SENSOR     0xC4  // Sensor reading
-#define LOG_TYPE_COMMAND    0xC5  // Command executed
-#define LOG_TYPE_STATUS     0xC6  // Status update
-#define LOG_TYPE_CUSTOM     0xCF  // Custom/user-defined
-
-// Helper macro to check if a byte is a valid log type
-#define IS_VALID_LOG_TYPE(x) ((x) >= 0xC0 && (x) <= 0xCF)
+/* LOG_TYPE_* + IS_VALID_LOG_TYPE moved to storage.h as the single source
+ * of truth. The duplicate set previously here disagreed with the header
+ * (different LOG_TYPE_CUSTOM* names). */
 
 // ============================================================================
 // PARAMETER TABLE GENERATION
@@ -272,6 +261,10 @@ esp_err_t set_param_value_t(param_idx_t id, param_value_t val) {
         return ESP_ERR_INVALID_ARG;
     }
     parameter_table[id] = val;
+    /* Run bounds/NaN validation immediately so callers that read between
+     * set and the next commit_params() see a clamped value rather than a
+     * raw out-of-range one. */
+    validate_param(id);
     ESP_LOGI(TAG, "Parameter %d (%s) set (not committed)", id, parameter_names[id]);
     return ESP_OK;
 }
@@ -518,6 +511,20 @@ esp_err_t commit_params(void) {
 esp_err_t factory_reset(void) {
     ESP_LOGI(TAG, "Performing factory reset...");
 
+    /* Stop the log writer task before erasing the log partition so an
+     * in-flight write doesn't race against esp_partition_erase_range. We
+     * also take log_mutex for the rest of this function so any pre-existing
+     * writer that's mid-write completes before we erase, and any new writer
+     * (if log_task_running observation lagged) blocks. The caller is about
+     * to esp_restart, so we never give the mutex back. */
+    if (log_task_running) {
+        log_task_running = false;
+        /* Give the writer task time to observe the flag (its queue receive
+         * has a 100 ms timeout) and finish any in-flight write. */
+        vTaskDelay(pdMS_TO_TICKS(150));
+    }
+    if (log_mutex) xSemaphoreTake(log_mutex, portMAX_DELAY);
+
     // Reset all parameters to defaults
     for (int i = 0; i < NUM_PARAMS; i++) {
         memcpy(&parameter_table[i], &parameter_defaults[i], sizeof(param_value_t));
@@ -753,11 +760,6 @@ static bool is_sector_full(uint32_t x) {
     return (buf != 0xFF);
 }
 
-static inline void find_head_tail(int32_t num_sectors, int32_t *head, int32_t *tail) {
-    
-}
-
-
 // Replace log_write with this non-blocking version:
 esp_err_t log_write(const uint8_t* buf, uint8_t len, uint8_t type) {
     if (!log_initialized || log_partition == NULL) {
@@ -811,11 +813,28 @@ static esp_err_t log_write_blocking(const uint8_t* buf, uint8_t len, uint8_t typ
 
     // check if we will overrun the sector
     if (log_head_offset + len+2 >= log_sector_end(log_head_offset)) {
-        // zero the rest of sector
-        char zeros[256] = {0};
-        esp_partition_write(log_partition,
-        log_head_offset, &zeros,
-        log_sector_end(log_head_offset)-log_head_offset);
+        /* Zero the remainder of the current sector. The gap can be up to
+         * one full sector (FLASH_SECTOR_SIZE = 4096); a single 256-byte
+         * stack buffer would have caused the partition driver to read past
+         * the buffer and write arbitrary stack contents to flash. Use a
+         * static-zero buffer (`.bss` is implicitly zero-initialized) and
+         * chunk the write so an oversize buffer is never required. */
+        static const uint8_t zeros[256] = {0};
+        size_t gap = log_sector_end(log_head_offset) - log_head_offset;
+        size_t written = 0;
+        while (written < gap) {
+            size_t chunk = MIN(sizeof(zeros), gap - written);
+            esp_err_t we = esp_partition_write(log_partition,
+                                               log_head_offset + written,
+                                               zeros, chunk);
+            if (we != ESP_OK) {
+                ESP_LOGW(TAG, "Failed zero-pad write: %s", esp_err_to_name(we));
+                /* Bump head to the next sector regardless — readers tolerate
+                 * 0xFF or 0x00 padding between entries. */
+                break;
+            }
+            written += chunk;
+        }
 
         // set head to next sector, and check for wrap
         log_head_offset = log_sector_end(log_head_offset);
@@ -851,15 +870,30 @@ static esp_err_t log_write_blocking(const uint8_t* buf, uint8_t len, uint8_t typ
     }
     len++; // account for type bit
 
-
-    esp_partition_write(log_partition, log_head_offset, &len, 1);
-    esp_partition_write(log_partition, log_head_offset+1, buf, len-1);
-    esp_partition_write(log_partition, log_head_offset+len, &type, 1);
+    /* Check each write — a partial failure here leaves a corrupt entry that
+     * the recovery scan has to skip past. On any failure, bump head to the
+     * next sector so the next write starts clean. */
+    esp_err_t we;
+    we = esp_partition_write(log_partition, log_head_offset, &len, 1);
+    if (we == ESP_OK) {
+        we = esp_partition_write(log_partition, log_head_offset+1, buf, len-1);
+    }
+    if (we == ESP_OK) {
+        we = esp_partition_write(log_partition, log_head_offset+len, &type, 1);
+    }
+    if (we != ESP_OK) {
+        ESP_LOGE(TAG, "log_write_blocking partial-write fail: %s",
+                 esp_err_to_name(we));
+        log_head_offset = log_sector_end(log_head_offset);
+        if (log_head_offset >= log_partition->size) log_head_offset = 0;
+        if (log_mutex) xSemaphoreGive(log_mutex);
+        return we;
+    }
 
     log_head_offset+=len+1;
-    ESP_LOGI(TAG, "Wrote; Tail/Head are now %lu/%lu", 
+    ESP_LOGI(TAG, "Wrote; Tail/Head are now %lu/%lu",
                  (unsigned long)log_tail_offset, (unsigned long)log_head_offset);
-    
+
     if (log_mutex) xSemaphoreGive(log_mutex);
     return ESP_OK;
 }

@@ -11,26 +11,39 @@
 // ============================================================================
 #define FLASH_SECTOR_SIZE 4096
 
-// ============================================================================
-// LOG ENTRY TYPE DEFINITIONS (Magic values 0xC0-0xCF)
-// ============================================================================
-#define LOG_TYPE_DATA       0xC0  // Generic data log
-#define LOG_TYPE_EVENT      0xC1  // Event marker
-#define LOG_TYPE_ERROR      0xC2  // Error log
-#define LOG_TYPE_DEBUG      0xC3  // Debug message
-#define LOG_TYPE_SENSOR     0xC4  // Sensor reading
-#define LOG_TYPE_COMMAND    0xC5  // Command executed
-#define LOG_TYPE_STATUS     0xC6  // Status update
-#define LOG_TYPE_CUSTOM_1   0xC7  // Custom type 1
-#define LOG_TYPE_CUSTOM_2   0xC8  // Custom type 2
-#define LOG_TYPE_CUSTOM_3   0xC9  // Custom type 3
+/* LOG ENTRY TYPES.
+ *
+ * Two ranges are emitted by the firmware in practice:
+ *   0..13     — FSM state-tagged data entries (see LOG_FSM_NAMES in
+ *               webpage.html and send_fsm_log() in control_fsm.c).
+ *   100..103  — System events: BAT, CRASH, BOOT, TIME_SET (see
+ *               control_fsm.h LOG_TYPE_BAT/CRASH/BOOT/TIME_SET).
+ *
+ * Constants in the 0xC0-0xCF range are reserved for legacy/future use; the
+ * webpage parser does not currently understand them.
+ */
+#define LOG_TYPE_DATA       0xC0  // reserved
+#define LOG_TYPE_EVENT      0xC1
+#define LOG_TYPE_ERROR      0xC2
+#define LOG_TYPE_DEBUG      0xC3
+#define LOG_TYPE_SENSOR     0xC4
+#define LOG_TYPE_COMMAND    0xC5
+#define LOG_TYPE_STATUS     0xC6
+#define LOG_TYPE_CUSTOM_1   0xC7
+#define LOG_TYPE_CUSTOM_2   0xC8
+#define LOG_TYPE_CUSTOM_3   0xC9
 // 0xCA-0xCF reserved for future use
 
 // Maximum payload size per log entry (255 max due to 1-byte size field)
 #define LOG_MAX_PAYLOAD 200
 
-// Helper macro to check if a byte is a valid log type
-#define IS_VALID_LOG_TYPE(x) ((x) >= 0xC0 && (x) <= 0xCF)
+/* Helper macro to check if a byte is a valid log type. Includes the
+ * 0..13 FSM-state range, the 100..103 system-event range, and the legacy
+ * 0xC0-0xCF magic range. Used as a soft sanity check during log_read —
+ * unknown types are still surfaced to callers, just with a warning. */
+#define IS_VALID_LOG_TYPE(x) (((x) <= 13) || \
+                              ((x) >= 100 && (x) <= 103) || \
+                              ((x) >= 0xC0 && (x) <= 0xCF))
 
 // ============================================================================
 // LOG ENTRY STRUCTURE
@@ -61,11 +74,11 @@ typedef struct {
     PARAM_DEF(NUM_MOVES,         u32, 0,             "",        0, 1000) \
     PARAM_DEF(MOVE_START,        u32, 0,             "s",       0, 86400) \
     PARAM_DEF(MOVE_END,          u32, 0,             "s",       0, 86400) \
-    PARAM_DEF(DRIVE_DIST,        f32, 10,            "ft",      0.0, 100.0) \
-    PARAM_DEF(JACK_DIST,         f32,  5,            "in",      0.0, 10.0) \
+    PARAM_DEF(DRIVE_DIST,        f32, 4,            "ft",      0.0, 100.0) \
+    PARAM_DEF(JACK_DIST,         f32, 1.5,            "in",      0.0, 10.0) \
     PARAM_DEF(DRIVE_KE,          f32, 29.2,          "n/ft",    1.0, 1e9) \
     PARAM_DEF(DRIVE_KT,          f32, 1440000,       "us/ft",   1.0, 1e9) /* div-critical */ \
-    PARAM_DEF(JACK_KT,           f32, 1428571,       "ms/in",   1.0, 1e9) /* div-critical */ \
+    PARAM_DEF(JACK_KT,           f32, 1725698,       "ms/in",   1.0, 1e9) /* div-critical */ \
     PARAM_DEF(KEYCODE_0,         u32, 0,             "",        0, 0) /* skip */ \
     PARAM_DEF(KEYCODE_1,         u32, 0,             "",        0, 0) \
     PARAM_DEF(KEYCODE_2,         u32, 0,             "",        0, 0) \

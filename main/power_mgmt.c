@@ -143,16 +143,11 @@ esp_err_t drive_relays(relay_port_t relay_state) {
 	BRIDGE_TRANSITION_LOGIC(JACK)
 	BRIDGE_TRANSITION_LOGIC(AUX)
 
-	/* Sensor rail (P10) powered only when FSM is actively doing something.
-	 * In STATE_IDLE we cut it to save power. Overrides energize a motor
-	 * while FSM is technically IDLE — keep the rail up in that case too
-	 * so overrides that consult sensor state (e.g. JACK_DOWN, which checks
-	 * SENSOR_JACK) still work. */
-	bool motor_requested = (relay_state.bridges.DRIVE != BRIDGE_OFF ||
-	                        relay_state.bridges.JACK  != BRIDGE_OFF ||
-	                        relay_state.bridges.AUX   != BRIDGE_OFF);
-	relay_state.bridges.SENSORS =
-	    (fsm_get_state() != STATE_IDLE || motor_requested) ? 1 : 0;
+	/* Sensor rail (P10) is on whenever the device is awake — including
+	 * STATE_IDLE — so the SAFETY input can be observed continuously.
+	 * It is dropped only in soft_idle_enter() (sleep) via i2c_relays_sleep,
+	 * and toggled explicitly by the bring-up tool's BU.RELAY SENSORS cmd. */
+	relay_state.bridges.SENSORS = 1;
 
 	if (!get_is_safe())
 		relay_state.bridges.DRIVE = 0;
@@ -287,6 +282,20 @@ float get_raw_battery_voltage(void) {
 	return voltage_mv * get_param_value_t(PARAM_V_SENS_K).f32 + get_param_value_t(PARAM_V_SENS_OFFSET).f32; // same as / 1000.0 * 1150.0 / 150.0;
 }
 
+void reset_battery_ema(void)
+{
+    /* Next process_battery_voltage() call re-seeds from raw. Also refresh
+     * immediately from a fresh raw read so callers that read get_battery_V()
+     * before the FSM ticks again (e.g. during bringup) see the new value. */
+    float raw = get_raw_battery_voltage();
+    if (!isnan(raw)) {
+        ema_battery = raw;
+        ema_battery_init = true;
+    } else {
+        ema_battery_init = false;
+    }
+}
+
 esp_err_t process_battery_voltage(void)
 {
     float raw = get_raw_battery_voltage();
@@ -364,6 +373,20 @@ static bool v5_any_bridge_active(void) {
            v5_bridge_is_active(BRIDGE_JACK)  ||
            v5_bridge_is_active(BRIDGE_AUX);
 }
+
+/* True if any currently-active bridge is still inside its INRUSH_US window.
+ * The shared ACS reading is unattributable per-bridge during a co-active
+ * inrush — the full combined current is attributed to each active bridge in
+ * process_bridge_current(), so a quieter bridge (e.g. AUX during DRIVE start)
+ * sees an inflated I_norm and would spuriously instant-trip on KINST. */
+static bool v5_any_bridge_in_inrush(void) {
+    int64_t inrush_us = (int64_t)get_param_value_t(PARAM_EFUSE_INRUSH_US).u32;
+    for (bridge_t b = 0; b < N_BRIDGES; b++) {
+        if (!v5_bridge_is_active(b)) continue;
+        if (fsm_now < isens[b].on_us + inrush_us) return true;
+    }
+    return false;
+}
 #endif
 
 esp_err_t process_bridge_current(bridge_t bridge) {
@@ -440,10 +463,11 @@ esp_err_t process_bridge_current(bridge_t bridge) {
     } else {
         float alpha = get_param_value_t(PARAM_ADC_ALPHA_ISENS).f32;
 		if (isnan(channel->raw_current)) {
-			//ESP_LOGI(TAG, "RAW BATTERY IS NAN");
 			channel->ema_current = NAN;
 		} else {
-			if (isnan(ema_battery) || isnan(alpha)) {
+			/* Reset the per-bridge EMA if it (or alpha) is NaN — using
+			 * the per-bridge value, not the unrelated battery EMA. */
+			if (isnan(channel->ema_current) || isnan(alpha)) {
 				channel->ema_current = channel->raw_current;
 	        } else {
 		        channel->ema_current = alpha * channel->raw_current + (1.0f - alpha) * channel->ema_current;
@@ -470,9 +494,10 @@ esp_err_t process_bridge_current(bridge_t bridge) {
             } else {
                 float alpha = get_param_value_t(PARAM_ADC_ALPHA_IAZ).f32;
 				if (isnan(channel->raw_current)) {
-					//ESP_LOGI(TAG, "RAW BATTERY IS NAN");
+					/* skip — no fresh sample */
 				} else {
-					if (isnan(ema_battery) || isnan(alpha)) {
+					/* Reset the autozero offset if it (or alpha) is NaN. */
+					if (isnan(channel->az_offset) || isnan(alpha)) {
 						channel->az_offset = channel->ema_current;
 			        } else {
 				        channel->az_offset = alpha * channel->ema_current +
@@ -512,9 +537,17 @@ esp_err_t process_bridge_current(bridge_t bridge) {
         // Normalize the current as a fraction of rated current
     float I_norm = fabsf(channel->current / I_nominal);
 
-    // Instant trip on extreme overcurrent
+    // Instant trip on extreme overcurrent. On V5, also require that no
+    // *other* active bridge is still in its inrush window — during a
+    // co-active inrush the shared ACS reading is attributed to each
+    // active bridge, which inflates the quieter bridge's I_norm and
+    // would otherwise cause a spurious instant-trip there.
     if (fsm_now > channel->on_us + get_param_value_t(PARAM_EFUSE_INRUSH_US).u32
-        && I_norm >= get_param_value_t(PARAM_EFUSE_KINST).f32) {
+        && I_norm >= get_param_value_t(PARAM_EFUSE_KINST).f32
+#ifdef BOARD_V5
+        && !v5_any_bridge_in_inrush()
+#endif
+        ) {
         // Check if overcurrent has persisted long enough
         channel->tripped = true;
         channel->trip_time = fsm_now;

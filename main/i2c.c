@@ -12,6 +12,11 @@
 static bool i2c_initted = false;
 //static bool safety_ok = false;  // Safety interlock
 static uint8_t last_relay_request = 0;  // Track last relay request
+/* Cached last-written values for the two TCA9555 output ports. Used by
+ * i2c_get_outputs() so the FSM log can record the full 16-bit output state
+ * without paying for an extra I2C read each tick. */
+static uint8_t last_output0 = 0;
+static uint8_t last_output1 = 0;
 
 // === I2C LOW-LEVEL ===
 static esp_err_t tca_write_word_8(uint8_t reg, uint8_t value) {
@@ -65,6 +70,7 @@ esp_err_t i2c_post(void) {
 }
 
 esp_err_t i2c_set_relays(relay_port_t states) {
+    last_output1 = states.raw;
     return tca_write_word_8(TCA_REG_OUTPUT1, states.raw);
 }
 
@@ -77,12 +83,27 @@ esp_err_t i2c_relays_sleep(void) {
 }
 
 esp_err_t i2c_set_led1(uint8_t state) {
-	// push 3 LSB to top
-	return tca_write_word_8(TCA_REG_OUTPUT0, state<<5);
+    /* P05-P07 are LEDs (outputs); P00-P04 are buttons / unused INPUTS
+     * (CONFIG0 = 0b00000011 sets P00/P01 as inputs; P02-P04 are unused
+     * but also configured as inputs). Writing the whole OUTPUT0 register
+     * is therefore safe — the input-bit slots in OUTPUT0 are don't-cares
+     * because the pin direction prevents the value from driving the line.
+     * If P02-P04 ever become outputs, switch this to read-modify-write. */
+    uint8_t v = state << 5;
+    last_output0 = v;
+    return tca_write_word_8(TCA_REG_OUTPUT0, v);
+}
+
+uint16_t i2c_get_outputs(void) {
+    /* OUTPUT0 in the high byte (P00..P07), OUTPUT1 in the low byte
+     * (P10..P17). Reflects the last value written by this driver. */
+    return ((uint16_t)last_output0 << 8) | last_output1;
 }
 
 esp_err_t i2c_stop() {
 	if (!i2c_initted) return ESP_OK;
+	last_output0 = 0;
+	last_output1 = 0;
 	tca_write_word_8(TCA_REG_OUTPUT0, 0);
 	tca_write_word_8(TCA_REG_OUTPUT1, 0);
 	return ESP_OK;
@@ -147,25 +168,26 @@ bool i2c_get_button_repeat(uint8_t btn) {
 }
 
 int8_t i2c_get_button_repeats(uint8_t btn) {
-	if (!i2c_get_button_state(btn))
-		return 0;
-		
-    if (btn >= N_BTNS || !debounced_state[btn]) return false;
+    /* Returns -1 on out-of-range button index (was previously `false` = 0,
+     * which conflated error with "no repeat"). 0 means button not pressed
+     * or no new repeat this poll. >=1 is a valid repeat count. */
+    if (btn >= N_BTNS) return -1;
+    if (!i2c_get_button_state(btn)) return 0;
+
     uint64_t now = esp_timer_get_time() / 1000;
-    if (now + DEBOUNCE_MS < last_change_time[btn]) return false;
+    if (now + DEBOUNCE_MS < last_change_time[btn]) return 0;
     if ((now - last_change_time[btn]) > (REPEAT_START_MS + REPEAT_MS * claimed_repeats[btn])) {
         claimed_repeats[btn]++;
         if (claimed_repeats[btn] > 100)
         	claimed_repeats[btn] = 100;
-        ESP_LOGI("BTN", "RPT %d", (uint8_t)claimed_repeats[btn]+2);
+        ESP_LOGI("BTN", "RPT %d", (uint8_t)(claimed_repeats[btn]+1));
         return claimed_repeats[btn]+1;
     }
     if (debounced_state[btn] && !last_known_state[btn]) {
-		
         ESP_LOGI("BTN", "FST %d", 1);
     	return 1;
     }
-    
+
     return 0;
 }
 

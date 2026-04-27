@@ -34,40 +34,43 @@ esp_err_t init_solar_gpio() {
 
 esp_err_t solar_run_fsm() {
 	init_solar_gpio();
-	
+
 	int64_t now = rtc_get_ms();
-	
-	//ESP_LOGI("BAT", "FSM STATE %d", current_charge_state);
-	
+
+	/* `now` is in milliseconds; CHG_BULK_S / CHG_LOW_S are in seconds.
+	 * Scale the parameter to ms before comparing. Initialize the timer on
+	 * first run rather than leaving it at -1 (which would otherwise make
+	 * `now > timer + threshold` true after just `threshold` ms). */
+	if (timer < 0) timer = now;
+
 	float vbat = get_battery_V();
-	
+
 	/*
 		The state machine is simple.
 		- After a period of time when battery is low, switch to bulk
 		- After a period of time in bulk, switch to float
 	*/
-	
-	//if (rtc_is_set()) {
-		switch(current_charge_state) {
-			case CHG_STATE_BULK:
-				if (now > timer+get_param_value_t(PARAM_CHG_BULK_S).u32) {
-					current_charge_state = CHG_STATE_FLOAT;
-				}
-				
-				break;
-			case CHG_STATE_FLOAT:
-				// if we have sufficient voltage, reset the timer
-				if (vbat > get_param_value_t(PARAM_CHG_LOW_V).f32) {
-					timer = now;
-				}
-			
-				if (now > timer+get_param_value_t(PARAM_CHG_LOW_S).u32) {
-					timer = now;
-					current_charge_state = CHG_STATE_BULK;	
-				}
-				
-				break;
-		}
+
+	switch(current_charge_state) {
+		case CHG_STATE_BULK:
+			if (now > timer + (int64_t)get_param_value_t(PARAM_CHG_BULK_S).u32 * 1000) {
+				current_charge_state = CHG_STATE_FLOAT;
+			}
+
+			break;
+		case CHG_STATE_FLOAT:
+			// if we have sufficient voltage, reset the timer
+			if (vbat > get_param_value_t(PARAM_CHG_LOW_V).f32) {
+				timer = now;
+			}
+
+			if (now > timer + (int64_t)get_param_value_t(PARAM_CHG_LOW_S).u32 * 1000) {
+				timer = now;
+				current_charge_state = CHG_STATE_BULK;
+			}
+
+			break;
+	}
 	/*} else {
 		reset_solar_fsm();
 		ESP_LOGI(TAG, "RESET SOLAR FSM");

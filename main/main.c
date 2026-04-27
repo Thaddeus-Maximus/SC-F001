@@ -150,7 +150,8 @@ void drive_leds(led_mode_t mode) {
 	}
 }
 
-void app_main(void) {esp_task_wdt_add(NULL);
+void app_main(void) {
+    esp_task_wdt_add(NULL);
 
     ESP_LOGI(TAG, "Firmware: %s", FIRMWARE_STRING);
     ESP_LOGI(TAG, "Version: %s", FIRMWARE_VERSION);
