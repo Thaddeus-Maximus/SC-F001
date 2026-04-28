@@ -69,6 +69,12 @@ esp_err_t i2c_relays_sleep(void);
 
 esp_err_t i2c_poll_buttons();
 
+/* Live, un-debounced read of a single button bit via NCA9535 INPUT0.
+ * Use only when the polled debounced state isn't trustworthy — e.g.
+ * cold-boot factory-reset detection, or before deep sleep when we want
+ * to clear the NCA9535 INT line as a side effect. */
+bool i2c_button_held_raw(uint8_t button);
+
 bool i2c_get_button_tripped(uint8_t button);
 bool i2c_get_button_released(uint8_t button);
 bool i2c_get_button_state(uint8_t button);

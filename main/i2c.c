@@ -46,10 +46,16 @@ esp_err_t i2c_init(void) {
     ESP_ERROR_CHECK(i2c_param_config(I2C_PORT, &conf));
     ESP_ERROR_CHECK(i2c_driver_install(I2C_PORT, conf.mode, 0, 0, 0));
 
-    
+    /* Pre-clear OUTPUT latches BEFORE switching pins to output mode.
+     * TCA9555 powers up with OUTPUT0/1 = 0xFF, so configuring CONFIG first
+     * (pins → outputs) would drive every relay + LED on for the few hundred
+     * µs until i2c_relays_idle() runs. Writing 0 first makes the eventual
+     * input→output transition drive 0. */
+    ESP_ERROR_CHECK(tca_write_word_8(TCA_REG_OUTPUT0, 0x00));
+    ESP_ERROR_CHECK(tca_write_word_8(TCA_REG_OUTPUT1, 0x00));
     ESP_ERROR_CHECK(tca_write_word_8(TCA_REG_CONFIG0, 0b00000011));
     ESP_ERROR_CHECK(tca_write_word_8(TCA_REG_CONFIG1, 0b00000000));
-    
+
     i2c_initted = true;
     //safety_ok = false;  // Start with safety not OK
     last_relay_request = 0;
@@ -142,6 +148,23 @@ esp_err_t i2c_poll_buttons() {
         }
     }
     return ESP_OK;
+}
+
+/* One-shot, un-debounced "is button currently pressed?" read.
+ * Reads NCA9535 INPUT0 directly over I2C; bypasses the polled / debounced
+ * state machine above. Used in spots where the polled state isn't valid
+ * yet (cold-boot factory-reset detection runs before the FSM/main loop
+ * has been polling) or where we deliberately want to check the live wire
+ * (e.g. waiting for a button release before deep sleep).
+ *
+ * Side effect: reading INPUT0 clears the NCA9535 INT line — desirable
+ * before deep-sleep entry so EXT0 wake doesn't trigger immediately. */
+bool i2c_button_held_raw(uint8_t button) {
+    if (button >= N_BTNS) return false;
+    uint16_t port_val = 0;
+    if (tca_read_word(TCA_REG_INPUT0, &port_val) != ESP_OK) return false;
+    /* Buttons are active-low on P00..P0(N_BTNS-1). */
+    return ((port_val >> button) & 0x01) == 0;
 }
 
 bool i2c_get_button_tripped(uint8_t button) {

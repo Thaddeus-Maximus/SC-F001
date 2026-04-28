@@ -77,8 +77,10 @@ static void cmd_post(char *json_data) {
     // Check for special response flags before deleting
     cJSON *reboot_flag = cJSON_GetObjectItem(response, "reboot");
     cJSON *sleep_flag = cJSON_GetObjectItem(response, "sleep");
+    cJSON *hibernate_flag = cJSON_GetObjectItem(response, "hibernate");
     bool should_reboot = cJSON_IsTrue(reboot_flag);
     bool should_sleep = cJSON_IsTrue(sleep_flag);
+    bool should_hibernate = cJSON_IsTrue(hibernate_flag);
     
     cJSON_Delete(response);
     
@@ -103,6 +105,13 @@ static void cmd_post(char *json_data) {
         fflush(stdout);
         vTaskDelay(pdMS_TO_TICKS(2000));
         soft_idle_enter();
+    }
+
+    if (should_hibernate) {
+        printf("\nHibernating in 2 seconds (button to wake, RTC discarded)...\n");
+        fflush(stdout);
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        hibernate_enter();   /* never returns */
     }
 }
 

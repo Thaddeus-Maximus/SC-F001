@@ -37,6 +37,12 @@ void soft_idle_exit(void);
 bool soft_idle_is_active(void);
 bool soft_idle_button_raw(void);   /* direct GPIO read, no I2C */
 
+/* Deepest practical sleep with button wake (EXT0 on PIN_BTN_INTERRUPT).
+ * Discards the saved RTC time (NVS entry erased) — wake boots cold. RTC
+ * fast/slow memory are powered down too, so RTC_DATA_ATTR globals are lost.
+ * Does not return. */
+void hibernate_enter(void);
+
 /*void adjust_rtc_hour(char *key, int8_t dir);
 void adjust_rtc_min(char *key, int8_t dir);*/
 

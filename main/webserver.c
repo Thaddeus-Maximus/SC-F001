@@ -468,6 +468,7 @@ static esp_err_t get_handler(httpd_req_t *req) {
  * }
  */
 static void soft_idle_enter_cb(void *arg)    { soft_idle_enter(); }
+static void hibernate_enter_cb(void *arg)    { hibernate_enter(); }
 static void webserver_restart_wifi_cb(void *arg) { webserver_restart_wifi(); }
 
 /**
@@ -529,9 +530,11 @@ static esp_err_t post_handler_locked(httpd_req_t *req) {
     // Check for special response flags
     cJSON *reboot_flag       = cJSON_GetObjectItem(response, "reboot");
     cJSON *sleep_flag        = cJSON_GetObjectItem(response, "sleep");
+    cJSON *hibernate_flag    = cJSON_GetObjectItem(response, "hibernate");
     cJSON *wifi_restart_flag = cJSON_GetObjectItem(response, "wifi_restart");
     bool should_reboot        = cJSON_IsTrue(reboot_flag);
     bool should_sleep         = cJSON_IsTrue(sleep_flag);
+    bool should_hibernate     = cJSON_IsTrue(hibernate_flag);
     bool should_restart_wifi  = cJSON_IsTrue(wifi_restart_flag);
     
     // Convert response to string
@@ -597,6 +600,24 @@ static esp_err_t post_handler_locked(httpd_req_t *req) {
         }
         if (s_sleep_timer != NULL) {
             esp_timer_start_once(s_sleep_timer, 2000 * 1000); /* 2 s in µs */
+        }
+        return ESP_OK;
+    }
+
+    if (should_hibernate) {
+        ESP_LOGI(TAG, "Hibernating in 2 seconds...");
+        /* Same deadlock concern as soft_idle: webserver_stop() inside
+         * hibernate_enter() blocks on the httpd task; defer via timer. */
+        static esp_timer_handle_t s_hibernate_timer = NULL;
+        if (s_hibernate_timer == NULL) {
+            esp_timer_create_args_t ta = {
+                .callback = hibernate_enter_cb,
+                .name     = "hibernate",
+            };
+            esp_timer_create(&ta, &s_hibernate_timer);
+        }
+        if (s_hibernate_timer != NULL) {
+            esp_timer_start_once(s_hibernate_timer, 2000 * 1000); /* 2 s in µs */
         }
         return ESP_OK;
     }

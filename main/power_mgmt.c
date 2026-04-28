@@ -143,6 +143,14 @@ esp_err_t drive_relays(relay_port_t relay_state) {
 	BRIDGE_TRANSITION_LOGIC(JACK)
 	BRIDGE_TRANSITION_LOGIC(AUX)
 
+	/* In soft idle / hibernate the device is sleeping — don't drive any
+	 * relay outputs, including the sensor rail. soft_idle_enter() already
+	 * pushed the chip into the all-off state via i2c_relays_sleep(); the
+	 * FSM keeps ticking but must not undo that. */
+	if (soft_idle_is_active()) {
+		return ESP_OK;
+	}
+
 	/* Sensor rail (P10) is on whenever the device is awake — including
 	 * STATE_IDLE — so the SAFETY input can be observed continuously.
 	 * It is dropped only in soft_idle_enter() (sleep) via i2c_relays_sleep,

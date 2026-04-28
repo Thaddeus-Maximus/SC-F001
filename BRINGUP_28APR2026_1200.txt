@@ -1,0 +1,30 @@
+12:00:48.135  
+------------------------------------------------------------
+  Flashing COM3
+------------------------------------------------------------
+12:00:48.137    erase_flash @ COM3
+12:00:51.075    flashing from D:\SC\SC-F001\build
+12:00:51.077    files: [('0x1000', 'bootloader/bootloader.bin'), ('0x10000', 'SC-F001.bin'), ('0x8000', 'partition_table/partition-table.bin'), ('0xd000', 'ota_data_initial.bin')]
+12:01:16.368  Flash complete
+12:01:17.869  Connecting to COM3 @ 115200 ...
+12:01:17.874  -> BU.BEGIN
+12:01:18.144  <- BU.BEGIN
+12:01:18.144  <- 
+12:01:18.144  <- 
+12:01:18.144  <- BU.OK begin fw=ef1f3e4-dirty board=V5 t=0.00
+12:01:18.145  -> BU.INFO
+12:01:18.145  <- E rmt: hw buffer too small, received symbols truncated
+12:01:18.158  <- I (1871) BT_HID: Scanning for HID devices (3s)...
+12:01:18.158  <- I (1871) BT_HID: BLE HID host initialised
+12:01:18.164  <- I (1871) WEBSERVER: Initializing webserver...
+12:01:18.164  <- I (1871) WEBSERVER: AP LAUNCHING
+12:01:18.164  <- I (1891) wifi:wifi driver task: 3ffe28e8, prio:23, stack:6656, core=0
+12:01:18.164  <- I (1891) wifi:wifi firmware version: ccaebfa
+12:01:18.164  <- I (1891) wifi:wifi certification version: v7.0
+12:01:18.185  <- I (1891) wifi:config NVS flash: enabled
+12:01:18.185  <- I (1891) wifi:config nano formating: disabled
+12:01:18.185  <- I (1901) wifi:Init data frame dynamic rx buffer num: 32
+12:01:18.185  <- I (1901) wifi:Init static rx mgmt buffer num: 5
+12:01:18.185  <- 
+12:01:18.212  <- BU.OK info reset=POWERON heap=111572 min_heap=111572 fw=ef1f3e4-dirty build=2026-04-28 17:00:24
+12:01:26.356  -> BU.END

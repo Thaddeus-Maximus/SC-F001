@@ -165,6 +165,7 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
     
     bool cmd_executed = false;
     bool sleep_requested = false;
+    bool hibernate_requested = false;
     bool reboot_requested = false;
     bool wifi_params_changed = false;
     bool wifi_restart_requested = false;
@@ -233,6 +234,10 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
         }
         else if (strcmp(cmd_str, "sleep") == 0) {
             sleep_requested = true;
+            cmd_executed = true;
+        }
+        else if (strcmp(cmd_str, "hibernate") == 0) {
+            hibernate_requested = true;
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "rf_clear_temp") == 0) {
@@ -484,6 +489,14 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
         cJSON_AddStringToObject(response, "status", "ok");
         cJSON_AddStringToObject(response, "message", "Sleeping...");
         cJSON_AddBoolToObject(response, "sleep", true);
+        *response_json = response;
+        return ESP_OK;
+    }
+
+    if (hibernate_requested) {
+        cJSON_AddStringToObject(response, "status", "ok");
+        cJSON_AddStringToObject(response, "message", "Hibernating (button to wake)...");
+        cJSON_AddBoolToObject(response, "hibernate", true);
         *response_json = response;
         return ESP_OK;
     }

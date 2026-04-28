@@ -19,6 +19,7 @@
 #include "esp_timer.h"
 #include "i2c.h"
 #include "driver/gpio.h"
+#include "driver/rtc_io.h"
 #include "rtc_wdt.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -32,6 +33,9 @@
 #include "bt_hid.h"
 
 #define PIN_BTN_INTERRUPT GPIO_NUM_13
+
+#define RTC_NVS_NAMESPACE "hw"
+#define RTC_NVS_KEY       "rtc_time"
 
 // Return microseconds from the RTC hardware timer.
 // Used ONLY in rtc_restore_time() for crash-recovery (survives panics/WDT via RTC domain).
@@ -104,6 +108,82 @@ void soft_idle_exit(void)
     rtc_reset_shutdown_timer();
 }
 
+void hibernate_enter(void)
+{
+    ESP_LOGI("RTC", "Entering hibernate (deep sleep, EXT0 button wake, RTC discarded)");
+
+    /* Reuse the soft-idle teardown:
+     *   - sets in_soft_idle = true, which gates the main-task LED loop and
+     *     the FSM's drive_relays() so neither overwrites our pre-sleep
+     *     output state during the wait-for-button-release window;
+     *   - stops webserver + BT;
+     *   - drives LEDs to 0 and writes i2c_relays_sleep() (sensor rail off,
+     *     all bridges off). */
+    soft_idle_enter();
+
+    /* Discard saved RTC time so the next boot comes up with rtc_set=false.
+     * RTC slow memory keeps its contents across deep sleep on ESP32 (the
+     * RTC clock and slow-mem domain stay alive for EXT0 to work), so we
+     * also zero the RTC_DATA_ATTR globals here. Together with the NVS
+     * erase, this guarantees the next boot has no surviving time state. */
+    nvs_handle_t h;
+    if (nvs_open(RTC_NVS_NAMESPACE, NVS_READWRITE, &h) == ESP_OK) {
+        nvs_erase_key(h, RTC_NVS_KEY);
+        nvs_commit(h);
+        nvs_close(h);
+    }
+    rtc_set           = false;
+    sync_unix_us      = 0;
+    sync_rtc_us       = 0;
+    next_alarm_time_s = -1;
+
+    /* If the operator is still pressing the button (web-UI path: they
+     * shouldn't be; cmd-line path: maybe), wait for release. The button
+     * is on NCA9535 P00; GPIO13 is the chip's INT line, which only
+     * pulses low on input changes — so we MUST read the actual button
+     * state via I2C, not the GPIO level. Capped so we don't loop forever. */
+    int waited_ms = 0;
+    while (i2c_button_held_raw(0) && waited_ms < 5000) {
+        vTaskDelay(pdMS_TO_TICKS(50));
+        waited_ms += 50;
+    }
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    /* Final TCA9555/NCA9535 write right before we halt the CPU — covers
+     * any stale-state edge cases (e.g. a write that snuck in before the
+     * FSM gate latched). */
+    i2c_set_led1(0);
+    i2c_relays_sleep();
+
+    /* Read NCA9535 INPUT0 to clear any pending INT (which would hold
+     * GPIO13 low and instantly satisfy our EXT0 wake-on-zero condition).
+     * i2c_button_held_raw() does the read as a side effect. */
+    (void)i2c_button_held_raw(0);
+
+    /* Clear any lingering wake sources from earlier configuration before
+     * enabling the only one we want. */
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+
+    /* GPIO13 carries the NCA9535 INT line (open-drain, asserts low on any
+     * input change, clears on INPUT0 read). EXT0 wake on level=0 fires
+     * the moment the user presses the button — INT pulls low, ESP wakes,
+     * the post-boot i2c_poll_buttons() read clears INT. */
+    esp_sleep_enable_ext0_wakeup(PIN_BTN_INTERRUPT, 0);
+    rtc_gpio_pullup_en(PIN_BTN_INTERRUPT);
+    rtc_gpio_pulldown_dis(PIN_BTN_INTERRUPT);
+
+    /* Note: we deliberately do NOT call esp_sleep_pd_config(... OFF). On
+     * ESP-IDF v5.3 that path is reference-counted and asserts when the
+     * counter would go negative; since nothing has previously called ON
+     * for these domains, OFF would abort. ESP-IDF picks the deepest
+     * compatible power state automatically given the wake source we set. */
+
+    ESP_LOGI("RTC", "esp_deep_sleep_start  int_level=%d  btn=%d",
+             gpio_get_level(PIN_BTN_INTERRUPT),
+             (int)i2c_button_held_raw(0));
+    esp_deep_sleep_start();   /* never returns */
+}
+
 int64_t rtc_get_s(void)
 {
     if (!rtc_set) return 0;
@@ -131,9 +211,6 @@ void rtc_set_s(int64_t tv_sec)
              (long long)tv_sec,
              (long long)(esp_timer_get_time() / 1000000ULL));
 }
-
-#define RTC_NVS_NAMESPACE "hw"
-#define RTC_NVS_KEY       "rtc_time"
 
 void rtc_save_time(void)
 {

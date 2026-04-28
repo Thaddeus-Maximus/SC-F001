@@ -307,6 +307,12 @@
             <button onclick="programRFSequence()">Program All Buttons</button>
             </td>
         </tr>
+        <tr>
+            <td>Deep Sleep</td>
+            <td>
+            <button onclick="sendCommand('hibernate')">Enter Deep Sleep</button>
+            </td>
+        </tr>
     </table>
     
     <button id="cancel_btn" onclick="location.reload();" disabled>Discard</button>
@@ -749,6 +755,10 @@
             }
             if (cmdName === 'sleep') {
                 if (!await modalConfirm("Device will sleep. Are you sure?"))
+                    return;
+            }
+            if (cmdName === 'hibernate') {
+                if (!await modalConfirm("Device will enter deep sleep — clock will be cleared, only the physical button can wake it. Are you sure?"))
                     return;
             }
             

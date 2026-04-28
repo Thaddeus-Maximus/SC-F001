@@ -173,12 +173,15 @@ void app_main(void) {
     // LEDs flash while waiting, go solid when triggered
     esp_reset_reason_t boot_reset_reason = esp_reset_reason();
     if ((boot_reset_reason == ESP_RST_POWERON || boot_reset_reason == ESP_RST_EXT)
-        && gpio_get_level(GPIO_NUM_13) == 0) {
+        && i2c_button_held_raw(0)) {
         ESP_LOGW(TAG, "Button held on cold boot — hold %ds for factory reset", FACTORY_RESET_HOLD_MS / 1000);
 
-        // Flash all LEDs while user holds button (100ms on/off cycle)
+        // Flash all LEDs while user holds button (100ms on/off cycle).
+        // GPIO13 is the NCA9535 INT line on V5 (not a direct button line),
+        // so we have to read INPUT0 over I2C to know if the button is
+        // currently held — the GPIO would only pulse low on edges.
         int held_ms = 0;
-        while (gpio_get_level(GPIO_NUM_13) == 0 && held_ms < FACTORY_RESET_HOLD_MS) {
+        while (i2c_button_held_raw(0) && held_ms < FACTORY_RESET_HOLD_MS) {
             i2c_set_led1((held_ms / 100) % 2 ? 0b111 : 0b000);
             vTaskDelay(pdMS_TO_TICKS(100));
             held_ms += 100;
