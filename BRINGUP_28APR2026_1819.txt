@@ -1,0 +1,337 @@
+18:19:47.952  Connecting to COM3 @ 115200 ...
+18:19:47.956  -> BU.BEGIN
+18:19:48.471  <- BU.BEGIN
+18:19:48.471  <- 
+18:19:48.471  <- 
+18:19:48.471  <- BU.OK begin fw=666750f board=V5 t=0.00
+18:19:48.473  -> BU.INFO
+18:19:48.986  <- 
+18:19:48.986  <- BU.OK info reset=SW heap=61288 min_heap=53044 fw=666750f build=2026-04-28 17:44:02
+18:19:50.137  -> BU.FLASH
+18:19:50.137  <- E rmt: hw buffer too small, received symbols truncated
+18:19:50.644  <- I (31550) BT_HID: Scanning for HID devices (3s)...
+18:19:50.644  <- 
+18:19:50.644  <- BU.OK flash post_part=roundtrip log_head=6310 log_tail=0 partitions_size=4128768
+18:19:51.657  -> BU.I2C
+18:19:52.158  <- I (33580) I2C: POST: TCA9555 OK (port0=0x0101)
+18:19:52.160  <- 
+18:19:52.160  <- BU.OK i2c tca9555=ack
+18:19:52.163  -> BU.LED.WATCH
+18:19:52.668  <- 
+18:19:52.668  <- BU.EVENT led t=4.21 pressed=0
+18:19:52.669  <- E rmt: hw buffer too small, received symbols truncated
+18:19:52.669  <- E rmt: hw buffer too small, received symbols truncated
+18:19:52.669  <- I (34560) BT_HID: Found 0 HID device(s)
+18:19:53.170  <- I (34560) BT_HID: No HID devices found, retrying in 2000ms...
+18:19:53.352  -> 
+18:19:53.675  <- 
+18:19:53.675  <- BU.OK led.watch done
+18:19:54.438  -> BU.ADC
+18:19:54.943  <- 
+18:19:54.943  <- BU.OK adc bat_mv=1659 bat_V=12.775 isens_mv=1677 isens_A=-2.05
+18:19:54.947  -> BU.PARAM GET V_SENS_K
+18:19:54.947  <- I (36560) BT_HID: Scanning for HID devices (3s)...
+18:19:54.947  <- E rmt: hw buffer too small, received symbols truncated
+18:19:55.450  <- 
+18:19:55.450  <- BU.OK param key=V_SENS_K value=0.00766666653
+18:19:55.450  -> BU.ADC
+18:19:55.955  <- 
+18:19:55.955  <- BU.OK adc bat_mv=1663 bat_V=12.806 isens_mv=1676 isens_A=-1.97
+18:20:04.497  -> BU.PARAM SET V_SENS_OFFSET 0.070334
+18:20:04.498  <- E rmt: hw buffer too small, received symbols truncated
+18:20:04.498  <- E rmt: hw buffer too small, received symbols truncated
+18:20:04.498  <- W (38060) httpd_txrx: httpd_resp_send_err: 404 Not Found - Nothing matches the given URI
+18:20:04.498  <- I (39570) BT_HID: Found 0 HID device(s)
+18:20:04.499  <- I (39570) BT_HID: No HID devices found, retrying in 2000ms...
+18:20:04.499  <- E rmt: hw buffer too small, received symbols truncated
+18:20:04.499  <- I (41570) BT_HID: Scanning for HID devices (3s)...
+18:20:04.499  <- E rmt: hw buffer too small, received symbols truncated
+18:20:04.528  <- E rmt: hw buffer too small, received symbols truncated
+18:20:04.528  <- I (44580) BT_HID: Found 0 HID device(s)
+18:20:04.528  <- I (44580) BT_HID: No HID devices found, retrying in 2000ms...
+18:20:04.528  <- I (46420) STORAGE: Parameter 34 (V_SENS_OFFSET) set (not committed)
+18:20:05.041  <- I (46420) STORAGE: Committing 49 parameters to flash...
+18:20:05.041  <- I (46460) STORAGE: Successfully committed all parameters to flash
+18:20:05.041  <- 
+18:20:05.041  <- BU.OK param key=V_SENS_OFFSET set=ok committed=yes
+18:20:05.041  -> BU.PARAM GET V_SENS_OFFSET
+18:20:05.041  <- I (46580) BT_HID: Scanning for HID devices (3s)...
+18:20:05.545  <- 
+18:20:05.545  <- BU.OK param key=V_SENS_OFFSET value=0.0703340024
+18:20:05.545  -> BU.ADC
+18:20:06.051  <- 
+18:20:06.051  <- BU.OK adc bat_mv=1661 bat_V=12.805 isens_mv=1674 isens_A=-1.82
+18:20:06.056  -> BU.SENSORS.WATCH 0
+18:20:06.568  <- 
+18:20:06.568  <- BU.EVENT state t=18.10 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:06.568  <- 
+18:20:06.568  <- BU.EVENT state t=18.36 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:07.074  <- 
+18:20:07.074  <- BU.EVENT state t=18.61 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:07.074  <- 
+18:20:07.074  <- BU.EVENT state t=18.87 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:07.579  <- 
+18:20:07.579  <- BU.EVENT state t=19.12 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:07.579  <- E rmt: hw buffer too small, received symbols truncated
+18:20:07.579  <- 
+18:20:07.579  <- BU.EVENT state t=19.38 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:07.861  <- 
+18:20:07.861  <- BU.EVENT state t=19.63 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:07.861  <- I (49590) BT_HID: Found 0 HID device(s)
+18:20:07.861  <- I (49590) BT_HID: No HID devices found, retrying in 2000ms...
+18:20:07.861  <- 
+18:20:08.375  <- BU.EVENT state t=19.88 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:08.375  <- 
+18:20:08.375  <- BU.EVENT state t=20.14 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:08.375  <- 
+18:20:08.375  <- BU.EVENT state t=20.39 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:08.882  <- 
+18:20:08.882  <- BU.EVENT state t=20.65 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:09.390  <- 
+18:20:09.390  <- BU.EVENT state t=20.91 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:09.390  <- 
+18:20:09.390  <- BU.EVENT state t=21.17 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:09.690  <- 
+18:20:09.690  <- BU.EVENT state t=21.43 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=0 isr_d=0 isr_j=1 isr_a=0
+18:20:09.690  <- 
+18:20:09.690  <- BU.EVENT sensor name=SAFETY edge=break t=21.54
+18:20:09.690  <- 
+18:20:09.690  <- BU.EVENT state t=21.69 SAFETY=0 DRIVE=1 JACK=1 AUX=0 isr_s=1 isr_d=0 isr_j=1 isr_a=0
+18:20:10.184  <- I (51590) BT_HID: Scanning for HID devices (3s)...
+18:20:10.184  <- 
+18:20:10.184  <- BU.EVENT state t=21.95 SAFETY=0 DRIVE=1 JACK=1 AUX=0 isr_s=1 isr_d=0 isr_j=1 isr_a=0
+18:20:10.184  <- E rmt: hw buffer too small, received symbols truncated
+18:20:10.184  <- 
+18:20:10.695  <- BU.EVENT state t=22.20 SAFETY=0 DRIVE=1 JACK=1 AUX=0 isr_s=1 isr_d=0 isr_j=1 isr_a=0
+18:20:10.695  <- 
+18:20:10.695  <- BU.EVENT state t=22.46 SAFETY=0 DRIVE=1 JACK=1 AUX=0 isr_s=1 isr_d=0 isr_j=1 isr_a=0
+18:20:10.695  <- E rmt: hw buffer too small, received symbols truncated
+18:20:10.695  <- 
+18:20:10.695  <- BU.EVENT sensor name=SAFETY edge=make t=22.56
+18:20:11.202  <- 
+18:20:11.202  <- BU.EVENT state t=22.72 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=2 isr_d=0 isr_j=1 isr_a=0
+18:20:11.202  <- 
+18:20:11.202  <- BU.EVENT state t=22.98 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=2 isr_d=0 isr_j=1 isr_a=0
+18:20:11.705  <- 
+18:20:11.705  <- BU.EVENT state t=23.23 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=2 isr_d=0 isr_j=1 isr_a=0
+18:20:11.705  <- 
+18:20:11.705  <- BU.EVENT state t=23.49 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=2 isr_d=0 isr_j=1 isr_a=0
+18:20:12.213  <- 
+18:20:12.213  <- BU.EVENT state t=23.74 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=2 isr_d=0 isr_j=1 isr_a=0
+18:20:12.213  <- 
+18:20:12.213  <- BU.EVENT state t=24.00 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=2 isr_d=0 isr_j=1 isr_a=0
+18:20:12.250  -> 
+18:20:12.708  <- 
+18:20:12.708  <- BU.EVENT state t=24.25 SAFETY=1 DRIVE=1 JACK=1 AUX=0 isr_s=2 isr_d=0 isr_j=1 isr_a=0
+18:20:12.708  <- 
+18:20:12.708  <- BU.OK sensors.watch sec=-1 SAFETY=both DRIVE=none JACK=none AUX=none
+18:20:14.210  -> BU.RELAY SENSORS ON 500
+18:20:14.210  <- I (54600) BT_HID: Found 0 HID device(s)
+18:20:14.723  <- I (54600) BT_HID: No HID devices found, retrying in 2000ms...
+18:20:14.723  <- E rmt: hw buffer too small, received symbols truncated
+18:20:14.723  <- I (56600) BT_HID: Scanning for HID devices (3s)...
+18:20:15.237  <- 
+18:20:15.237  <- BU.OK relay bridge=SENSORS ms=500
+18:20:15.902  -> BU.RELAY DRIVE FWD 3000
+18:20:16.409  <- E rmt: hw buffer too small, received symbols truncated
+18:20:16.409  <- E rmt: hw buffer too small, received symbols truncated
+18:20:16.921  <- E rmt: hw buffer too small, received symbols truncated
+18:20:16.921  <- E rmt: hw buffer too small, received symbols truncated
+18:20:16.921  <- E rmt: hw buffer too small, received symbols truncated
+18:20:17.429  <- E rmt: hw buffer too small, received symbols truncated
+18:20:17.429  <- E rmt: hw buffer too small, received symbols truncated
+18:20:17.429  <- E rmt: hw buffer too small, received symbols truncated
+18:20:17.933  <- E rmt: hw buffer too small, received symbols truncated
+18:20:17.933  <- E rmt: hw buffer too small, received symbols truncated
+18:20:17.933  <- I (59610) BT_HID: Found 0 HID device(s)
+18:20:17.933  <- I (59610) BT_HID: No HID devices found, retrying in 2000ms...
+18:20:18.438  <- 
+18:20:18.438  <- BU.OK relay bridge=DRIVE dir=FWD ms=2000 actual_ms=2059 stop=time I_before=+0.00 I_mid=+22.73 I_after=+0.00 heat=0.006 tripped=0 edges=34
+18:20:19.405  -> BU.RELAY DRIVE REV 3000
+18:20:19.710  <- E rmt: hw buffer too small, received symbols truncated
+18:20:19.710  <- E rmt: hw buffer too small, received symbols truncated
+18:20:19.710  <- E rmt: hw buffer too small, received symbols truncated
+18:20:19.710  <- E rmt: hw buffer too small, received symbols truncated
+18:20:20.220  <- I (61610) BT_HID: Scanning for HID devices (3s)...
+18:20:20.220  <- E rmt: hw buffer too small, received symbols truncated
+18:20:20.724  <- E rmt: hw buffer too small, received symbols truncated
+18:20:20.724  <- E rmt: hw buffer too small, received symbols truncated
+18:20:20.724  <- E rmt: hw buffer too small, received symbols truncated
+18:20:20.724  <- E rmt: hw buffer too small, received symbols truncated
+18:20:21.230  <- E rmt: hw buffer too small, received symbols truncated
+18:20:21.230  <- E rmt: hw buffer too small, received symbols truncated
+18:20:21.230  <- E rmt: hw buffer too small, received symbols truncated
+18:20:21.547  <- E rmt: hw buffer too small, received symbols truncated
+18:20:21.547  <- E rmt: hw buffer too small, received symbols truncated
+18:20:21.547  <- E rmt: hw buffer too small, received symbols truncated
+18:20:21.547  <- 
+18:20:22.054  <- BU.OK relay bridge=DRIVE dir=REV ms=2000 actual_ms=2059 stop=time I_before=-0.01 I_mid=+19.38 I_after=-0.01 heat=0.011 tripped=0 edges=34
+18:20:23.450  -> BU.RELAY JACK UP 1200
+18:20:23.450  <- E rmt: hw buffer too small, received symbols truncated
+18:20:23.451  <- E rmt: hw buffer too small, received symbols truncated
+18:20:23.451  <- E rmt: hw buffer too small, received symbols truncated
+18:20:23.451  <- E rmt: hw buffer too small, received symbols truncated
+18:20:23.451  <- E rmt: hw buffer too small, received symbols truncated
+18:20:23.452  <- E rmt: hw buffer too small, received symbols truncated
+18:20:23.452  <- E rmt: hw buffer too small, received symbols truncated
+18:20:23.452  <- E rmt: hw buffer too small, received symbols truncated
+18:20:23.452  <- I (64620) BT_HID: Found 0 HID device(s)
+18:20:23.965  <- I (64620) BT_HID: No HID devices found, retrying in 2000ms...
+18:20:24.469  <- E rmt: hw buffer too small, received symbols truncated
+18:20:24.975  <- I (66620) BT_HID: Scanning for HID devices (3s)...
+18:20:24.975  <- 
+18:20:24.975  <- BU.OK relay bridge=JACK dir=UP ms=1200 actual_ms=1259 stop=time I_before=-0.00 I_mid=-0.00 I_after=-0.00 heat=0.138 tripped=0 edges=1
+18:20:25.709  -> BU.RELAY JACK DOWN 1200
+18:20:26.215  <- E rmt: hw buffer too small, received symbols truncated
+18:20:26.215  <- E rmt: hw buffer too small, received symbols truncated
+18:20:26.215  <- E rmt: hw buffer too small, received symbols truncated
+18:20:26.719  <- E rmt: hw buffer too small, received symbols truncated
+18:20:27.222  <- 
+18:20:27.222  <- BU.OK relay bridge=JACK dir=DOWN ms=1200 actual_ms=1258 stop=time I_before=-0.00 I_mid=+1.59 I_after=-0.00 heat=0.137 tripped=0 edges=0
+18:20:37.359  -> BU.RELAY AUX FWD 150
+18:20:37.359  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.359  <- I (69640) BT_HID: Found 0 HID device(s)
+18:20:37.360  <- I (69640) BT_HID: No HID devices found, retrying in 2000ms...
+18:20:37.360  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.360  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.360  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.360  <- I (71640) BT_HID: Scanning for HID devices (3s)...
+18:20:37.360  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.361  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.361  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.361  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.361  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.361  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.362  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.362  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.362  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.362  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.362  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.362  <- I (74650) BT_HID: Found 0 HID device(s)
+18:20:37.362  <- I (74650) BT_HID: No HID devices found, retrying in 2000ms...
+18:20:37.362  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.362  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.363  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.363  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.363  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.363  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.364  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.364  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.364  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.364  <- I (76650) BT_HID: Scanning for HID devices (3s)...
+18:20:37.364  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.645  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.645  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.645  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.645  <- E rmt: hw buffer too small, received symbols truncated
+18:20:37.645  <- 
+18:20:38.152  <- BU.OK relay bridge=AUX dir=FWD ms=150 actual_ms=209 stop=time I_before=+0.00 I_mid=+0.76 I_after=-0.00 heat=0.001 tripped=0 edges=0
+18:20:42.313  -> BU.RF.WATCH 0
+18:20:42.313  <- I (79660) BT_HID: Found 0 HID device(s)
+18:20:42.313  <- I (79660) BT_HID: No HID devices found, retrying in 2000ms...
+18:20:42.315  <- E rmt: hw buffer too small, received symbols truncated
+18:20:42.315  <- E rmt: hw buffer too small, received symbols truncated
+18:20:42.315  <- I (81660) BT_HID: Scanning for HID devices (3s)...
+18:20:42.315  <- E rmt: hw buffer too small, received symbols truncated
+18:20:42.777  <- E rmt: hw buffer too small, received symbols truncated
+18:20:42.777  <- E rmt: hw buffer too small, received symbols truncated
+18:20:42.777  <- E rmt: hw buffer too small, received symbols truncated
+18:20:42.777  <- I (84670) BT_HID: Found 0 HID device(s)
+18:20:43.279  <- I (84670) BT_HID: No HID devices found, retrying in 2000ms...
+18:20:43.788  <- E rmt: hw buffer too small, received symbols truncated
+18:20:44.188  <- I (85960) RF: GOT KEYCODE 0xbe9b78 [25]
+18:20:44.188  <- 
+18:20:44.188  <- BU.EVENT rf code=0xBE9B78 t=56.11
+18:20:44.188  <- I (86010) RF: GOT KEYCODE 0xbe9b78 [25]
+18:20:44.188  <- 
+18:20:44.188  <- BU.EVENT rf code=0xBE9B78 t=56.16
+18:20:44.190  <- I (86050) RF: GOT KEYCODE 0xbe9b78 [25]
+18:20:44.190  <- 
+18:20:44.325  <- BU.EVENT rf code=0xBE9B78 t=56.21
+18:20:44.325  <- I (86090) RF: GOT KEYCODE 0xbe9b78 [25]
+18:20:44.325  <- 
+18:20:44.325  <- BU.EVENT rf code=0xBE9B78 t=56.26
+18:20:44.328  <- I (86140) RF: GOT KEYCODE 0xbe9b78 [25]
+18:20:44.328  <- I (86180) RF: GOT KEYCODE 0xbe9b78 [25]
+18:20:44.328  <- 
+18:20:44.328  <- BU.EVENT rf code=0xBE9B78 t=56.31
+18:20:44.724  <- I (86220) RF: GOT KEYCODE 0xbe9b78 [25]
+18:20:44.724  <- 
+18:20:44.724  <- BU.EVENT rf code=0xBE9B78 t=56.36
+18:20:44.724  <- I (86530) RF: GOT KEYCODE 0xbe9b74 [25]
+18:20:44.724  <- 
+18:20:44.724  <- BU.EVENT rf code=0xBE9B74 t=56.66
+18:20:44.725  <- I (86580) RF: GOT KEYCODE 0xbe9b74 [25]
+18:20:44.725  <- 
+18:20:44.725  <- BU.EVENT rf code=0xBE9B74 t=56.71
+18:20:44.810  <- I (86620) RF: GOT KEYCODE 0xbe9b74 [25]
+18:20:44.810  <- 
+18:20:44.810  <- BU.EVENT rf code=0xBE9B74 t=56.76
+18:20:44.810  <- I (86660) RF: GOT KEYCODE 0xbe9b74 [25]
+18:20:44.810  <- I (86670) BT_HID: Scanning for HID devices (3s)...
+18:20:44.810  <- 
+18:20:44.810  <- BU.EVENT rf code=0xBE9B74 t=56.81
+18:20:45.127  <- I (86710) RF: GOT KEYCODE 0xbe9b74 [25]
+18:20:45.128  <- 
+18:20:45.128  <- BU.EVENT rf code=0xBE9B74 t=56.86
+18:20:45.128  <- I (86750) RF: GOT KEYCODE 0xbe9b74 [25]
+18:20:45.128  <- 
+18:20:45.128  <- BU.EVENT rf code=0xBE9B74 t=56.91
+18:20:45.129  <- I (86980) RF: GOT KEYCODE 0xbe9b72 [25]
+18:20:45.129  <- 
+18:20:45.129  <- BU.EVENT rf code=0xBE9B72 t=57.11
+18:20:45.238  <- I (87020) RF: GOT KEYCODE 0xbe9b72 [25]
+18:20:45.238  <- 
+18:20:45.238  <- BU.EVENT rf code=0xBE9B72 t=57.16
+18:20:45.238  <- I (87070) RF: GOT KEYCODE 0xbe9b72 [25]
+18:20:45.238  <- 
+18:20:45.238  <- BU.EVENT rf code=0xBE9B72 t=57.21
+18:20:45.239  <- I (87110) RF: GOT KEYCODE 0xbe9b72 [25]
+18:20:45.240  <- 
+18:20:45.537  <- BU.EVENT rf code=0xBE9B72 t=57.26
+18:20:45.537  <- I (87150) RF: GOT KEYCODE 0xbe9b72 [25]
+18:20:45.537  <- 
+18:20:45.537  <- BU.EVENT rf code=0xBE9B72 t=57.31
+18:20:45.539  <- I (87200) RF: GOT KEYCODE 0xbe9b72 [25]
+18:20:45.539  <- 
+18:20:45.539  <- BU.EVENT rf code=0xBE9B72 t=57.36
+18:20:45.539  <- I (87410) RF: GOT KEYCODE 0xbe9b71 [25]
+18:20:45.539  <- 
+18:20:45.688  <- BU.EVENT rf code=0xBE9B71 t=57.56
+18:20:45.688  <- I (87460) RF: GOT KEYCODE 0xbe9b71 [25]
+18:20:45.688  <- 
+18:20:45.688  <- BU.EVENT rf code=0xBE9B71 t=57.61
+18:20:45.691  <- I (87500) RF: GOT KEYCODE 0xbe9b71 [25]
+18:20:45.691  <- 
+18:20:45.691  <- BU.EVENT rf code=0xBE9B71 t=57.66
+18:20:45.691  <- I (87540) RF: GOT KEYCODE 0xbe9b71 [25]
+18:20:46.195  <- I (87580) RF: GOT KEYCODE 0xbe9b71 [25]
+18:20:46.195  <- 
+18:20:46.195  <- BU.EVENT rf code=0xBE9B71 t=57.71
+18:20:46.195  <- E rmt: hw buffer too small, received symbols truncated
+18:20:46.201  -> 
+18:20:46.699  <- 
+18:20:46.699  <- BU.OK rf.watch sec=-1 seen=22
+18:20:47.898  -> BU.WIFI.START
+18:20:47.930  <- I (89680) BT_HID: Found 0 HID device(s)
+18:20:47.930  <- I (89680) BT_HID: No HID devices found, retrying in 2000ms...
+18:20:47.930  <- I (89820) WEBSERVER: Initializing webserver...
+18:20:48.441  <- I (89820) WEBSERVER: AP already running — launch_soft_ap is a no-op
+18:20:48.441  <- I (89820) WEBSERVER: Webserver initialization complete
+18:20:48.441  <- 
+18:20:48.441  <- BU.OK wifi.start mode=AP ssid="sc.local" ip=192.168.4.1
+18:20:48.445  -> BU.WIFI.WAIT
+18:20:48.947  <- 
+18:20:48.947  <- BU.EVENT wifi.assoc n=1 t=60.49
+18:20:49.958  <- I (91680) BT_HID: Scanning for HID devices (3s)...
+18:20:50.464  <- E rmt: hw buffer too small, received symbols truncated
+18:20:50.968  -> 
+18:20:51.479  <- 
+18:20:51.479  <- BU.OK wifi.wait clients=1 http_reqs=0 aborted=1
+18:20:52.843  -> BU.END
+18:20:52.868  <- E rmt: hw buffer too small, received symbols truncated
+18:20:52.868  <- E rmt: hw buffer too small, received symbols truncated
+18:20:52.868  <- I (94690) BT_HID: Found 0 HID device(s)
+18:20:52.868  <- I (94690) BT_HID: No HID devices found, retrying in 2000ms...
+18:20:52.868  <- 
+18:20:53.088  <- BU.OK end reboot t=64.89

@@ -1,0 +1,539 @@
+17:52:11.758  
+------------------------------------------------------------
+  Flashing COM3
+------------------------------------------------------------
+17:52:11.760    erase_flash @ COM3
+17:52:15.396    flashing from D:\SC\SC-F001\build
+17:52:15.398    files: [('0x1000', 'bootloader/bootloader.bin'), ('0x10000', 'SC-F001.bin'), ('0x8000', 'partition_table/partition-table.bin'), ('0xd000', 'ota_data_initial.bin')]
+17:52:40.634  Flash complete
+17:52:42.135  Connecting to COM3 @ 115200 ...
+17:52:42.140  -> BU.BEGIN
+17:52:42.402  <- BU.BEGIN
+17:52:42.402  <- 
+17:52:42.402  <- 
+17:52:42.402  <- BU.OK begin fw=666750f board=V5 t=0.00
+17:52:42.404  -> BU.INFO
+17:52:42.404  <- E rmt: hw buffer too small, received symbols truncated
+17:52:42.416  <- I (1870) BT_HID: Scanning for HID devices (3s)...
+17:52:42.416  <- I (1870) BT_HID: BLE HID host initialised
+17:52:42.420  <- I (1870) WEBSERVER: Initializing webserver...
+17:52:42.420  <- I (1870) WEBSERVER: AP LAUNCHING
+17:52:42.420  <- I (1890) wifi:wifi driver task: 3ffe28e8, prio:23, stack:6656, core=0
+17:52:42.420  <- I (1890) wifi:wifi firmware version: ccaebfa
+17:52:42.420  <- I (1890) wifi:wifi certification version: v7.0
+17:52:42.447  <- I (1890) wifi:config NVS flash: enabled
+17:52:42.447  <- I (1890) wifi:config nano formating: disabled
+17:52:42.447  <- I (1900) wifi:Init data frame dynamic rx buffer num: 32
+17:52:42.447  <- I (1900) wifi:Init static rx mgmt buffer num: 5
+17:52:42.447  <- I (1910) wifi:Init management short buffer num: 32
+17:52:42.447  <- 
+17:52:42.469  <- BU.OK info reset=POWERON heap=111572 min_heap=111572 fw=666750f build=2026-04-28 17:44:02
+17:53:41.841  -> BU.FLASH
+17:53:41.841  <- I (1910) wifi:Init dynamic tx buffer num: 32
+17:53:41.841  <- I (1920) wifi:Init static rx buffer size: 1600
+17:53:41.841  <- I (1930) wifi:Init static rx buffer num: 10
+17:53:41.841  <- I (1930) wifi:Init dynamic rx buffer num: 32
+17:53:41.842  <- I (1940) wifi_init: rx ba win: 6
+17:53:41.842  <- I (1940) wifi_init: accept mbox: 6
+17:53:41.842  <- I (1940) wifi_init: tcpip mbox: 32
+17:53:41.842  <- I (1950) wifi_init: udp mbox: 6
+17:53:41.842  <- I (1950) wifi_init: tcp mbox: 6
+17:53:41.842  <- I (1950) wifi_init: tcp tx win: E rmt: hw buffer too small, received symbols truncated
+17:53:41.842  <- 5760
+17:53:41.842  <- I (1960) wifi_init: tcp rx win: 5760
+17:53:41.842  <- I (1970) wifi_init: tcp mss: 1440
+17:53:41.842  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.843  <- I (2260) wifi:mode : softAP (80:f3:da:64:0c:09)
+17:53:41.843  <- I (2260) wifi:Total power save buffer number: 16
+17:53:41.843  <- I (2260) wifi:Init max length of beacon: 752/752
+17:53:41.843  <- I (2260) wifi:Init max length of beacon: 752/752
+17:53:41.844  <- I (2270) esp_netif_lwip: DHCP server started on interface WIFI_AP_DEF with IP: 192.168.4.1
+17:53:41.844  <- I (2280) DNS_SERVER: DNS server started on port 53
+17:53:41.844  <- I (2280) mdns_mem: mDNS task will be created from internal RAM
+17:53:41.844  <- I (2290) WEBSERVER: SoftAP ready. SSID: sc.local, Channel: 6, Password: password
+17:53:41.845  <- I (2290) WEBSERVER: Access at: http://sc.local.local or http://192.168.4.1
+17:53:41.845  <- I (2300) WEBSERVER: STARTING HTTP
+17:53:41.845  <- I (2310) WEBSERVER: HTTP server started successfully
+17:53:41.845  <- I (2310) WEBSERVER: Registered URI handler: /
+17:53:41.845  <- I (2320) WEBSERVER: Registered URI handler: /get
+17:53:41.845  <- I (2320) WEBSERVER: Registered URI handler: /post
+17:53:41.845  <- I (2330) WEBSERVER: Registered URI handler: /log
+17:53:41.845  <- I (2330) WEBSERVER: Registered URI handler: /ota
+17:53:41.846  <- I (2340) WEBSERVER: Registered URI handler: /*
+17:53:41.846  <- I (2340) WEBSERVER: Webserver initialization complete
+17:53:41.846  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.846  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.847  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.847  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.847  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.847  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.847  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.848  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.848  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.848  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.848  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.848  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.848  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.849  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.849  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.849  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.849  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.849  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.849  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.849  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.849  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.850  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.850  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.850  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.850  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.851  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.851  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.851  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.851  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.851  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.851  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.851  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.851  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.851  <- I (4880) BT_HID: Found 0 HID device(s)
+17:53:41.852  <- I (4880) BT_HID: No HID devices found, retrying in 2000ms...
+17:53:41.852  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.852  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.852  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.852  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.853  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.853  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.853  <- I (6880) BT_HID: Scanning for HID devices (3s)...
+17:53:41.853  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.854  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.854  <- ls truncated
+17:53:41.854  <- E rmt: hw buffer too small, received symbols truls truncated
+17:53:41.854  <- E rmt: hw buffer too small, received symbols truls truncated
+17:53:41.854  <- E rmt: hw buffer too small, received symbols truls truncated
+17:53:41.854  <- E rmt: hw buffer too small, received symbols truncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.854  <- ncated
+17:53:41.855  <- ncated
+17:53:41.855  <- ncated
+17:53:41.855  <- ncated
+17:53:41.855  <- ncated
+17:53:41.855  <- ncated
+17:53:41.855  <- ncated
+17:53:41.855  <- ncated
+17:53:41.855  <- ncated
+17:53:41.855  <- ncated
+17:53:41.855  <- ncated
+17:53:41.855  <- ncated
+17:53:41.855  <- ncated
+17:53:41.855  <- ncated
+17:53:41.855  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.856  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.857  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.858  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.859  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.860  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.861  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.862  <- ncated
+17:53:41.863  <- ncated
+17:53:41.863  <- ncated
+17:53:41.863  <- ncated
+17:53:41.863  <- ncated
+17:53:41.863  <- ncated
+17:53:41.863  <- ncated
+17:53:41.863  <- ncated
+17:53:41.863  <- ncated
+17:53:41.863  <- ncated
+17:53:41.863  <- ncated
+17:53:41.863  <- ncated
+17:53:41.865  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.866  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.867  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.868  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.869  <- ncated
+17:53:41.870  <- ncated
+17:53:41.870  <- ncated
+17:53:41.870  <- 
+17:53:41.870  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:53:43.381  -> BU.I2C
+17:53:43.381  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:53:43.383  -> BU.LED.WATCH
+17:53:43.384  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:53:46.259  -> 
+17:53:47.049  -> BU.ADC
+17:53:47.050  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:53:47.053  -> BU.PARAM GET V_SENS_K
+17:53:47.053  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:53:47.053  -> BU.ADC
+17:53:47.055  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:06.065  -> BU.PARAM SET V_SENS_OFFSET nan
+17:54:06.065  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:06.065  -> BU.PARAM GET V_SENS_OFFSET
+17:54:06.068  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:06.068  -> BU.ADC
+17:54:06.071  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:10.912  -> BU.ADC
+17:54:10.912  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:10.915  -> BU.PARAM GET V_SENS_K
+17:54:10.915  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:10.915  -> BU.ADC
+17:54:10.917  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:24.544  -> BU.PARAM SET V_SENS_OFFSET nan
+17:54:24.545  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:24.545  -> BU.PARAM GET V_SENS_OFFSET
+17:54:24.547  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:24.547  -> BU.ADC
+17:54:24.549  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:27.589  -> BU.ADC
+17:54:27.589  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:27.591  -> BU.PARAM GET V_SENS_K
+17:54:27.592  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:27.592  -> BU.ADC
+17:54:27.593  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:29.162  -> BU.PARAM SET V_SENS_OFFSET nan
+17:54:29.162  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:29.162  -> BU.PARAM GET V_SENS_OFFSET
+17:54:29.165  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:29.165  -> BU.ADC
+17:54:29.167  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 parti
+17:54:34.445  -> BU.END

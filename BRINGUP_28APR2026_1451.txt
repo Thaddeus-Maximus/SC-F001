@@ -1,0 +1,1100 @@
+14:51:14.834  
+------------------------------------------------------------
+  Flashing COM3
+------------------------------------------------------------
+14:51:14.835    erase_flash @ COM3
+14:51:18.727    flashing from D:\SC\SC-F001\build
+14:51:18.730    files: [('0x1000', 'bootloader/bootloader.bin'), ('0x10000', 'SC-F001.bin'), ('0x8000', 'partition_table/partition-table.bin'), ('0xd000', 'ota_data_initial.bin')]
+14:51:43.832  Flash complete
+14:51:45.332  Connecting to COM3 @ 115200 ...
+14:51:45.338  -> BU.BEGIN
+14:51:45.586  <- BU.BEGIN
+14:51:45.586  <- 
+14:51:45.586  <- 
+14:51:45.586  <- BU.OK begin fw=666750f board=V5 t=0.00
+14:51:45.589  -> BU.INFO
+14:51:45.589  <- E (1790) rmt: rmt_receive(400): channel not in enable state
+14:51:45.589  <- I (1880) BT_HID: Scanning for HID devices (3s)...
+14:51:45.589  <- I (1880) BT_HID: BLE HID host initialised
+14:51:45.607  <- I (1880) WEBSERVER: Initializing webserver...
+14:51:45.607  <- I (1880) WEBSERVER: AP LAUNCHING
+14:51:45.607  <- I (1900) wifi:wifi driver task: 3ffe28d8, prio:23, stack:6656, core=0
+14:51:45.607  <- I (1900) wifi:wifi firmware version: ccaebfa
+14:51:45.607  <- I (1900) wifi:wifi certification version: v7.0
+14:51:45.628  <- I (1900) wifi:config NVS flash: enabled
+14:51:45.628  <- I (1900) wifi:config nano formating: disabled
+14:51:45.628  <- I (1910) wifi:Init data frame dynamic rx buffer num: 32
+14:51:45.628  <- I (1910) wifi:Init static rx mgmt buffer num: 5
+14:51:45.628  <- 
+14:51:45.649  <- BU.OK info reset=POWERON heap=111588 min_heap=111588 fw=666750f build=2026-04-28 17:44:02
+14:52:27.446  -> BU.FLASH
+14:52:27.446  <- I (1920) wifi:Init management short buffer num: 32
+14:52:27.446  <- I (1930) wifi:Init dynamic tx buffer num: 32
+14:52:27.446  <- I (1930) wifi:Init static rx buffer size: 1600
+14:52:27.446  <- I (1940) wifi:Init static rx buffer num: 10
+14:52:27.447  <- I (1940) wifi:Init dynamic rx buffer num: 32
+14:52:27.447  <- I (1950) wifi_init: rx ba win: 6
+14:52:27.447  <- I (1950) wifi_init: accept mbox: 6
+14:52:27.447  <- I (1950) wifi_init: tcpip mbox: 32
+14:52:27.447  <- I (1960) wifi_init: udp mbox: 6
+14:52:27.447  <- I (1960) wifi_init: tcp mbox: 6
+14:52:27.448  <- I (1960) wifi_init: tcp tx win: 5760
+14:52:27.448  <- I (1970) wifi_init: tcp rx win: 5760
+14:52:27.448  <- I (1970) wifi_init: tcp mss: 1440
+14:52:27.448  <- I (2260) wifi:mode : softAP (80:f3:da:65:a5:a5)
+14:52:27.448  <- I (2270) wifi:Total power save buffer number: 16
+14:52:27.449  <- I (2270) wifi:Init max length of beacon: 752/752
+14:52:27.449  <- I (2270) wifi:Init max length of beacon: 752/752
+14:52:27.449  <- I (2270) esp_netif_lwip: DHCP server started on interface WIFI_AP_DEF with IP: 192.168.4.1
+14:52:27.449  <- I (2280) DNS_SERVER: DNS server started on port 53
+14:52:27.449  <- I (2290) mdns_mem: mDNS task will be created from internal RAM
+14:52:27.449  <- I (2290) WEBSERVER: SoftAP ready. SSID: sc.local, Channel: 6, Password: password
+14:52:27.449  <- I (2300) WEBSERVER: Access at: http://sc.local.local or http://192.168.4.1
+14:52:27.450  <- I (2310) WEBSERVER: STARTING HTTP
+14:52:27.450  <- I (2310) WEBSERVER: HTTP server started successfully
+14:52:27.450  <- I (2320) WEBSERVER: Registered URI handler: /
+14:52:27.450  <- I (2320) WEBSERVER: Registered URI handler: /get
+14:52:27.451  <- I (2330) WEBSERVER: Registered URI handler: /post
+14:52:27.451  <- I (2330) WEBSERVER: Registered URI handler: /log
+14:52:27.451  <- I (2340) WEBSERVER: Registered URI handler: /ota
+14:52:27.451  <- I (2340) WEBSERVER: Registered URI handler: /*
+14:52:27.451  <- I (2350) WEBSERVER: Webserver initialization complete
+14:52:27.451  <- I (4890) BT_HID: Found 0 HID device(s)
+14:52:27.451  <- I (4890) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:27.451  <- I (6890) BT_HID: Scanning for HID devices (3s)...
+14:52:27.451  <- I (9900) BT_HID: Found 0 HID device(s)
+14:52:27.452  <- I (9900) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:27.452  <- I (11900) BT_HID: Scanning for HID devices (3s)...
+14:52:27.452  <- I (14910) BT_HID: Found 0 HID device(s)
+14:52:27.452  <- I (14910) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:27.453  <- I (16910) BT_HID: Scanning for HID devices (3s)...
+14:52:27.453  <- I (19920) BT_HID: Found 0 HID device(s)
+14:52:27.453  <- I (19920) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:27.453  <- I (21920) BT_HID: Scanning for HID devices (3s)...
+14:52:27.453  <- I (24930) BT_HID: Found 0 HID device(s)
+14:52:27.453  <- I (24930) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:27.453  <- I (26930) BT_HID: Scanning for HID devices (3s)...
+14:52:27.453  <- I (29940) BT_HID: Found 0 HID device(s)
+14:52:27.454  <- I (29940) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:27.454  <- I (31940) BT_HID: Scanning for HID devices (3s)...
+14:52:27.454  <- I (34950) BT_HID: Found 0 HID device(s)
+14:52:27.454  <- I (34950) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:27.468  <- I (36950) BT_HID: Scanning for HID devices (3s)...
+14:52:27.469  <- I (39960) BT_HID: Found 0 HID device(s)
+14:52:27.469  <- I (39960) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:27.469  <- I (41960) BT_HID: Scanning for HID devices (3s)...
+14:52:27.469  <- 
+14:52:27.973  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 partitions_size=4128768
+14:52:30.041  -> BU.I2C
+14:52:30.548  <- I (44970) BT_HID: Found 0 HID device(s)
+14:52:30.548  <- I (44970) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:30.548  <- I (46370) I2C: POST: TCA9555 OK (port0=0x0121)
+14:52:30.548  <- 
+14:52:30.548  <- BU.OK i2c tca9555=ack
+14:52:30.550  -> BU.LED.WATCH
+14:52:31.054  <- 
+14:52:31.054  <- BU.EVENT led t=45.21 pressed=0
+14:52:31.054  <- I (46970) BT_HID: Scanning for HID devices (3s)...
+14:52:31.054  <- 
+14:52:31.054  <- BU.EVENT led t=45.31 pressed=1
+14:52:32.082  <- 
+14:52:32.082  <- BU.EVENT led t=46.53 pressed=0
+14:52:34.131  <- I (49980) BT_HID: Found 0 HID device(s)
+14:52:34.131  <- I (49980) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:34.304  -> 
+14:52:34.638  <- 
+14:52:34.638  <- BU.OK led.watch done
+14:52:35.735  -> BU.ADC
+14:52:36.244  <- I (51980) BT_HID: Scanning for HID devices (3s)...
+14:52:36.244  <- 
+14:52:36.244  <- BU.OK adc bat_mv=1667 bat_V=13.180 isens_mv=1662 isens_A=-0.91
+14:52:36.248  -> BU.PARAM GET V_SENS_K
+14:52:36.763  <- 
+14:52:36.763  <- BU.OK param key=V_SENS_K value=0.00766666653
+14:52:36.763  -> BU.ADC
+14:52:37.270  <- 
+14:52:37.270  <- BU.OK adc bat_mv=1666 bat_V=13.173 isens_mv=1659 isens_A=-0.68
+14:52:47.379  -> BU.PARAM SET V_SENS_OFFSET 0.177334
+14:52:47.380  <- I (54990) BT_HID: Found 0 HID device(s)
+14:52:47.380  <- I (54990) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:47.380  <- I (56990) BT_HID: Scanning for HID devices (3s)...
+14:52:47.380  <- I (60000) BT_HID: Found 0 HID device(s)
+14:52:47.413  <- I (60000) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:47.413  <- I (62000) BT_HID: Scanning for HID devices (3s)...
+14:52:47.413  <- I (63710) STORAGE: Parameter 34 (V_SENS_OFFSET) set (not committed)
+14:52:47.923  <- I (63710) STORAGE: Committing 49 parameters to flash...
+14:52:47.923  <- I (63750) STORAGE: Successfully committed all parameters to flash
+14:52:47.923  <- 
+14:52:47.923  <- BU.OK param key=V_SENS_OFFSET set=ok committed=yes
+14:52:47.923  -> BU.PARAM GET V_SENS_OFFSET
+14:52:48.427  <- 
+14:52:48.427  <- BU.OK param key=V_SENS_OFFSET value=0.177333996
+14:52:48.427  -> BU.ADC
+14:52:48.932  <- 
+14:52:48.932  <- BU.OK adc bat_mv=1670 bat_V=12.981 isens_mv=1662 isens_A=-0.91
+14:52:48.938  -> BU.SENSORS.WATCH 0
+14:52:48.938  <- I (65010) BT_HID: Found 0 HID device(s)
+14:52:48.938  <- I (65010) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:49.452  <- 
+14:52:49.452  <- BU.EVENT state t=63.60 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+14:52:49.452  <- 
+14:52:49.452  <- BU.EVENT state t=63.86 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+14:52:49.956  <- 
+14:52:49.956  <- BU.EVENT state t=64.11 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+14:52:49.956  <- 
+14:52:49.956  <- BU.EVENT state t=64.36 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+14:52:50.462  <- 
+14:52:50.462  <- BU.EVENT state t=64.61 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+14:52:50.462  <- 
+14:52:50.462  <- BU.EVENT state t=64.86 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+14:52:50.967  <- 
+14:52:50.967  <- BU.EVENT state t=65.11 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+14:52:50.967  <- I (67010) BT_HID: Scanning for HID devices (3s)...
+14:52:50.967  <- 
+14:52:50.967  <- BU.EVENT state t=65.36 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+14:52:51.478  <- 
+14:52:51.478  <- BU.EVENT state t=65.61 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+14:52:51.478  <- 
+14:52:51.478  <- BU.EVENT state t=65.86 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+14:52:51.478  <- 
+14:52:51.983  <- BU.EVENT state t=66.11 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+14:52:51.983  <- 
+14:52:51.983  <- BU.EVENT state t=66.36 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+14:52:51.983  <- 
+14:52:51.983  <- BU.EVENT state t=66.61 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+14:52:52.490  <- 
+14:52:52.490  <- BU.EVENT sensor name=SAFETY edge=break t=66.81
+14:52:52.490  <- 
+14:52:52.490  <- BU.EVENT state t=66.86 SAFETY=0 DRIVE=1 JACK=0 AUX=0 isr_s=1 isr_d=0 isr_j=0 isr_a=0
+14:52:52.491  <- 
+14:52:52.491  <- BU.EVENT state t=67.11 SAFETY=0 DRIVE=1 JACK=0 AUX=0 isr_s=1 isr_d=0 isr_j=0 isr_a=0
+14:52:52.998  <- 
+14:52:52.998  <- BU.EVENT state t=67.36 SAFETY=0 DRIVE=1 JACK=0 AUX=0 isr_s=1 isr_d=0 isr_j=0 isr_a=0
+14:52:52.998  <- 
+14:52:52.998  <- BU.EVENT sensor name=SAFETY edge=make t=67.60
+14:52:52.998  <- 
+14:52:52.998  <- BU.EVENT state t=67.61 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=2 isr_d=0 isr_j=0 isr_a=0
+14:52:53.504  <- 
+14:52:53.504  <- BU.EVENT state t=67.86 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=2 isr_d=0 isr_j=0 isr_a=0
+14:52:53.504  <- 
+14:52:53.504  <- BU.EVENT state t=68.11 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=2 isr_d=0 isr_j=0 isr_a=0
+14:52:53.985  <- I (70020) BT_HID: Found 0 HID device(s)
+14:52:53.985  <- I (70020) BT_HID: No HID devices found, retrying in 2000ms...
+14:52:53.985  <- 
+14:52:53.985  <- BU.EVENT state t=68.36 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=2 isr_d=0 isr_j=0 isr_a=0
+14:52:53.985  <- 
+14:52:54.342  -> 
+14:52:54.499  <- BU.EVENT state t=68.62 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=2 isr_d=0 isr_j=0 isr_a=0
+14:52:54.499  <- 
+14:52:54.499  <- BU.EVENT state t=68.87 SAFETY=1 DRIVE=1 JACK=0 AUX=0 isr_s=2 isr_d=0 isr_j=0 isr_a=0
+14:52:54.499  <- 
+14:52:54.499  <- BU.OK sensors.watch sec=-1 SAFETY=both DRIVE=none JACK=none AUX=none
+14:53:06.150  -> BU.RELAY SENSORS ON 500
+14:53:06.151  <- I (72020) BT_HID: Scanning for HID devices (3s)...
+14:53:06.151  <- I (75030) BT_HID: Found 0 HID device(s)
+14:53:06.151  <- I (75030) BT_HID: No HID devices found, retrying in 2000ms...
+14:53:06.151  <- I (77030) BT_HID: Scanning for HID devices (3s)...
+14:53:06.661  <- I (80040) BT_HID: Found 0 HID device(s)
+14:53:06.661  <- I (80040) BT_HID: No HID devices found, retrying in 2000ms...
+14:53:06.661  <- I (82040) BT_HID: Scanning for HID devices (3s)...
+14:53:07.165  <- 
+14:53:07.165  <- BU.OK relay bridge=SENSORS ms=500
+14:53:11.005  -> BU.RELAY DRIVE FWD 3000
+14:53:11.510  <- I (85050) BT_HID: Found 0 HID device(s)
+14:53:11.510  <- I (85050) BT_HID: No HID devices found, retrying in 2000ms...
+14:53:11.510  <- I (87050) BT_HID: Scanning for HID devices (3s)...
+14:53:13.540  <- 
+14:53:13.540  <- BU.OK relay bridge=DRIVE dir=FWD ms=2000 actual_ms=2059 stop=time I_before=+0.00 I_mid=+24.09 I_after=+0.00 heat=0.007 tripped=0 edges=33
+14:53:15.638  -> BU.RELAY DRIVE REV 3000
+14:53:16.148  <- I (90060) BT_HID: Found 0 HID device(s)
+14:53:16.148  <- I (90060) BT_HID: No HID devices found, retrying in 2000ms...
+14:53:16.148  <- I (92060) BT_HID: Scanning for HID devices (3s)...
+14:53:18.169  <- 
+14:53:18.169  <- BU.OK relay bridge=DRIVE dir=REV ms=2000 actual_ms=2059 stop=time I_before=-0.01 I_mid=+24.53 I_after=-0.01 heat=0.015 tripped=0 edges=33
+14:53:19.535  -> BU.RELAY JACK UP 1200
+14:53:20.049  <- I (95070) BT_HID: Found 0 HID device(s)
+14:53:20.049  <- I (95070) BT_HID: No HID devices found, retrying in 2000ms...
+14:53:21.056  <- I (97070) BT_HID: Scanning for HID devices (3s)...
+14:53:21.056  <- 
+14:53:21.056  <- BU.OK relay bridge=JACK dir=UP ms=1200 actual_ms=1259 stop=time I_before=+0.00 I_mid=+3.11 I_after=-0.00 heat=0.001 tripped=0 edges=1
+14:53:21.571  -> BU.RELAY JACK DOWN 1200
+14:53:23.093  <- 
+14:53:23.093  <- BU.OK relay bridge=JACK dir=DOWN ms=1200 actual_ms=1249 stop=sensor I_before=-0.01 I_mid=+3.93 I_after=-0.01 heat=0.003 tripped=0 edges=1
+14:53:24.770  -> BU.RELAY AUX FWD 150
+14:53:25.062  <- I (100080) BT_HID: Found 0 HID device(s)
+14:53:25.062  <- I (100080) BT_HID: No HID devices found, retrying in 2000ms...
+14:53:25.062  <- 
+14:53:25.574  <- BU.OK relay bridge=AUX dir=FWD ms=150 actual_ms=209 stop=time I_before=+0.00 I_mid=-0.61 I_after=+0.00 heat=0.000 tripped=0 edges=0
+14:53:29.638  -> BU.RF.WATCH 0
+14:53:30.140  <- I (102080) BT_HID: Scanning for HID devices (3s)...
+14:53:30.140  <- I (105090) BT_HID: Found 0 HID device(s)
+14:53:30.140  <- I (105090) BT_HID: No HID devices found, retrying in 2000ms...
+14:53:31.148  <- I (107090) BT_HID: Scanning for HID devices (3s)...
+14:53:34.184  <- I (110100) BT_HID: Found 0 HID device(s)
+14:53:34.184  <- I (110100) BT_HID: No HID devices found, retrying in 2000ms...
+14:53:36.210  <- I (112100) BT_HID: Scanning for HID devices (3s)...
+14:53:39.244  <- I (115110) BT_HID: Found 0 HID device(s)
+14:53:39.244  <- I (115110) BT_HID: No HID devices found, retrying in 2000ms...
+14:53:41.272  <- I (117110) BT_HID: Scanning for HID devices (3s)...
+14:53:43.820  <- I (120120) BT_HID: Found 0 HID device(s)
+14:53:44.325  <- I (120120) BT_HID: No HID devices found, retrying in 2000ms...
+14:53:45.845  <- I (122120) BT_HID: Scanning for HID devices (3s)...
+14:53:48.878  <- I (125130) BT_HID: Found 0 HID device(s)
+14:53:48.878  <- I (125130) BT_HID: No HID devices found, retrying in 2000ms...
+14:53:50.896  <- I (127130) BT_HID: Scanning for HID devices (3s)...
+14:53:53.927  <- I (130140) BT_HID: Found 0 HID device(s)
+14:53:53.927  <- I (130140) BT_HID: No HID devices found, retrying in 2000ms...
+14:53:55.965  <- I (132140) BT_HID: Scanning for HID devices (3s)...
+14:53:59.018  <- I (135150) BT_HID: Found 0 HID device(s)
+14:53:59.018  <- I (135150) BT_HID: No HID devices found, retrying in 2000ms...
+14:54:01.038  <- I (137150) BT_HID: Scanning for HID devices (3s)...
+14:54:04.064  <- I (140160) BT_HID: Found 0 HID device(s)
+14:54:04.064  <- I (140160) BT_HID: No HID devices found, retrying in 2000ms...
+14:54:06.084  <- I (142160) BT_HID: Scanning for HID devices (3s)...
+14:54:06.805  -> 
+14:54:07.094  <- 
+14:54:07.094  <- BU.OK rf.watch sec=-1 seen=0
+14:54:09.129  -> BU.WIFI.START
+14:54:09.166  <- I (145170) BT_HID: Found 0 HID device(s)
+14:54:09.166  <- I (145170) BT_HID: No HID devices found, retrying in 2000ms...
+14:54:09.166  <- I (145460) WEBSERVER: Initializing webserver...
+14:54:09.671  <- I (145460) WEBSERVER: AP already running — launch_soft_ap is a no-op
+14:54:09.671  <- I (145460) WEBSERVER: Webserver initialization complete
+14:54:09.671  <- 
+14:54:09.671  <- BU.OK wifi.start mode=AP ssid="sc.local" ip=192.168.4.1
+14:54:09.673  -> BU.WIFI.WAIT
+14:54:11.192  <- I (147170) BT_HID: Scanning for HID devices (3s)...
+14:54:12.719  <- I (148910) wifi:new:<6,1>, old:<6,1>, ap:<6,1>, sta:<255,255>, prof:6, snd_ch_cfg:0x0
+14:54:12.719  <- I (148920) wifi:station: 34:2e:b7:aa:33:a4 join, AID=1, bgn, 40U
+14:54:12.719  <- I (148970) WEBSERVER: Station connected, AID=1
+14:54:12.719  <- 
+14:54:12.719  <- BU.EVENT wifi.assoc n=1 t=147.33
+14:54:13.232  <- I (149020) esp_netif_lwip: DHCP server assigned IP to a client, IP is: 192.168.4.2
+14:54:13.232  <- I (149210) wifi:<ba-add>idx:2 (ifx:1, 34:2e:b7:aa:33:a4), tid:0, ssn:22, winSize:64
+14:54:14.253  <- I (150180) BT_HID: Found 0 HID device(s)
+14:54:14.253  <- I (150190) BT_HID: No HID devices found, retrying in 2000ms...
+14:54:15.792  <- 
+14:54:15.792  <- BU.OK wifi.wait clients=1 http_reqs=1 aborted=0
+15:06:01.165  -> BU.END
+15:06:01.166  <- I (152190) BT_HID: Scanning for HID devices (3s)...
+15:06:01.166  <- W (152450) httpd_txrx: httpd_resp_send_err: 404 Not Found - Nothing matches the given URI
+15:06:01.166  <- I (154050) WEBSERVER: post_handler
+15:06:01.166  <- I (154050) WEBSERVER: POST: {"time":1777388057}
+15:06:01.166  <- I (154050) COMMS: Setting time to 1777388057
+15:06:01.166  <- I (154050) RTC: TIME unix=1777388057 src=SYNC uptime=153s
+15:06:01.166  <- I (154050) STORAGE: Wrote; Tail/Head are now 0/21
+15:06:01.167  <- I (155200) BT_HID: Found 0 HID device(s)
+15:06:01.167  <- I (155200) BT_HID: No HID devices found, retrying in 2000ms...
+15:06:01.167  <- I (157200) BT_HID: Scanning for HID devices (3s)...
+15:06:01.167  <- I (159060) WEBSERVER: post_handler
+15:06:01.167  <- I (159060) WEBSERVER: POST: {"cmd":"rf_clear_temp"}
+15:06:01.168  <- I (159200) WEBSERVER: post_handler
+15:06:01.168  <- I (159200) WEBSERVER: POST: {"cmd":"rf_disable"}
+15:06:01.168  <- I (159300) WEBSERVER: post_handler
+15:06:01.168  <- I (159300) WEBSERVER: POST: {"cmd":"rf_learn","channel":0}
+15:06:01.168  <- W (159800) httpd_txrx: httpd_resp_send_err: 404 Not Found - Nothing matches the given URI
+15:06:01.168  <- I (160220) BT_HID: Found 0 HID device(s)
+15:06:01.168  <- I (160220) BT_HID: No HID devices found, retrying in 2000ms...
+15:06:01.168  <- I (161680) WEBSERVER: post_handler
+15:06:01.169  <- I (161680) WEBSERVER: POST: {"cmd":"rf_learn","channel":-1}
+15:06:01.169  <- I (161760) WEBSERVER: post_handler
+15:06:01.169  <- I (161760) WEBSERVER: POST: {"cmd":"rf_status"}
+15:06:01.169  <- I (161820) WEBSERVER: post_handler
+15:06:01.170  <- I (161820) WEBSERVER: POST: {"cmd":"rf_set_temp","index":0,"code":0}
+15:06:01.170  <- I (161880) WEBSERVER: post_handler
+15:06:01.170  <- I (161880) WEBSERVER: POST: {"cmd":"rf_learn","channel":1}
+15:06:01.170  <- I (162220) BT_HID: Scanning for HID devices (3s)...
+15:06:01.171  <- I (164430) WEBSERVER: post_handler
+15:06:01.171  <- I (164430) WEBSERVER: POST: {"cmd":"rf_learn","channel":-1}
+15:06:01.171  <- I (164520) WEBSERVER: post_handler
+15:06:01.171  <- I (164520) WEBSERVER: POST: {"cmd":"rf_status"}
+15:06:01.171  <- I (164630) WEBSERVER: post_handler
+15:06:01.171  <- I (164630) WEBSERVER: POST: {"cmd":"rf_set_temp","index":1,"code":0}
+15:06:01.171  <- I (164770) WEBSERVER: post_handler
+15:06:01.171  <- I (164770) WEBSERVER: POST: {"cmd":"rf_learn","channel":2}
+15:06:01.171  <- I (165230) BT_HID: Found 0 HID device(s)
+15:06:01.172  <- I (165230) BT_HID: No HID devices found, retrying in 2000ms...
+15:06:01.172  <- E (165530) httpd: httpd_accept_conn: error in accept (23)
+15:06:01.172  <- W (165530) httpd: httpd_server: error accepting new connection
+15:06:01.172  <- I (166660) WEBSERVER: post_handler
+15:06:01.173  <- I (166660) WEBSERVER: POST: {"cmd":"rf_learn","channel":-1}
+15:06:01.173  <- I (166730) WEBSERVER: post_handler
+15:06:01.173  <- I (166730) WEBSERVER: POST: {"cmd":"rf_status"}
+15:06:01.173  <- I (166790) WEBSERVER: post_handler
+15:06:01.174  <- I (166790) WEBSERVER: POST: {"cmd":"rf_set_temp","index":2,"code":0}
+15:06:01.174  <- I (166850) WEBSERVER: post_handler
+15:06:01.174  <- I (166860) WEBSERVER: POST: {"cmd":"rf_learn","channel":3}
+15:06:01.174  <- I (167230) BT_HID: Scanning for HID devices (3s)...
+15:06:01.174  <- I (170240) BT_HID: Found 0 HID device(s)
+15:06:01.174  <- I (170240) BT_HID: No HID devices found, retrying in 2000ms...
+15:06:01.174  <- I (171090) WEBSERVER: post_handler
+15:06:01.174  <- I (171090) WEBSERVER: POST: {"cmd":"rf_learn","channel":-1}
+15:06:01.175  <- I (171160) WEBSERVER: post_handler
+15:06:01.175  <- I (171160) WEBSERVER: POST: {"cmd":"rf_status"}
+15:06:01.175  <- I (171240) WEBSERVER: post_handler
+15:06:01.175  <- I (171240) WEBSERVER: POST: {"cmd":"rf_set_temp","index":3,"code":0}
+15:06:01.175  <- I (171320) WEBSERVER: post_handler
+15:06:01.176  <- I (171320) WEBSERVER: POST: {"parameters":{"KEYCODE_0":0,"KEYCODE_1":0,"KEYCODE_2":0,"KEYCODE_3":0}}
+15:06:01.176  <- I (171320) COMMS: Processing parameter: KEYCODE_0
+15:06:01.176  <- I (171330) STORAGE: Parameter 9 (KEYCODE_0) set (not committed)
+15:06:01.177  <- I (171330) COMMS: Processing parameter: KEYCODE_1
+15:06:01.177  <- I (171340) STORAGE: Parameter 10 (KEYCODE_1) set (not committed)
+15:06:01.177  <- I (171340) COMMS: Processing parameter: KEYCODE_2
+15:06:01.177  <- I (171350) STORAGE: Parameter 11 (KEYCODE_2) set (not committed)
+15:06:01.177  <- I (171360) COMMS: Processing parametediv:2
+15:06:01.177  <- load:0x3fffeba4,len:4
+15:06:01.177  <- load:0x4009f000,len:3248
+15:06:01.177  <- entry div:2
+15:06:01.177  <- load:0x3fffeba4,len:4
+15:06:01.177  <- load:0x4009f000,len:3248
+15:06:01.178  <- entry div:2
+15:06:01.178  <- load:0x3fffeba4,len:4
+15:06:01.178  <- load:0x4009f000,len:3248
+15:06:01.178  <- entry div:2
+15:06:01.179  <- load:0x3fffeba4,len:4
+15:06:01.179  <- load:0x4009f000,len:3248
+15:06:01.179  <- entry 0x4009f574
+15:06:01.179  <- �OHAI�0x4009f574
+15:06:01.179  <- �OHAI�0x4009f574
+15:06:01.179  <- �OHAI�0x4009f574
+15:06:01.179  <- �OHAI�0x4009f574
+15:06:01.179  <- �OHAI�0x4009f574
+15:06:01.179  <- �OHAI�0x4009f574
+15:06:01.179  <- �OHAI�0x4009f574
+15:06:01.179  <- �OHAI�0x4009f574
+15:06:01.179  <- �OHAI�0x4009f574
+15:06:01.179  <- �OHAI�0x4009f574
+15:06:01.179  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.180  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.181  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.182  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.183  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.184  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.185  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.186  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.187  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.188  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.189  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.190  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.191  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.192  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.193  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.194  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.195  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.196  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.197  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.198  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.199  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.200  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.201  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.202  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.206  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.207  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.208  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.209  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.210  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.211  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.212  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.213  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.214  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.215  <- �OHAI�0x4009f574
+15:06:01.216  <- �OHAI�0x4009f574
+15:06:01.216  <- �OHAI�0x4009f574
+15:06:01.216  <- �OHAI�0x4009f574
+15:06:01.216  <- �OHAI�ets Jul 29 2019 12:21:46
+15:06:01.216  <- 
+15:06:01.216  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.216  <- 
+15:06:01.216  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.216  <- 
+15:06:01.216  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.216  <- 
+15:06:01.217  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.217  <- 
+15:06:01.217  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.217  <- 
+15:06:01.217  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.217  <- 
+15:06:01.217  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.217  <- 
+15:06:01.218  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.218  <- 
+15:06:01.218  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.218  <- 
+15:06:01.218  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.218  <- 
+15:06:01.218  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.218  <- 
+15:06:01.218  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.218  <- 
+15:06:01.218  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.218  <- 
+15:06:01.218  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.218  <- 
+15:06:01.218  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.218  <- 
+15:06:01.219  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.219  <- 
+15:06:01.219  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.219  <- 
+15:06:01.219  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.219  <- 
+15:06:01.219  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.219  <- 
+15:06:01.219  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.219  <- 
+15:06:01.220  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.220  <- 
+15:06:01.220  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.220  <- 
+15:06:01.220  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.220  <- 
+15:06:01.220  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.220  <- 
+15:06:01.220  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.220  <- 
+15:06:01.220  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.220  <- 
+15:06:01.220  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.220  <- 
+15:06:01.220  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.221  <- 
+15:06:01.221  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.221  <- 
+15:06:01.221  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.221  <- 
+15:06:01.221  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.221  <- 
+15:06:01.221  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.221  <- 
+15:06:01.222  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.222  <- 
+15:06:01.222  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.222  <- 
+15:06:01.222  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.222  <- 
+15:06:01.222  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.222  <- 
+15:06:01.223  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.223  <- 
+15:06:01.223  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.223  <- 
+15:06:01.223  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.223  <- 
+15:06:01.223  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.223  <- 
+15:06:01.223  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.223  <- 
+15:06:01.223  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.223  <- 
+15:06:01.223  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.223  <- 
+15:06:01.223  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.223  <- 
+15:06:01.224  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.224  <- 
+15:06:01.224  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.224  <- 
+15:06:01.224  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.224  <- 
+15:06:01.224  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.224  <- 
+15:06:01.225  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.225  <- 
+15:06:01.225  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.225  <- 
+15:06:01.225  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.225  <- 
+15:06:01.225  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.225  <- 
+15:06:01.225  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.225  <- 
+15:06:01.226  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.226  <- 
+15:06:01.226  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.226  <- 
+15:06:01.226  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.226  <- 
+15:06:01.226  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.226  <- 
+15:06:01.226  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.226  <- 
+15:06:01.226  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.226  <- 
+15:06:01.226  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.226  <- 
+15:06:01.226  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.226  <- 
+15:06:01.227  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.227  <- 
+15:06:01.227  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0ets Jul 29 2019 12:21:46
+15:06:01.227  <- 
+15:06:01.227  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+15:06:01.227  <- configsip: 0, SPIWP:0xee
+15:06:01.548  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+15:06:01.548  <- mode:DIO, clock div:2
+15:06:01.548  <- load:0x3fffeba4,len:4
+15:06:01.548  <- load:0x4009f000,len:3248
+15:06:01.548  <- entry 0x4009f574
+15:06:01.548  <- �OHAI�ets Jul 29 2019 12:21:46
+15:06:01.548  <- 
+15:06:01.548  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+15:06:01.548  <- configsip: 0, SPIWP:0xee
+15:06:01.878  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+15:06:01.878  <- mode:DIO, clock div:2
+15:06:01.878  <- load:0x3fffeba4,len:4
+15:06:01.878  <- load:0x4009f000,len:3248
+15:06:01.878  <- entry 0x4009f574
+15:06:01.878  <- �OHAI�ets Jul 29 2019 12:21:46
+15:06:01.878  <- 
+15:06:01.878  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+15:06:01.878  <- configsip: 0, SPIWP:0xee
+15:06:02.216  -> BU.END

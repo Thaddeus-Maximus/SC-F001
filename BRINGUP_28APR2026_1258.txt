@@ -1,0 +1,84 @@
+12:58:59.740  Connecting to COM3 @ 115200 ...
+12:58:59.748  -> BU.BEGIN
+12:58:59.880  <- ets Jul 29 2019 12:21:46
+12:58:59.880  <- 
+12:58:59.880  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+12:58:59.882  <- configsip: 0, SPIWP:0xee
+12:58:59.882  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+12:58:59.883  <- mode:DIO, clock div:2
+12:58:59.883  <- load:0x3fffeba4,len:4
+12:59:00.245  <- load:0x4009f000,len:3248
+12:59:00.245  <- entry 0x4009f574
+12:59:00.247  <- �OHAI�ets Jul 29 2019 12:21:46
+12:59:00.247  <- 
+12:59:00.247  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+12:59:00.248  <- configsip: 0, SPIWP:0xee
+12:59:00.259  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+12:59:00.259  <- mode:DIO, clock div:2
+12:59:00.614  <- load:0x3fffeba4,len:4
+12:59:00.614  <- load:0x4009f000,len:3248
+12:59:00.616  <- entry 0x4009f574
+12:59:00.616  <- �OHAI�ets Jul 29 2019 12:21:46
+12:59:00.617  <- 
+12:59:00.617  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+12:59:00.617  <- configsip: 0, SPIWP:0xee
+12:59:00.618  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+12:59:00.977  <- mode:DIO, clock div:2
+12:59:00.977  <- load:0x3fffeba4,len:4
+12:59:00.979  <- load:0x4009f000,len:3248
+12:59:00.982  <- entry 0x4009f574
+12:59:00.982  <- �OHAI�ets Jul 29 2019 12:21:46
+12:59:00.983  <- 
+12:59:00.983  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+12:59:00.983  <- configsip: 0, SPIWP:0xee
+12:59:01.252  -> BU.BEGIN
+12:59:01.252  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+12:59:01.253  <- mode:DIO, clock div:2
+12:59:01.254  <- load:0x3fffeba4,len:4
+12:59:01.254  <- load:0x4009f000,len:3248
+12:59:01.254  <- entry 0x4009f574
+12:59:01.355  <- �OHAI�ets Jul 29 2019 12:21:46
+12:59:01.355  <- 
+12:59:01.355  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+12:59:01.356  <- configsip: 0, SPIWP:0xee
+12:59:01.357  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+12:59:01.357  <- mode:DIO, clock div:2
+12:59:01.358  <- load:0x3fffeba4,len:4
+12:59:01.720  <- load:0x4009f000,len:3248
+12:59:01.721  <- entry 0x4009f574
+12:59:01.722  <- �OHAI�ets Jul 29 2019 12:21:46
+12:59:01.723  <- 
+12:59:01.723  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+12:59:01.723  <- configsip: 0, SPIWP:0xee
+12:59:01.724  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+12:59:01.724  <- mode:DIO, clock div:2
+12:59:02.089  <- load:0x3fffeba4,len:4
+12:59:02.089  <- load:0x4009f000,len:3248
+12:59:02.091  <- entry 0x4009f574
+12:59:02.092  <- �OHAI�ets Jul 29 2019 12:21:46
+12:59:02.092  <- 
+12:59:02.092  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+12:59:02.092  <- configsip: 0, SPIWP:0xee
+12:59:02.093  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+12:59:02.453  <- mode:DIO, clock div:2
+12:59:02.453  <- load:0x3fffeba4,len:4
+12:59:02.455  <- load:0x4009f000,len:3248
+12:59:02.455  <- entry 0x4009f574
+12:59:02.456  <- �OHAI�ets Jul 29 2019 12:21:46
+12:59:02.456  <- 
+12:59:02.456  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+12:59:02.456  <- configsip: 0, SPIWP:0xee
+12:59:02.768  -> BU.BEGIN
+12:59:02.768  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+12:59:02.770  <- mode:DIO, clock div:2
+12:59:02.770  <- load:0x3fffeba4,len:4
+12:59:02.770  <- load:0x4009f000,len:3248
+12:59:02.771  <- entry 0x4009f574
+12:59:02.831  <- �OHAI�ets Jul 29 2019 12:21:46
+12:59:02.831  <- 
+12:59:02.831  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+12:59:02.833  <- configsip: 0, SPIWP:0xee
+12:59:02.834  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+12:59:02.834  <- mode:DIO, clock div:2
+12:59:02.835  <- load:0x3fffeba4,len:4
+12:59:03.198  -> BU.END
