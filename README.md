@@ -1,8 +1,6 @@
 # SC-F001 Firmware
 
-**Solar-powered automated crop harvesting robot** built on the ESP32. Drives a carriage horizontally via a drive motor, lifts/lowers a cutting head via a jack motor, with an auxiliary "fluffer" motor always running during operation. The firmware handles motor sequencing, safety interlocks, remote control, data logging, and a WiFi web interface.
-
-**Primary operational cycle:** Idle → Move Start Delay → Jack Up → Drive → Jack Down → Idle
+**Solar-powered autonomous livestock shelter mover** built on the ESP32. Drives horizontally via a motor, lifts/lowers a the structure via a jack motor, with an auxiliary "fluffer" motor always running while driving. The firmware handles motor sequencing, safety interlocks, remote control, data logging, and a WiFi web interface.
 
 ---
 
@@ -11,30 +9,40 @@
 **MCU:** ESP32 (Xtensa dual-core), ESP-IDF framework
 
 **GPIO Map:**
-| GPIO | Function |
-|------|----------|
-| 13 | Button interrupt (active low, pull-up) |
-| 14 | Drive encoder |
-| 16 | Jack position sensor |
-| 19 | Aux sensor 2 (reserved) |
-| 21/22 | I2C SDA/SCL (400kHz) → TCA9555 I/O expander |
-| 25 | 433MHz RF receiver (RMT input) |
-| 26 | Solar charger bulk enable (RTC GPIO) |
-| 27 | Safety sensor (active low) |
-| 32/33 | External 32.768 kHz RTC crystal (on PCB, not used — see RTC section) |
-| 36 (VP) | ADC: drive current sense |
-| 39 (VN) | ADC: battery voltage |
-| 34 | ADC: jack current sense |
-| 35 | ADC: aux current sense |
+| GPIO    | Function                                                                |
+|---------|-------------------------------------------------------------------------|
+| 13      | Button interrupt (active low, pull-up)                                  |
+| 14      | Jack position sensor                                                    |
+| 16      | Not Used                                                                |
+| 19      | Drive encoder                                                           |
+| 21/22   | I2C SDA/SCL (400kHz) → TCA9555 I/O expander                             |
+| 25      | 433MHz RF receiver (RMT input)                                          |
+| 26      | Solar charger bulk enable (RTC GPIO)                                    |
+| 27      | Safety sensor (active low)                                              |
+| 32/33   | External 32.768 kHz RTC crystal (on PCB, not used — see RTC section)    |
+| 34      | ADC: Current Sensor                                                     |
+| 35      | ADC: Battery Voltage                                                    |
+| 36 (VP) | ADC: Current Sensor VOC                                                 |
+| 39 (VN) | ADC: Current Sensor FAULT                                               |
 
 **TCA9555 (I2C at 0x21):**
-- Port 0 (input): 2 physical buttons + 2 additional inputs
-- Port 1 (output): 3× H-bridge relay pairs (DRIVE, JACK, AUX) + LEDs
+- Port 0 (input): 2 physical buttons + 2 additional inputs + LEDs
+- Port 1 (output): 3× H-bridge relay pairs (DRIVE, JACK, AUX)
 
-**Motor / Bridge Specs:**
-- `BRIDGE_DRIVE` — 100A max, ACS37220 sense chip (13.2 mV/A, inverted polarity)
-- `BRIDGE_JACK` — 30A max, ACS37042 sense chip (44 mV/A)
-- `BRIDGE_AUX` — 30A max, ACS37042 sense chip (44 mV/A)
+- P00: SW1 (has external 4.7kOhm pullup)
+- P01: SW2 (not populated on SC-B001-V5)
+- P02-P04: N/C
+- P05-P07: LEDs (through 100ohm resistors)
+- P10: Sensor enable (1=ENABLE, 0=DISABLE)
+- P11: KC3 (not connected)
+- P12: KB3 (not connected)
+- P13: KA3 (aux relay)
+- P14: KB2 (jack B)
+- P15: KA2 (jack A)
+- P16: KB1 (drive B)
+- P17: KA1 (drive A)
+
+All power goes through a ACS37220LEZATR-100B3 sense chip (13.2 mV/A)
 
 ---
 
@@ -42,11 +50,14 @@
 
 ```
 app_main()
-├── rtc_xtal_init()         Button GPIO setup
 ├── i2c_init()              TCA9555 init (relays off, LEDs off)
+├── rtc_xtal_init()         Button GPIO setup
+├── boot_reset_reason       Check boot reason for factory reset
 ├── adc_init()              ADC1 calibration (12dB attenuation, line-fit)
 ├── storage_init()          Flash params
 ├── log_init()              Circular log buffer
+├── adc_post()
+├── storage_post()
 ├── solar_run_fsm()         (called in main loop too)
 ├── uart_init()             Serial JSON API task
 ├── sensors_init()          GPIO ISR setup for sensors/encoders
@@ -56,45 +67,50 @@ app_main()
 └── webserver_init()        WiFi softAP + HTTP + mDNS + DNS
 
 Main loop (50ms):
+    soft-idle check
+    button hold-to-reboot
+    triple-tap detection
+    alarm detection
+    periodic send_bat_log
     i2c_poll_buttons()
     fsm_request() based on button events
     solar_run_fsm()
     drive_leds() status animation
     rtc_check_shutdown_timer() → soft idle on inactivity (180s)
+    esp_task_wdt_reset()
 ```
 
 **FreeRTOS Tasks:**
-| Task | Created by | Priority | Tick | Purpose |
-|------|-----------|----------|------|---------|
-| `app_main` (main loop) | system | 1 (default) | 50ms | Button polling, LED animation, solar FSM, shutdown timer |
-| `control_task` | `fsm_init()` | 10 | 20ms | FSM state machine, relay control, ADC current monitoring, e-fuse |
-| UART task | `uart_init()` | default | event-driven | Serial JSON command processing |
-| RF 433 task | `rf_433_init()` | default | event-driven | RMT receive + keycode matching |
-| BT HID task | `bt_hid_init()` | default | event-driven | BLE HID host scanning + button mapping |
-| httpd workers | `webserver_init()` | default | event-driven | HTTP request handling (multiple workers spawned by esp_http_server) |
+| Task                      | Created by         | Priority      | Tick           | Purpose                                                              |
+|---------------------------|--------------------|---------------|----------------|----------------------------------------------------------------------|
+| `app_main` (main loop)    | system             | 1 (default)   | 50ms           | Button polling, LED animation, solar FSM, shutdown timer             |
+| `control_task`            | `fsm_init()`       | 10            | 20ms           | FSM state machine, relay control, ADC current monitoring, e-fuse     |
+| UART task                 | `uart_init()`      | default       | event-driven   | Serial JSON command processing                                       |
+| RF 433 task               | `rf_433_init()`    | default       | event-driven   | RMT receive + keycode matching                                       |
+| BT HID task               | `bt_hid_init()`    | default       | event-driven   | BLE HID host scanning + button mapping                               |
+| httpd workers             | `webserver_init()` | default       | event-driven   | HTTP request handling (multiple workers spawned by esp_http_server)  |
 
 ---
 
 ## Key Files
 
-| File | Purpose |
-|------|---------|
-| `main.c` | Entry point, 50ms main loop, factory reset, LED animation |
-| `control_fsm.c/h` | State machine, relay control, current monitoring, calibration |
-| `power_mgmt.c/h` | ADC reading, e-fuse thermal algorithm, battery voltage |
-| `sensors.c/h` | GPIO ISR-based sensor debouncing, encoder counters |
-| `i2c.c/h` | TCA9555 relay/LED/button control |
-| `storage.c/h` | 48-param NVM table + circular binary log buffer |
-| `comms.c/h` | Unified GET/POST JSON API (shared by HTTP and UART) |
-| `webserver.c/h` | WiFi softAP, HTTP server, embedded gzip webpage |
-| `uart_comms.c/h` | Serial JSON interface (115200 8N1) |
-| `rf_433.c/h` | 433MHz OOK receiver, keycode learn/match |
-| `bt_hid.c/h` | BLE HID host, media remote button mapping |
-| `rtc.c/h` | Unix time, harvest alarms, soft idle, inactivity timer |
-| `solar.c/h` | Simple FLOAT/BULK solar charge state machine |
-| `sc_err.h` | Error code definitions |
-| `log_test.c/h` | Flash log unit tests |
-| `hard_ui.c` | Legacy LCD code (unused/obsolete) |
+| File                 | Purpose                                                              |
+|----------------------|----------------------------------------------------------------------|
+| `main.c`             | Entry point, 50ms main loop, factory reset, LED animation            |
+| `control_fsm.c/h`    | State machine, relay control, current monitoring, calibration        |
+| `power_mgmt.c/h`     | ADC reading, e-fuse thermal algorithm, battery voltage               |
+| `sensors.c/h`        | GPIO ISR-based sensor debouncing, encoder counters                   |
+| `i2c.c/h`            | TCA9555 relay/LED/button control                                     |
+| `storage.c/h`        | NVM table + circular binary log buffer                      |
+| `comms.c/h`          | Unified GET/POST JSON API (shared by HTTP and UART)                  |
+| `webserver.c/h`      | WiFi softAP, HTTP server, embedded gzip webpage                      |
+| `uart_comms.c/h`     | Serial JSON interface (115200 8N1)                                   |
+| `rf_433.c/h`         | 433MHz OOK receiver, keycode learn/match                             |
+| `bt_hid.c/h`         | BLE HID host, media remote button mapping                            |
+| `rtc.c/h`            | Unix time, harvest alarms, soft idle, inactivity timer               |
+| `solar.c/h`          | Simple FLOAT/BULK solar charge state machine                         |
+| `sc_err.h`           | Error code definitions                                               |
+| `log_test.c/h`       | Flash log unit tests                                                 |
 
 ---
 
@@ -106,6 +122,7 @@ STATE_MOVE_START_DELAY      (1s)
 STATE_JACK_UP_START         (detect current spike → jack engaged)
 STATE_JACK_UP               (continue until timer/e-fuse)
 STATE_DRIVE_START_DELAY     (1s)
+STATE_DRIVE_FLUFF_START
 STATE_DRIVE                 (encoder-based distance control)
 STATE_DRIVE_END_DELAY       (1s)
 STATE_JACK_DOWN             (reverse until e-fuse/sensor)
@@ -114,8 +131,8 @@ STATE_JACK_DOWN             (reverse until e-fuse/sensor)
 STATE_UNDO_JACK_START       (emergency: reverse jack, run until e-fuse/sensor)
 → back to STATE_IDLE
 
-CAL_JACK_DELAY / CAL_JACK_MOVE          (jack calibration sequence)
-CAL_DRIVE_DELAY / CAL_DRIVE_MOVE        (drive calibration sequence)
+STATE_CALIBRATE_JACK_DELAY  / STATE_CALIBRATE_JACK_MOVE   (jack calibration sequence)
+STATE_CALIBRATE_DRIVE_DELAY / STATE_CALIBRATE_DRIVE_MOVE  (drive calibration sequence)
 ```
 
 **Guards before START:**
@@ -130,7 +147,7 @@ CAL_DRIVE_DELAY / CAL_DRIVE_MOVE        (drive calibration sequence)
 3. `sensors_check()` — drain ISR queue, update counters/debounce
 4. State machine transitions (timer + sensor + efuse checks)
 5. `drive_relays()` — write relay output from current state
-6. `send_fsm_log()` — 39-byte timestamped entry to flash
+6. `send_fsm_log()` — timestamped entry to flash
 
 ---
 
@@ -166,13 +183,13 @@ Safety break → immediate `STATE_UNDO_JACK_START`.
 - HTTP port 80
 
 ### HTTP API (port 80)
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | Embedded gzip HTML webpage |
-| `/get` | GET | JSON system status |
-| `/post` | POST | JSON commands + parameter updates |
-| `/log` | GET | Binary log download (4B JSON len + JSON + 8B offsets + log data) |
-| `/ota` | POST | Firmware update upload |
+| Endpoint   | Method | Description                                                          |
+|------------|--------|----------------------------------------------------------------------|
+| `/`        | GET    | Embedded gzip HTML webpage                                           |
+| `/get`     | GET    | JSON system status                                                   |
+| `/post`    | POST   | JSON commands + parameter updates                                    |
+| `/log`     | ANY    | Binary log download (4B JSON len + JSON + 8B offsets + log data)     |
+| `/ota`     | POST   | Firmware update upload                                               |
 
 ### UART (115200 8N1)
 - `GET` → same as HTTP GET /get
@@ -201,41 +218,33 @@ Safety break → immediate `STATE_UNDO_JACK_START`.
 
 **Flash partitions (8MB flash):**
 
-| Partition | Offset | Size | Purpose |
-|-----------|--------|------|---------|
-| post_test | 0x310000 | 4K | Power-on self-test scratch sector |
-| params | 0x311000 | 16K | CRC32-protected parameter storage (48 params) |
-| log | 0x315000 | ~4.9MB | Circular binary log buffer (head/tail tracked) |
+| Partition   | Offset    | Size      | Purpose                                                        |
+|-------------|-----------|-----------|----------------------------------------------------------------|
+| nvs         | 0x9000    | 16K       | WiFi/BT config, board revision, RTC time backup                |
+| otadata     | 0xD000    | 8K        | OTA boot selection                                             |
+| phy_init    | 0xF000    | 4K        | RF calibration data                                            |
+| ota_0       | 0x10000   | 1984K     | Factory / primary app slot                                     |
+| ota_1       | 0x200000  | 1984K     | OTA update slot                                                |
+| post_test   | 0x3F0000  | 4K        | Power-on self-test scratch sector                              |
+| params      | 0x3F1000  | 32K       | CRC32-protected parameter storage (49 params)                  |
+| log         | 0x400000  | 4096K     | Circular binary log buffer (head/tail tracked)                 |
 
-Also includes NVS partition (0x9000, 16K) for WiFi/BT config, board revision, and RTC time backup.
-
-**Log entry format (39 bytes typical):**
+**Log entry format (25 bytes typical):**
 ```
-[0:8]   Timestamp ms (u64 BE)
-[8:12]  Battery voltage (f32)
-[12:16] Drive current (f32)
-[16:20] Jack current (f32)
-[20:24] Aux current (f32)
-[24:26] Drive encoder count (i16)
-[26]    Sensor states (packed)
-[27:31] Drive heat (f32)
-[31:35] Jack heat (f32)
-[35:39] Aux heat (f32)
+[0:8]   ts_ms (u64)
+[8:12]  bat_V (f32)
+[12:16] current_A (f32)   — combined, not per-bridge
+[16:18] counter (i16)
+[18:19] sensors (u8)
+[19:23] heat (f32)        — max across bridges
+[23:25] i2c_out (u16)
 ```
-
-**Key Parameters:**
-- Motion: `DRIVE_DIST`, `JACK_DIST`, `DRIVE_KT`, `JACK_KT`, `DRIVE_KE`
-- E-fuse: `EFUSE_INOM_1/2/3`, `EFUSE_HEAT_THRESH`, `EFUSE_KINST`, `EFUSE_TCOOL`
-- Safety: `SAFETY_BREAK_US`, `SAFETY_MAKE_US`, `LOW_PROTECTION_V`
-- RF: `KEYCODE_0` … `KEYCODE_7`
-- WiFi: `WIFI_SSID`, `WIFI_PASS`, `WIFI_CHANNEL`
-- Schedule: `NUM_MOVES`, `MOVE_START`, `MOVE_END` (seconds-since-midnight)
 
 ---
 
 ## RTC & Timekeeping
 
-**Time source:** `esp_timer` (40 MHz APB crystal, ~20 ppm accuracy). The external 32.768 kHz crystal on GPIO32/33 is present on the PCB but **not used** — deep sleep is disabled (soft idle instead), so RTC slow clock accuracy is irrelevant. The RTC slow clock uses the default internal RC oscillator.
+**Time source:** `esp_timer` (40 MHz APB crystal, ~20 ppm accuracy). The external 32.768 kHz crystal on GPIO32/33 is present on the PCB but **not used** — deep sleep is not used normally (soft idle instead), so RTC slow clock accuracy is irrelevant. The RTC slow clock uses the default internal RC oscillator.
 
 **`rtc_xtal_init()` in `rtc.c`:** Configures the button GPIO (GPIO13); no crystal bootstrap or sleep wakeup sources.
 
@@ -283,23 +292,23 @@ P05, P06, P07. Read bottom → top when checking error codes:
 A pattern written as `001` (LSB first) means **only the bottom LED is lit**,
 `100` means **only the top LED is lit**, and `111` means all three.
 
-| State | Pattern | Timing |
-|-------|---------|--------|
-| Idle | LED1 blink | 0.5Hz (1s on / 1s off) |
-| Error | Rapid all-blink → error code hold | 5Hz for 1s, then code for 2s (3s cycle) |
-| Moving / delays | Waterfall 001→011→111→110→100→000 | ~1 cycle/s (167ms per step) |
-| Calibrating | All LEDs flash | 1Hz (500ms on / 500ms off) |
-| Undo | All LEDs solid on | Continuous |
-| Booting | LED1 solid | Until init complete |
+| State             | Pattern                                      | Timing                                    |
+|-------------------|----------------------------------------------|-------------------------------------------|
+| Idle              | LED1 blink                                   | 0.5Hz (1s on / 1s off)                    |
+| Error             | Rapid all-blink → error code hold            | 5Hz for 1s, then code for 2s (3s cycle)   |
+| Moving / delays   | Waterfall 001→011→111→110→100→000            | ~1 cycle/s (167ms per step)               |
+| Calibrating       | All LEDs flash                               | 1Hz (500ms on / 500ms off)                |
+| Undo              | All LEDs solid on                            | Continuous                                |
+| Booting           | LED1 solid                                   | Until init complete                       |
 
 **Error code bits (during 2s hold phase):**
 
-| LED Pattern (bottom→top) | Meaning |
-|--------------------------|---------|
-| 001 — only bottom (P05) lit   | Efuse tripped (any bridge) or low battery |
-| 010 — only middle (P06) lit   | RTC/clock not set |
-| 100 — only top (P07) lit      | Safety sensor break or leash limit hit |
-| 111 — all three lit           | Unknown FSM error (fallback) |
+| LED Pattern (bottom→top) | Meaning                                                |
+|--------------------------|--------------------------------------------------------|
+| 001 — only bottom (P05) lit | Efuse tripped (any bridge) or low battery           |
+| 010 — only middle (P06) lit | RTC/clock not set                                   |
+| 100 — only top (P07) lit    | Safety sensor break or leash limit hit              |
+| 111 — all three lit         | Unknown FSM error (fallback)                        |
 
 Error codes are also shown on the web interface status field with individual flag names.
 
@@ -313,7 +322,7 @@ Error codes are also shown on the web interface status field with individual fla
 
 ## Power Management
 
-- **Battery voltage:** GPIO39, divider → `V = raw × V_SENS_K + V_SENS_OFFSET` (defaults: K=0.00766̄, offset=0.4)
+- **Battery voltage:** GPIO35, thru divider → `V = raw × V_SENS_K + V_SENS_OFFSET` (defaults: K=0.00766̄, offset=0.4)
 - **Solar charger:** GPIO26 (RTC hold) — FLOAT/BULK FSM, bulk for 20s when V < 5V for 5s
 - **Inactivity shutdown:** 180s → **soft idle** (WiFi/BT off, LEDs off — not deep sleep). Button press exits soft idle.
 - **RTC_DATA_ATTR:** Sync timestamps, alarm times, charge state — survive software resets (panics, WDT)
@@ -341,4 +350,3 @@ SC_ERR_LOW_BATTERY   = 0x230  // Voltage below threshold
 - **IDF requires:** `driver`, `esp_http_server`, `esp_netif`, `lwip`, `json`, `esp_timer`, `esp_adc`, `app_update`, `esp_wifi`, `nvs_flash`, `mdns`, `bt`, `esp_hid`
 - **Webpage:** `webpage.html` → `webpage_compile.py` → `webpage_gzip.h` (embedded gzip binary). **Must re-run `webpage_compile.py` after any HTML edit before building.**
 - **Version:** `version.h.in` filled by CMake from git tags → `FIRMWARE_VERSION`, `BUILD_DATE`
-- **Factory reset:** Hold GPIO13 button on cold boot → full parameter + log erase

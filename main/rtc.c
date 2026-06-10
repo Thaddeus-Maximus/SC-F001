@@ -50,7 +50,7 @@ static uint64_t rtc_hw_time_us(void)
 uint64_t last_activity_tick = 0;
 
 // RTC_DATA_ATTR keeps these in RTC memory; persists across software resets (panics, WDT).
-// AUDIT: no init path zeroes these — rtc_restore_time() recovers via RTC HW counter,
+// no init path zeroes these — rtc_restore_time() recovers via RTC HW counter,
 // rtc_set_s() is only called explicitly by the user. Verified 2026-03-12.
 RTC_DATA_ATTR int64_t  next_alarm_time_s = -1;
 RTC_DATA_ATTR bool     rtc_set           = false;
@@ -308,62 +308,50 @@ void adjust_rtc_min(char *key, int8_t dir)
 
 
 void rtc_schedule_next_alarm(void) {
-    int64_t start_sec = get_param_value_t(PARAM_MOVE_START).u32;
-    int64_t end_sec   = get_param_value_t(PARAM_MOVE_END).u32;
-    int16_t  num      = get_param_value_t(PARAM_NUM_MOVES).i16;
+    /* Walk MOVE_TIME_0..MOVE_TIME_(NUM_MOVE_TIMES-1). Each slot is either
+     * -1 (disabled) or a 0..86399 seconds-into-day offset. For each enabled
+     * slot we compute its absolute Unix time for today and tomorrow, keep
+     * whichever is the soonest still-future timestamp, and take the minimum
+     * across all enabled slots. If no slot is enabled, the device has no
+     * schedule and next_alarm_time_s is set to -1 (web UI renders DISABLED).
+     *
+     * The slots are sorted by commit_params() so the first non-negative is
+     * the smallest seconds-into-day, but we DON'T short-circuit on the first
+     * future hit — slot[0]'s "today" can already be past while a later slot
+     * (smaller offset that wrapped) could be the soonest. Walking all 12 is
+     * cheap (~1µs) and removes that subtlety entirely. */
 
-    if (num <= 0) {
+    if (!rtc_is_set()) {
+        /* Without a valid wall clock, "seconds into day" is meaningless. */
         next_alarm_time_s = -1;
         return;
     }
 
-    // Current time info
-    int64_t s_into_day = rtc_get_s_in_day();
-    time_t current_time = rtc_get_s();
-    time_t today_midnight = current_time - s_into_day;
+    int64_t s_into_day    = rtc_get_s_in_day();
+    time_t  current_time  = rtc_get_s();
+    time_t  today_midnight = current_time - s_into_day;
 
-    bool overnight = (start_sec > end_sec);
-    int64_t total_duration = overnight ? (86400 - start_sec) + end_sec : end_sec - start_sec;
+    time_t best = -1;
+    for (int i = 0; i < NUM_MOVE_TIMES; i++) {
+        int32_t slot = get_param_value_t(PARAM_MOVE_TIME_0 + i).i32;
+        if (slot < 0) continue;  // disabled
 
-    // Determine period start
-    time_t period_start;
-    if (overnight && s_into_day < end_sec) {
-        // Current time is within overnight period → started yesterday
-        period_start = (today_midnight - 86400) + start_sec;
+        /* Candidate is today's occurrence if still in the future, else
+         * tomorrow's occurrence. >= keeps a "fire exactly at the matching
+         * second" semantic without arming twice. */
+        time_t candidate = today_midnight + slot;
+        if (candidate <= current_time) candidate += 86400;
+
+        if (best < 0 || candidate < best) best = candidate;
+    }
+
+    next_alarm_time_s = best;
+
+    if (best > 0) {
+        ESP_LOGI("ALARM", "SET FOR %lld (in %lld s)", (long long)best, (long long)(best - current_time));
     } else {
-        // Normal or after end → starts today
-        period_start = today_midnight + start_sec;
+        ESP_LOGI("ALARM", "No enabled MOVE_TIME_* slots — schedule disabled");
     }
-
-    //time_t period_end = period_start + total_duration;
-
-    if (num == 1) {
-        // Single alarm: at period start, if passed, next day
-        next_alarm_time_s = (current_time < period_start) ? period_start : period_start + 86400;
-    	ESP_LOGI("ALARM", "SET FOR %lld (in %lld s)", next_alarm_time_s, next_alarm_time_s - current_time);
-        return;
-    }
-
-    // Find next alarm
-    int64_t spacing = total_duration / (num - 1);
-    time_t next_alarm = -1;
-
-    for (int16_t i = 0; i < num; i++) {
-        time_t alarm_time = period_start + spacing * i;
-        if (alarm_time > current_time) {
-            next_alarm = alarm_time;
-            break;
-        }
-    }
-
-    // If all passed, first of next period
-    if (next_alarm == -1) {
-        next_alarm = period_start + 86400;
-    }
-
-    next_alarm_time_s = next_alarm;
-
-    ESP_LOGI("ALARM", "SET FOR %lld (in %lld s)", next_alarm_time_s, next_alarm_time_s - current_time);
 }
 
 int64_t rtc_get_next_alarm_s() {

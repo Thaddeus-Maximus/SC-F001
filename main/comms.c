@@ -15,6 +15,32 @@
 
 static const char *TAG = "COMMS";
 
+/* Decode a single JSON value into the parameter table. Returns true on
+ * success (param updated), false if the JSON node type doesn't match the
+ * parameter type (caller bumps params_failed). All numeric integer types
+ * funnel through valueint, floats through valuedouble — matches what
+ * cJSON_AddNumberToObject produced on the way out. */
+static bool set_param_from_json(param_idx_t idx, cJSON *value_json) {
+    if (get_param_type(idx) == PARAM_TYPE_str) {
+        if (!cJSON_IsString(value_json)) return false;
+        set_param_string(idx, value_json->valuestring);
+        return true;
+    }
+    if (!cJSON_IsNumber(value_json)) return false;
+    param_value_t v = {0};
+    switch (get_param_type(idx)) {
+        case PARAM_TYPE_u16: v.u16 = (uint16_t)value_json->valueint;    break;
+        case PARAM_TYPE_i16: v.i16 = (int16_t)value_json->valueint;     break;
+        case PARAM_TYPE_u32: v.u32 = (uint32_t)value_json->valueint;    break;
+        case PARAM_TYPE_i32: v.i32 = (int32_t)value_json->valueint;     break;
+        case PARAM_TYPE_f32: v.f32 = (float)value_json->valuedouble;    break;
+        case PARAM_TYPE_f64: v.f64 = value_json->valuedouble;           break;
+        default: return false;
+    }
+    set_param_value_t(idx, v);
+    return true;
+}
+
 /**
  * Build a JSON object containing complete system status
  */
@@ -44,7 +70,7 @@ cJSON* comms_handle_get(void) {
 
     // Structured error flags (match LED error code bits)
     cJSON *errors = cJSON_CreateObject();
-    bool efuse_trip = efuse_get(BRIDGE_AUX) || efuse_get(BRIDGE_JACK) || efuse_get(BRIDGE_DRIVE);
+    bool efuse_trip = any_efuse_tripped();
     float bat_v = get_battery_V();
     float low_v = get_param_value_t(PARAM_LOW_PROTECTION_V).f32;
     bool low_bat = (bat_v > 0 && bat_v < low_v);
@@ -89,12 +115,17 @@ cJSON* comms_handle_get(void) {
 
     if (leash_hit)
         cJSON_AddItemToArray(msg_array, cJSON_CreateString("DISTANCE LIMIT HIT"));
-    if (efuse_get(BRIDGE_AUX))
-        cJSON_AddItemToArray(msg_array, cJSON_CreateString("AUX EFUSE TRIP"));
-    if (efuse_get(BRIDGE_JACK))
-        cJSON_AddItemToArray(msg_array, cJSON_CreateString("JACK EFUSE TRIP"));
-    if (efuse_get(BRIDGE_DRIVE))
-        cJSON_AddItemToArray(msg_array, cJSON_CreateString("DRIVE EFUSE TRIP"));
+    // Per-bridge efuse messages. Preserve the original AUX → JACK → DRIVE
+    // order via an explicit walk; bridge_t enum order is the opposite.
+    static const bridge_t efuse_msg_order[] = { BRIDGE_AUX, BRIDGE_JACK, BRIDGE_DRIVE };
+    for (size_t i = 0; i < sizeof(efuse_msg_order)/sizeof(efuse_msg_order[0]); i++) {
+        bridge_t b = efuse_msg_order[i];
+        if (efuse_get(b)) {
+            char msg[32];
+            snprintf(msg, sizeof(msg), "%s EFUSE TRIP", bridge_names[b]);
+            cJSON_AddItemToArray(msg_array, cJSON_CreateString(msg));
+        }
+    }
     if (low_bat)
         cJSON_AddItemToArray(msg_array, cJSON_CreateString("LOW BATTERY"));
     if (!rtc_is_set())
@@ -112,36 +143,15 @@ cJSON* comms_handle_get(void) {
         return NULL;
     }
     
-    // Add all parameters
+    // Add all parameters. Numeric params funnel through param_to_double() —
+    // cJSON stores all numbers as double internally, so the type-specific
+    // accessor was just feeding the same final value.
     for (param_idx_t i = 0; i < NUM_PARAMS; i++) {
         const char *name = get_param_name(i);
-        param_value_t value = get_param_value_t(i);
-        
-        switch (get_param_type(i)) {
-            case PARAM_TYPE_f32:
-                cJSON_AddNumberToObject(parameters, name, value.f32);
-                break;
-            case PARAM_TYPE_f64:
-                cJSON_AddNumberToObject(parameters, name, value.f64);
-                break;
-            case PARAM_TYPE_i32:
-                cJSON_AddNumberToObject(parameters, name, value.i32);
-                break;
-            case PARAM_TYPE_i16:
-                cJSON_AddNumberToObject(parameters, name, value.i16);
-                break;
-            case PARAM_TYPE_u32:
-                cJSON_AddNumberToObject(parameters, name, value.u32);
-                break;
-            case PARAM_TYPE_u16:
-                cJSON_AddNumberToObject(parameters, name, value.u16);
-                break;
-            case PARAM_TYPE_str:
-                cJSON_AddStringToObject(parameters, name, get_param_string(i));
-                break;
-            default:
-                cJSON_AddNullToObject(parameters, name);
-                break;
+        if (get_param_type(i) == PARAM_TYPE_str) {
+            cJSON_AddStringToObject(parameters, name, get_param_string(i));
+        } else {
+            cJSON_AddNumberToObject(parameters, name, param_to_double(i));
         }
     }
     
@@ -376,76 +386,12 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
             }
             
             cJSON *value_json = cJSON_GetObjectItem(parameters, key);
-            
-            // Set parameter value based on type
-            switch (get_param_type(param_idx)) {
-                case PARAM_TYPE_f32:
-                    if (cJSON_IsNumber(value_json)) {
-                        set_param_value_t(param_idx, (param_value_t){.f32 = value_json->valuedouble});
-                        params_updated++;
-                    } else {
-                        ESP_LOGW(TAG, "Type mismatch for parameter: %s", key);
-                        params_failed++;
-                    }
-                    break;
-                case PARAM_TYPE_f64:
-                    if (cJSON_IsNumber(value_json)) {
-                        set_param_value_t(param_idx, (param_value_t){.f64 = value_json->valuedouble});
-                        params_updated++;
-                    } else {
-                        ESP_LOGW(TAG, "Type mismatch for parameter: %s", key);
-                        params_failed++;
-                    }
-                    break;
-                case PARAM_TYPE_i32:
-                    if (cJSON_IsNumber(value_json)) {
-                        set_param_value_t(param_idx, (param_value_t){.i32 = value_json->valueint});
-                        params_updated++;
-                    } else {
-                        ESP_LOGW(TAG, "Type mismatch for parameter: %s", key);
-                        params_failed++;
-                    }
-                    break;
-                case PARAM_TYPE_i16:
-                    if (cJSON_IsNumber(value_json)) {
-                        set_param_value_t(param_idx, (param_value_t){.i16 = value_json->valueint});
-                        params_updated++;
-                    } else {
-                        ESP_LOGW(TAG, "Type mismatch for parameter: %s", key);
-                        params_failed++;
-                    }
-                    break;
-                case PARAM_TYPE_u32:
-                    if (cJSON_IsNumber(value_json)) {
-                        set_param_value_t(param_idx, (param_value_t){.u32 = value_json->valueint});
-                        params_updated++;
-                    } else {
-                        ESP_LOGW(TAG, "Type mismatch for parameter: %s", key);
-                        params_failed++;
-                    }
-                    break;
-                case PARAM_TYPE_u16:
-                    if (cJSON_IsNumber(value_json)) {
-                        set_param_value_t(param_idx, (param_value_t){.u16 = value_json->valueint});
-                        params_updated++;
-                    } else {
-                        ESP_LOGW(TAG, "Type mismatch for parameter: %s", key);
-                        params_failed++;
-                    }
-                    break;
-                case PARAM_TYPE_str:
-                    if (cJSON_IsString(value_json)) {
-                        set_param_string(param_idx, value_json->valuestring);
-                        params_updated++;
-                    } else {
-                        ESP_LOGW(TAG, "Type mismatch for parameter: %s", key);
-                        params_failed++;
-                    }
-                    break;
-                default:
-                    ESP_LOGW(TAG, "Unknown type for parameter: %s", key);
-                    params_failed++;
-                    break;
+
+            if (set_param_from_json(param_idx, value_json)) {
+                params_updated++;
+            } else {
+                ESP_LOGW(TAG, "Type mismatch for parameter: %s", key);
+                params_failed++;
             }
         }
         

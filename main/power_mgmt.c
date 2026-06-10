@@ -433,13 +433,13 @@ esp_err_t process_bridge_current(bridge_t bridge) {
 	int adc_raw = 0;
     int voltage_mv = 0;
 
-    adc_channel_t pin;
-    switch(bridge) {
-        case BRIDGE_DRIVE: pin = PIN_V_ISENS1; break;
-        case BRIDGE_JACK:  pin = PIN_V_ISENS2; break;
-        case BRIDGE_AUX:   pin = PIN_V_ISENS3; break;
-        default: return ESP_ERR_INVALID_ARG;
-    }
+    static const adc_channel_t bridge_isens_pins[N_BRIDGES] = {
+        [BRIDGE_DRIVE] = PIN_V_ISENS1,
+        [BRIDGE_JACK]  = PIN_V_ISENS2,
+        [BRIDGE_AUX]   = PIN_V_ISENS3,
+    };
+    if (bridge >= N_BRIDGES) return ESP_ERR_INVALID_ARG;
+    adc_channel_t pin = bridge_isens_pins[bridge];
 
     if (adc_oneshot_read(adc1_handle, pin, &adc_raw) != ESP_OK) {
         return 0;
@@ -528,19 +528,14 @@ esp_err_t process_bridge_current(bridge_t bridge) {
 	// PARAM_EFUSE_TAUCOOL : speed of cooldown for heating (units are 1/s; bigger = faster cooldown)
 	
 	// Monitor E-fusing
-	float I_nominal = NAN;
-	switch(bridge) {
-		case BRIDGE_DRIVE:
-			I_nominal = get_param_value_t(PARAM_EFUSE_INOM_1).f32;
-			break;
-		case BRIDGE_JACK:
-			I_nominal = get_param_value_t(PARAM_EFUSE_INOM_2).f32;
-			break;
-		case BRIDGE_AUX:
-			I_nominal = get_param_value_t(PARAM_EFUSE_INOM_3).f32;
-			break;
-        default: break;
-    }
+	static const param_idx_t bridge_inom[N_BRIDGES] = {
+		[BRIDGE_DRIVE] = PARAM_EFUSE_INOM_1,
+		[BRIDGE_JACK]  = PARAM_EFUSE_INOM_2,
+		[BRIDGE_AUX]   = PARAM_EFUSE_INOM_3,
+	};
+	float I_nominal = (bridge < N_BRIDGES)
+		? get_param_value_t(bridge_inom[bridge]).f32
+		: NAN;
 
         // Normalize the current as a fraction of rated current
     float I_norm = fabsf(channel->current / I_nominal);
@@ -675,4 +670,26 @@ void efuse_set(bridge_t bridge, efuse_trip_t state)
     if (bridge >= N_BRIDGES) return;
     isens[bridge].tripped = state;
     isens[bridge].trip_time = fsm_now;
+}
+
+const char *const bridge_names[N_BRIDGES] = {
+    [BRIDGE_DRIVE] = "DRIVE",
+    [BRIDGE_JACK]  = "JACK",
+    [BRIDGE_AUX]   = "AUX",
+};
+
+bool any_efuse_tripped(void) {
+    for (bridge_t b = 0; b < N_BRIDGES; b++) {
+        if (efuse_get(b)) return true;
+    }
+    return false;
+}
+
+float max_efuse_heat(void) {
+    float m = efuse_get_heat(0);
+    for (bridge_t b = 1; b < N_BRIDGES; b++) {
+        float h = efuse_get_heat(b);
+        if (h > m) m = h;
+    }
+    return m;
 }

@@ -112,6 +112,10 @@ int8_t fsm_get_current_progress(int8_t remainder);
 fsm_state_t fsm_get_state();
 bool fsm_is_idle(void);
 
+/* Human-readable name for a fsm_state_t value — used by logs and any web
+ * UI surface that wants to render a friendly state name. Returns a literal. */
+const char *fsm_state_str(fsm_state_t s);
+
 int8_t get_bridge_state(bridge_t bridge);
 
 #endif /* MAIN_CONTROL_FSM_H_ */

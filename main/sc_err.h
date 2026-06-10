@@ -22,5 +22,12 @@
 #define SC_ERR_RTC_NOT_SET      0x220
 #define SC_ERR_LOW_BATTERY      0x230
 
+#include "esp_err.h"
+
+/* Human-readable name for an SC_ERR_* code (or ESP_OK). Used by FSM log
+ * messages and the web UI so error strings live in one place. Returns a
+ * literal — no allocation, safe to use anywhere. */
+const char *sc_err_str(esp_err_t e);
+
 
 #endif /* MAIN_SC_ERR_H_ */

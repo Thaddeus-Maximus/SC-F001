@@ -33,7 +33,7 @@
 
 static QueueHandle_t fsm_cmd_queue = NULL;
 
-// AUDIT: fsm_init() does not zero these — they persist across panics/WDT resets.
+// fsm_init() does not zero these — they persist across panics/WDT resets.
 // Only cleared by explicit user action (fsm_clear_error, fsm_set_remaining_distance).
 RTC_DATA_ATTR esp_err_t fsm_error = ESP_OK;
 esp_err_t fsm_get_error() { return fsm_error; }
@@ -108,6 +108,71 @@ int64_t fsm_cal_t, fsm_cal_e;
 int64_t fsm_get_cal_t(){return fsm_cal_t;}
 int64_t fsm_get_cal_e(){return fsm_cal_e;}
 
+const char *sc_err_str(esp_err_t e) {
+    switch (e) {
+        case ESP_OK:              return "OK";
+        case SC_ERR_EFUSE_TRIP_1: return "EFUSE 1 TRIP";
+        case SC_ERR_EFUSE_TRIP_2: return "EFUSE 2 TRIP";
+        case SC_ERR_EFUSE_TRIP_3: return "EFUSE 3 TRIP";
+        case SC_ERR_SAFETY_TRIP:  return "SAFETY NOT SET";
+        case SC_ERR_LEASH_HIT:    return "NO REMAINING DISTANCE";
+        case SC_ERR_RTC_NOT_SET:  return "CLOCK NOT SET";
+        case SC_ERR_LOW_BATTERY:  return "INSUFFICIENT VOLTAGE";
+        default:                  return "UNKNOWN";
+    }
+}
+
+const char *fsm_state_str(fsm_state_t s) {
+    switch (s) {
+        case STATE_IDLE:                  return "IDLE";
+        case STATE_MOVE_START_DELAY:      return "MOVE_START_DELAY";
+        case STATE_JACK_UP_START:         return "JACK_UP_START";
+        case STATE_JACK_UP:               return "JACK_UP";
+        case STATE_DRIVE_START_DELAY:     return "DRIVE_START_DELAY";
+        case STATE_DRIVE_FLUFF_START:     return "DRIVE_FLUFF_START";
+        case STATE_DRIVE:                 return "DRIVE";
+        case STATE_DRIVE_END_DELAY:       return "DRIVE_END_DELAY";
+        case STATE_JACK_DOWN:             return "JACK_DOWN";
+        case STATE_UNDO_JACK_START:       return "UNDO_JACK_START";
+        case STATE_CALIBRATE_JACK_DELAY:  return "CALIBRATE_JACK_DELAY";
+        case STATE_CALIBRATE_JACK_MOVE:   return "CALIBRATE_JACK_MOVE";
+        case STATE_CALIBRATE_DRIVE_DELAY: return "CALIBRATE_DRIVE_DELAY";
+        case STATE_CALIBRATE_DRIVE_MOVE:  return "CALIBRATE_DRIVE_MOVE";
+        default:                          return "UNKNOWN";
+    }
+}
+
+/* Preconditions for accepting a START command. Returns ESP_OK if every gate
+ * passes, otherwise the SC_ERR_* code of the first failing gate. Caller is
+ * expected to assign the returned code into `fsm_error` and skip the start.
+ * Order matters: most-actionable error first (voltage → safety → efuses) so
+ * the operator sees the dominant fault when more than one is true. */
+static esp_err_t fsm_check_start_preconditions(void) {
+    esp_err_t code = ESP_OK;
+    if      (get_battery_V() < get_param_value_t(PARAM_LOW_PROTECTION_V).f32) code = SC_ERR_LOW_BATTERY;
+    else if (!get_is_safe())                                                  code = SC_ERR_SAFETY_TRIP;
+    else if (efuse_get(BRIDGE_DRIVE))                                         code = SC_ERR_EFUSE_TRIP_1;
+    else if (efuse_get(BRIDGE_JACK))                                          code = SC_ERR_EFUSE_TRIP_2;
+    else if (efuse_get(BRIDGE_AUX))                                           code = SC_ERR_EFUSE_TRIP_3;
+    if (code != ESP_OK) ESP_LOGI(TAG, "FAILED TO START; %s", sc_err_str(code));
+    return code;
+}
+
+/* Gate a calibrate-mode state transition: only accepts the transition from
+ * `expected` to `next`, optionally requiring battery above LOW_PROTECTION_V.
+ * Returns true if the transition was made; caller then does per-case work
+ * (set_timer / save cal data / reset sensor counter) that doesn't fit a
+ * uniform helper. Battery gate is on for PREP and START (we are about to
+ * energize a motor); off for END (no motor action). */
+static bool fsm_calibrate_transition(fsm_state_t expected, fsm_state_t next,
+                                     bool require_battery) {
+    if (current_state != expected) return false;
+    if (require_battery &&
+        get_battery_V() <= get_param_value_t(PARAM_LOW_PROTECTION_V).f32) return false;
+    current_state = next;
+    return true;
+}
+
 void fsm_request(fsm_cmd_t cmd)
 {
     // STOP always goes through (safety). All other commands are blocked during soft idle —
@@ -117,7 +182,6 @@ void fsm_request(fsm_cmd_t cmd)
     rtc_reset_shutdown_timer();  // any accepted command extends the wake period
     if (fsm_cmd_queue != NULL)
         xQueueSend(fsm_cmd_queue, &cmd, 0);  // safe from any context
-        // TODO: Make sure this is threadsafe
 }
 
 int8_t fsm_get_current_progress(int8_t denominator) {
@@ -188,9 +252,8 @@ esp_err_t send_fsm_log() {
     float be_voltage = get_battery_V();
     memcpy(&entry[8],  &be_voltage,  4);
 
-    float current_A = get_bridge_raw_A(BRIDGE_DRIVE)
-                    + get_bridge_raw_A(BRIDGE_JACK)
-                    + get_bridge_raw_A(BRIDGE_AUX);
+    float current_A = 0.0f;
+    for (bridge_t b = 0; b < N_BRIDGES; b++) current_A += get_bridge_raw_A(b);
     memcpy(&entry[12], &current_A, 4);
 
     int16_t be_counter = get_sensor_counter(SENSOR_DRIVE);
@@ -198,11 +261,7 @@ esp_err_t send_fsm_log() {
 
     entry[18] = pack_sensors();
 
-    float heat = efuse_get_heat(BRIDGE_DRIVE);
-    float h2 = efuse_get_heat(BRIDGE_JACK);
-    float h3 = efuse_get_heat(BRIDGE_AUX);
-    if (h2 > heat) heat = h2;
-    if (h3 > heat) heat = h3;
+    float heat = max_efuse_heat();
     memcpy(&entry[19], &heat, 4);
 
     uint16_t i2c_out = i2c_get_outputs();
@@ -254,7 +313,7 @@ void control_task(void *param) {
                 case FSM_CMD_START:
                 	// Check if we have remaining distance before starting
                 	if (remaining_distance <= 0.0f) {
-						ESP_LOGI(TAG, "FAILED TO START; NO REMAINING DISTANCE");
+						ESP_LOGI(TAG, "FAILED TO START; %s", sc_err_str(SC_ERR_LEASH_HIT));
                 		fsm_error = SC_ERR_LEASH_HIT;
                 		log = true;
                 		continue;
@@ -264,34 +323,16 @@ void control_task(void *param) {
                 case FSM_CMD_START_IGNORE_OVERTRAVEL:
                 	this_move_dist = get_param_value_t(PARAM_DRIVE_DIST).f32;
                 do_start:
-                    if (current_state == STATE_IDLE) {
-                    	
-                    	if (get_battery_V() < get_param_value_t(PARAM_LOW_PROTECTION_V).f32) {
-							ESP_LOGI(TAG, "FAILED TO START; INSUFFICIENT VOLTAGE");
-							fsm_error = SC_ERR_LOW_BATTERY;
+                	/* Silently drop START commands received in any non-idle state
+                	 * (e.g. duplicate request while already moving). Preconditions
+                	 * are checked only once we know the state is acceptable. */
+                	if (current_state != STATE_IDLE) break;
+                	{
+						esp_err_t guard = fsm_check_start_preconditions();
+						if (guard != ESP_OK) {
+							fsm_error = guard;
 							continue;
 						}
-                    	if (!get_is_safe()) {
-							ESP_LOGI(TAG, "FAILED TO START; SAFETY NOT SET");
-							fsm_error = SC_ERR_SAFETY_TRIP;
-							continue;
-						}
-                    	if (efuse_get(BRIDGE_DRIVE)) {
-							ESP_LOGI(TAG, "FAILED TO START; EFUSE 1 TRIP");
-							fsm_error = SC_ERR_EFUSE_TRIP_1;
-							continue;
-						}
-                    	if (efuse_get(BRIDGE_JACK)) {
-							ESP_LOGI(TAG, "FAILED TO START; EFUSE 2 TRIP");
-							fsm_error = SC_ERR_EFUSE_TRIP_2;
-							continue;
-						}
-                    	if (efuse_get(BRIDGE_AUX)) {
-							ESP_LOGI(TAG, "FAILED TO START; EFUSE 3 TRIP");
-							fsm_error = SC_ERR_EFUSE_TRIP_3;
-							continue;
-						}
-						
 						ESP_LOGI(TAG, "STARTING");
 						fsm_error = ESP_OK; // if everything is OK now, we're OK.
 						/* Zero jack timestamps so JACK_DOWN_TIME on this cycle
@@ -300,9 +341,9 @@ void control_task(void *param) {
 						jack_trans_us  = 0;
 						jack_finish_us = 0;
 						current_state = STATE_MOVE_START_DELAY;
-                		log = true;
+						log = true;
 						set_timer(TRANSITION_DELAY_US);
-                    }
+					}
                     break;
                 case FSM_CMD_STOP:
                     current_state = STATE_IDLE;
@@ -318,58 +359,54 @@ void control_task(void *param) {
                 	enabled = false;
                 	break;
                 	
+				/* Calibration sub-FSM: PREP arms (IDLE → DELAY), START energizes
+				 * the motor with a hard timeout (DELAY → MOVE), END records
+				 * the result and returns to idle (MOVE → IDLE). PREP/START
+				 * require battery; END doesn't (no motor action). */
                 case FSM_CMD_CALIBRATE_JACK_PREP:
 					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_PREP");
-					if (current_state == STATE_IDLE
-                    		&& get_battery_V() > get_param_value_t(PARAM_LOW_PROTECTION_V).f32) {
-						current_state = STATE_CALIBRATE_JACK_DELAY;
-                		log = true;
-					}
+					if (fsm_calibrate_transition(STATE_IDLE, STATE_CALIBRATE_JACK_DELAY, true))
+						log = true;
 					break;
-                	
+
 				case FSM_CMD_CALIBRATE_JACK_START:
 					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_START");
-					if (current_state == STATE_CALIBRATE_JACK_DELAY
-                    		&& get_battery_V() > get_param_value_t(PARAM_LOW_PROTECTION_V).f32) {
-						current_state = STATE_CALIBRATE_JACK_MOVE;
-                		log = true;
+					if (fsm_calibrate_transition(STATE_CALIBRATE_JACK_DELAY,
+					                             STATE_CALIBRATE_JACK_MOVE, true)) {
 						set_timer(CALIBRATE_JACK_MAX_TIME);
+						log = true;
 					}
 					break;
 				case FSM_CMD_CALIBRATE_JACK_END:
 					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_END");
-					if (current_state == STATE_CALIBRATE_JACK_MOVE) {
+					if (fsm_calibrate_transition(STATE_CALIBRATE_JACK_MOVE,
+					                             STATE_IDLE, false)) {
 						fsm_cal_t = fsm_now - timer_start;
-						current_state = STATE_IDLE;
-                		log = true;
+						log = true;
 					}
 					break;
                 case FSM_CMD_CALIBRATE_DRIVE_PREP:
 					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_PREP");
-					if (current_state == STATE_IDLE
-                    		&& get_battery_V() > get_param_value_t(PARAM_LOW_PROTECTION_V).f32) {
-						current_state = STATE_CALIBRATE_DRIVE_DELAY;
-                		log = true;
-					}
+					if (fsm_calibrate_transition(STATE_IDLE, STATE_CALIBRATE_DRIVE_DELAY, true))
+						log = true;
 					break;
-                	
+
 				case FSM_CMD_CALIBRATE_DRIVE_START:
 					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_START");
-					if (current_state == STATE_CALIBRATE_DRIVE_DELAY
-                    		&& get_battery_V() > get_param_value_t(PARAM_LOW_PROTECTION_V).f32) {
-						current_state = STATE_CALIBRATE_DRIVE_MOVE;
-                		log = true;
+					if (fsm_calibrate_transition(STATE_CALIBRATE_DRIVE_DELAY,
+					                             STATE_CALIBRATE_DRIVE_MOVE, true)) {
 						set_timer(CALIBRATE_DRIVE_MAX_TIME);
 						set_sensor_counter(SENSOR_DRIVE, 0);
+						log = true;
 					}
 					break;
 				case FSM_CMD_CALIBRATE_DRIVE_END:
 					ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_END");
-					if (current_state == STATE_CALIBRATE_DRIVE_MOVE) {
+					if (fsm_calibrate_transition(STATE_CALIBRATE_DRIVE_MOVE,
+					                             STATE_IDLE, false)) {
 						fsm_cal_t = fsm_now - timer_start;
 						fsm_cal_e = get_sensor_counter(SENSOR_DRIVE);
-						current_state = STATE_IDLE;
-                		log = true;
+						log = true;
 					}
 					break;
             }

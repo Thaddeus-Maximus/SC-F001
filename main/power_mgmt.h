@@ -26,6 +26,15 @@ efuse_trip_t efuse_get     (bridge_t bridge);    // Query if bridge is currently
 float        efuse_get_heat(bridge_t bridge);
 void efuse_set(bridge_t bridge, efuse_trip_t state);
 
+/* True if any of the N_BRIDGES bridges is currently tripped. */
+bool  any_efuse_tripped(void);
+
+/* Max heat across all bridges — used for telemetry logging. */
+float max_efuse_heat(void);
+
+/* Human name per bridge_t index ("DRIVE" / "JACK" / "AUX"). */
+extern const char *const bridge_names[N_BRIDGES];
+
 float get_bridge_A(bridge_t bridge);
 float get_bridge_raw_A(bridge_t bridge);
 float get_battery_V();

@@ -270,16 +270,19 @@
             <button id="now_btn" onclick="setTimeToNow()">Sync Time</button></td>
         </tr>
         <tr>
-            <td>Schedule Start</td>
-            <td><input type="time" id="UX_MOVE_START" onchange="changeSchedule(this)"/></td>
-        </tr>
-        <tr>
-            <td>Schedule End</td>
-            <td><input type="time" id="UX_MOVE_END" onchange="changeSchedule(this)"/></td>
-        </tr>
-        <tr>
-            <td># Moves/Day</td>
-            <td><input type="number" min="0" id="UX_NUM_MOVES" onchange="changeSchedule(this)"/></td>
+            <td>Schedule</td>
+            <td>
+                <!-- Visible rows are rendered by renderSchedule() from the
+                     12 hidden PARAM_MOVE_TIME_N inputs below. -->
+                <div id="schedule_rows"></div>
+                <button id="schedule_add_btn" onclick="addScheduleSlot()">+ Add move</button>
+                <!-- Hidden inputs hold the seconds-of-day value for each of
+                     the 12 schedule slots (-1 = disabled). They participate
+                     in the regular PARAM_* save flow: when the user edits
+                     a row we mark the corresponding hidden input .changed,
+                     and commitParams() picks it up like any other param. -->
+                <div style="display:none" id="schedule_hidden_inputs"></div>
+            </td>
         </tr>
         <tr>
             <td>Next Move At</td>
@@ -839,7 +842,140 @@
             markChanged(input);
         }
         
-        const scheduleInputs = ['MOVE_START', 'MOVE_END', 'NUM_MOVES', 'DRIVE_DIST', 'JACK_DIST'];
+        const scheduleInputs = ['DRIVE_DIST', 'JACK_DIST'];
+
+        // ============================================================
+        // Tabular schedule (up to 12 daily move times)
+        // ============================================================
+        // The user thinks in "list of times-of-day". The firmware stores
+        // 12 i32 params (MOVE_TIME_0..MOVE_TIME_11), each holding either
+        // seconds-since-local-midnight (0..86399) or -1 = disabled. The
+        // device sorts the array ascending after every commit so on every
+        // poll the enabled slots arrive packed at the front in time order.
+        //
+        // We back the UI with 12 hidden `<input id="PARAM_MOVE_TIME_N">`
+        // elements so the values plug into the existing PARAM_* save flow:
+        // editing a row marks its hidden input .changed, commitParams()
+        // picks it up like any other param.
+        const NUM_MOVE_TIMES = 12;
+
+        (function initScheduleHiddenInputs() {
+            const host = ge('schedule_hidden_inputs');
+            if (!host) return;
+            for (let i = 0; i < NUM_MOVE_TIMES; i++) {
+                const inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.id = `PARAM_MOVE_TIME_${i}`;
+                inp.value = -1;
+                host.appendChild(inp);
+            }
+        })();
+
+        function readScheduleSlot(i) {
+            const inp = ge(`PARAM_MOVE_TIME_${i}`);
+            return inp ? parseInt(inp.value, 10) : -1;
+        }
+
+        function writeScheduleSlot(i, value) {
+            const inp = ge(`PARAM_MOVE_TIME_${i}`);
+            if (!inp) return;
+            inp.value = value;
+            markChanged(inp);
+        }
+
+        // Format seconds-of-day as HH:MM for an <input type="time">.
+        function secondsToHM(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+        }
+
+        function renderSchedule() {
+            const host = ge('schedule_rows');
+            if (!host) return;
+
+            // If any time input inside the schedule is currently focused,
+            // the user is mid-edit; re-rendering would steal focus on every
+            // 2-second poll. Skip — the next poll after blur picks it up.
+            if (host.contains(document.activeElement)
+                && document.activeElement.type === 'time') return;
+
+            host.innerHTML = '';
+            let enabledCount = 0;
+            for (let i = 0; i < NUM_MOVE_TIMES; i++) {
+                const v = readScheduleSlot(i);
+                if (v < 0) continue;
+                enabledCount++;
+
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.gap = '4px';
+
+                const t = document.createElement('input');
+                t.type = 'time';
+                t.value = secondsToHM(v);
+                // Capture the slot index — at render time `i` is the slot,
+                // which is also where the hidden input lives.
+                t.oninput = ((slot) => () => onScheduleTimeEdit(slot, t.value))(i);
+                row.appendChild(t);
+
+                const x = document.createElement('button');
+                x.textContent = '✕';   // ✕
+                x.style.width = '40px';
+                x.style.flexShrink = '0';
+                x.onclick = ((slot) => () => onScheduleRemove(slot))(i);
+                row.appendChild(x);
+
+                host.appendChild(row);
+            }
+
+            // The + Add button is disabled when all 12 slots are in use.
+            const addBtn = ge('schedule_add_btn');
+            if (addBtn) addBtn.disabled = enabledCount >= NUM_MOVE_TIMES;
+        }
+
+        function onScheduleTimeEdit(slot, hhmm) {
+            if (!hhmm) return;   // empty edit — leave previous value
+            const parts = hhmm.split(':').map(Number);
+            if (parts.length < 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return;
+            writeScheduleSlot(slot, parts[0] * 3600 + parts[1] * 60);
+            // Don't re-render: the visible <input> already shows the new
+            // value and a rebuild would steal focus mid-edit.
+        }
+
+        function onScheduleRemove(slot) {
+            writeScheduleSlot(slot, -1);
+            renderSchedule();
+        }
+
+        function addScheduleSlot() {
+            // Find the first disabled slot and arm it with a default of
+            // 12:00. Visible rows are sorted alphabetically by storage
+            // index so the new row appears at whatever position holds the
+            // first -1 — the device will re-sort canonically on commit.
+            for (let i = 0; i < NUM_MOVE_TIMES; i++) {
+                if (readScheduleSlot(i) < 0) {
+                    writeScheduleSlot(i, 12 * 3600);
+                    renderSchedule();
+                    return;
+                }
+            }
+        }
+
+        // Called once per /get poll from updateUI(). Syncs the 12 hidden
+        // inputs from the server's `parameters` object using _safeSet so
+        // any slot the user has edited (marked .changed) survives the
+        // sync. renderSchedule() then redraws the visible rows.
+        function updateScheduleFromServer() {
+            if (!data.parameters) return;
+            for (let i = 0; i < NUM_MOVE_TIMES; i++) {
+                const inp = ge(`PARAM_MOVE_TIME_${i}`);
+                const v = data.parameters[`MOVE_TIME_${i}`];
+                if (typeof v === 'number') _safeSet(inp, v);
+            }
+            renderSchedule();
+        }
             
         
         function changeSchedule(ux_input) {
@@ -1074,7 +1210,8 @@
                     const seconds = String(dt.getUTCSeconds()).padStart(2, '0');
                     timeOutput.value = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
                 } else {
-                    // <=0 means firmware has no alarm scheduled (e.g. NUM_MOVES=0).
+                    // <=0 means firmware has no alarm scheduled — either every
+                    // MOVE_TIME_* slot is -1, or the RTC isn't set yet.
                     if (timeOutput.type !== 'text') timeOutput.type = 'text';
                     timeOutput.value = 'DISABLED';
                 }
@@ -1084,6 +1221,7 @@
             if (data.parameters) {
                 updateParamTable();
                 updateScheduleInputs();
+                updateScheduleFromServer();
             }
 
             // Update remaining distance (special parameter)
@@ -1095,11 +1233,24 @@
         }
         
         // Keys whose inputs live OUTSIDE the auto-generated DANGER ZONE
-        // table (in the dedicated WiFi section, or commented out entirely).
-        // Must be filtered in BOTH the build and update paths — otherwise a
-        // poll sees "no input for NET_SSID" and force-rebuilds the whole
-        // table every tick, wiping every in-progress edit.
-        const PARAM_TABLE_SKIP = new Set(['NET_SSID', 'NET_PASS', 'WIFI_SSID', 'WIFI_PASS']);
+        // table (in the dedicated WiFi section, in the Schedule section, or
+        // commented out entirely). Must be filtered in BOTH the build and
+        // update paths — otherwise a poll sees "no input for X" and force-
+        // rebuilds the whole table every tick, wiping every in-progress edit.
+        //
+        // MOVE_START / MOVE_END / NUM_MOVES are kept in firmware for storage
+        // compatibility but no longer read by the scheduler or surfaced here.
+        const PARAM_TABLE_SKIP = new Set([
+            'NET_SSID', 'NET_PASS', 'WIFI_SSID', 'WIFI_PASS',
+            'MOVE_START', 'MOVE_END', 'NUM_MOVES',
+        ]);
+
+        // MOVE_TIME_0..11 are rendered in the dedicated Schedule section;
+        // exclude them from the DANGER ZONE table the same way (kept as a
+        // prefix check so we don't have to maintain a 12-entry list).
+        function paramSkipped(key) {
+            return PARAM_TABLE_SKIP.has(key) || key.startsWith('MOVE_TIME_');
+        }
 
         function updateParamTable() {
             const table = ge('table');
@@ -1107,7 +1258,7 @@
             // Sort parameters alphabetically, pre-filtering keys that don't
             // belong in the auto-generated DANGER ZONE table.
             const sortedParams = Object.entries(data.parameters)
-                .filter(([k]) => !PARAM_TABLE_SKIP.has(k))
+                .filter(([k]) => !paramSkipped(k))
                 .sort((a, b) => a[0].localeCompare(b[0]));
 
             if (!paramTableCreated) {

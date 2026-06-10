@@ -4,8 +4,6 @@
 #include <stdint.h>
 #include "esp_err.h"
 
-// TODO: Sanity check that the EEPROM is working (sacrifice sector 0?)
-
 // ============================================================================
 // FLASH LAYOUT CONSTANTS
 // ============================================================================
@@ -118,7 +116,31 @@ typedef struct {
     PARAM_DEF(SAFETY_BREAK_US,   u32, 300000,        "",        0, 10000000) \
     PARAM_DEF(SAFETY_MAKE_US,    u32, 1000000,       "",        0, 10000000) \
     PARAM_DEF(JACK_IS_DOWN,      f32, 8.0,           "A",       0.0, 200.0) /* deprecated: may duplicate JACK_I_DOWN */ \
-    PARAM_DEF(FLUFF_PREDRIVE_MS, u32, 2000,          "ms",      0, 60000)
+    PARAM_DEF(FLUFF_PREDRIVE_MS, u32, 2000,          "ms",      0, 60000) \
+    /* Tabular schedule: up to 12 daily move times (seconds since local midnight). \
+     * A value of -1 marks the slot as disabled — the default. Slots are sorted \
+     * by commit_params() so non-negative values appear first in ascending order, \
+     * with -1 entries pushed to the end. Range allows the validator to clamp \
+     * out-of-band negatives (e.g. -2) back to -1 = disabled. Appended at the \
+     * end of PARAM_LIST so existing flash layout / CRC offsets stay stable. \
+     * MOVE_START / MOVE_END / NUM_MOVES above are deprecated; the scheduler \
+     * no longer reads them and the web UI no longer surfaces them. */ \
+    PARAM_DEF(MOVE_TIME_0,       i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_1,       i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_2,       i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_3,       i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_4,       i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_5,       i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_6,       i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_7,       i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_8,       i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_9,       i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_10,      i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_11,      i32, -1,            "s",       -1, 86399)
+
+/* Tabular schedule width. The enum entries above must remain contiguous so
+ * PARAM_MOVE_TIME_0 + i indexes slot i. */
+#define NUM_MOVE_TIMES 12
 
 // Generate enum for parameter indices
 #define PARAM_DEF(name, type, default_val, unit, min, max) PARAM_##name,
@@ -179,9 +201,16 @@ const char* get_param_name(param_idx_t id);
 param_value_t get_param_default(param_idx_t id);
 const char* get_param_unit(param_idx_t id);
 const char* get_param_json_string(param_idx_t id, char* buffer, size_t buf_size);
+double param_to_double(param_idx_t id);  // numeric params only — see storage.c
 
 // Parameter commit to flash
 esp_err_t commit_params(void);
+
+/* In-place sort of MOVE_TIME_0..MOVE_TIME_(NUM_MOVE_TIMES-1) so that
+ * non-negative entries come first in ascending order, with -1 (disabled)
+ * entries pushed to the end. Called automatically by commit_params() —
+ * exposed separately for tests / migrations. */
+void sort_move_schedule(void);
 
 // Logging functions
 esp_err_t log_init(void);

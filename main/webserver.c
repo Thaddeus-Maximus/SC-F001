@@ -71,6 +71,68 @@ static httpd_handle_t http_server_instance = NULL;
 char http_buffer[4096];
 static SemaphoreHandle_t http_buffer_mutex = NULL;
 
+/* Run an httpd call; on non-OK, log a "Failed to <what>" message and
+ * return the error code from the enclosing function. Replaces the
+ * three-line set_type / log / return triples that dominated handlers. */
+#define HTTPD_RET_ON_ERR(expr, what) do { \
+    esp_err_t _e = (expr); \
+    if (_e != ESP_OK) { \
+        ESP_LOGE(TAG, "Failed to %s: %s", what, esp_err_to_name(_e)); \
+        return _e; \
+    } \
+} while (0)
+
+/* Same but only warns (used when the handler can plausibly proceed even
+ * if the call failed — typically the trailing Connection: close header). */
+#define HTTPD_WARN_ON_ERR(expr, what) do { \
+    esp_err_t _e = (expr); \
+    if (_e != ESP_OK) { \
+        ESP_LOGW(TAG, "Failed to %s: %s", what, esp_err_to_name(_e)); \
+    } \
+} while (0)
+
+/* Read [from, to) from `part` into http_buffer in chunks and stream each
+ * chunk as an HTTP body fragment. The shared http_buffer is already held
+ * by the caller via with_http_buffer(). Returns the first error to abort
+ * the caller's response (and arranges a 500 if the partition read fails). */
+static esp_err_t stream_partition_range(httpd_req_t *req,
+                                        const esp_partition_t *part,
+                                        int32_t from, int32_t to) {
+    int32_t offset = from;
+    while (offset < to) {
+        size_t to_read = MIN(sizeof(http_buffer), (size_t)(to - offset));
+        esp_err_t err = esp_partition_read(part, offset, http_buffer, to_read);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s",
+                     (long)offset, esp_err_to_name(err));
+            return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+                                       "Failed to read storage");
+        }
+        err = httpd_resp_send_chunk(req, (const char *)http_buffer, to_read);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to send chunk at offset %ld: %s",
+                     (long)offset, esp_err_to_name(err));
+            return err;
+        }
+        offset += to_read;
+    }
+    return ESP_OK;
+}
+
+/* Schedule a one-shot esp_timer to invoke `cb` `delay_us` from now. Used
+ * to defer sleep/hibernate/wifi_restart calls until the httpd handler has
+ * returned — calling httpd_stop()/webserver_stop() inside a handler dead-
+ * locks because httpd_stop waits for all handlers to drain. `*slot` is
+ * cached across calls so we don't leak timer handles on repeated requests. */
+static void defer_call(esp_timer_handle_t *slot, const char *name,
+                       esp_timer_cb_t cb, uint64_t delay_us) {
+    if (*slot == NULL) {
+        esp_timer_create_args_t ta = { .callback = cb, .name = name };
+        esp_timer_create(&ta, slot);
+    }
+    if (*slot != NULL) esp_timer_start_once(*slot, delay_us);
+}
+
 static esp_err_t with_http_buffer(httpd_req_t *req,
                                    esp_err_t (*body)(httpd_req_t *)) {
     if (http_buffer_mutex != NULL) {
@@ -99,33 +161,13 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     }
 
     bringup_notify_http_request();
-    
-    // Send the HTML response
-    esp_err_t err = httpd_resp_set_type(req, "text/html");
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set response type: %s", esp_err_to_name(err));
-        return err;
-    }
-    
-    err = httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set content encoding header: %s", esp_err_to_name(err));
-        return err;
-    }
-    
-    err = httpd_resp_send(req, (const char *)html_content, html_content_len);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to send HTML response: %s", esp_err_to_name(err));
-        return err;
-    }
-    
-    err = httpd_resp_set_hdr(req, "Connection", "close");
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set connection header: %s", esp_err_to_name(err));
-        // Continue anyway
-    }
-    
-    return err;
+
+    HTTPD_RET_ON_ERR(httpd_resp_set_type(req, "text/html"),                 "set response type");
+    HTTPD_RET_ON_ERR(httpd_resp_set_hdr(req, "Content-Encoding", "gzip"),   "set content encoding header");
+    HTTPD_RET_ON_ERR(httpd_resp_send(req, (const char *)html_content, html_content_len),
+                                                                            "send HTML response");
+    HTTPD_WARN_ON_ERR(httpd_resp_set_hdr(req, "Connection", "close"),       "set connection header");
+    return ESP_OK;
 }
 
 // Cache the storage partition pointer to avoid repeated lookups
@@ -294,92 +336,24 @@ static esp_err_t log_handler_locked(httpd_req_t *req) {
         return err;
     }
     
-    // Send log data (same as before)
-    int32_t offset = tail;
-    
-    if (tail == head) {
-        // Empty log, nothing more to send
+    // Send log data. Three cases:
+    //   tail == head: log is empty, nothing more to stream.
+    //   tail <  head: contiguous run [tail, head).
+    //   tail >  head: wrapped — stream [tail, partition_end) then [log_start, head).
+    if (tail < head) {
+        err = stream_partition_range(req, log_part, tail, head);
+        if (err != ESP_OK) return err;
+    } else if (tail > head) {
+        err = stream_partition_range(req, log_part, tail, (int32_t)log_part->size);
+        if (err != ESP_OK) return err;
+        err = stream_partition_range(req, log_part, log_start, head);
+        if (err != ESP_OK) return err;
     }
-    else if (tail < head) {
-        // Normal case: tail before head
-        while (offset < head) {
-            size_t to_read = MIN(sizeof(http_buffer), head - offset);
-            err = esp_partition_read(log_part, offset, http_buffer, to_read);
-            if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
-                         (long)offset, esp_err_to_name(err));
-                return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
-                                            "Failed to read storage");
-            }
-            
-            err = httpd_resp_send_chunk(req, (const char *)http_buffer, to_read);
-            if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send chunk at offset %ld: %s", 
-                         (long)offset, esp_err_to_name(err));
-                return err;
-            }
-            
-            offset += to_read;
-        }
-    }
-    else {
-        // Wrapped case: tail after head, read from tail to end, then start to head
-        while (offset < (int32_t)log_part->size) {
-            size_t to_read = MIN(sizeof(http_buffer), log_part->size - offset);
-            err = esp_partition_read(log_part, offset, http_buffer, to_read);
-            if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
-                         (long)offset, esp_err_to_name(err));
-                return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
-                                            "Failed to read storage");
-            }
-            
-            err = httpd_resp_send_chunk(req, (const char *)http_buffer, to_read);
-            if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send chunk at offset %ld: %s", 
-                         (long)offset, esp_err_to_name(err));
-                return err;
-            }
-            
-            offset += to_read;
-        }
-        
-        // Now read from start to head
-        offset = log_start;
-        while (offset < head) {
-            size_t to_read = MIN(sizeof(http_buffer), head - offset);
-            err = esp_partition_read(log_part, offset, http_buffer, to_read);
-            if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to read partition at offset %ld: %s", 
-                         (long)offset, esp_err_to_name(err));
-                return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, 
-                                            "Failed to read storage");
-            }
-            
-            err = httpd_resp_send_chunk(req, (const char *)http_buffer, to_read);
-            if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send chunk at offset %ld: %s", 
-                         (long)offset, esp_err_to_name(err));
-                return err;
-            }
-            
-            offset += to_read;
-        }
-    }
-    
+
     // Send empty chunk to signal end
-    err = httpd_resp_send_chunk(req, NULL, 0);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to send final chunk: %s", esp_err_to_name(err));
-        return err;
-    }
-    
-    err = httpd_resp_set_hdr(req, "Connection", "close");
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set connection header: %s", esp_err_to_name(err));
-    }
-    
-    return err;
+    HTTPD_RET_ON_ERR(httpd_resp_send_chunk(req, NULL, 0), "send final chunk");
+    HTTPD_WARN_ON_ERR(httpd_resp_set_hdr(req, "Connection", "close"), "set connection header");
+    return ESP_OK;
 }
 
 /**
@@ -567,66 +541,30 @@ static esp_err_t post_handler_locked(httpd_req_t *req) {
         return ESP_OK;  // Never reached
     }
 
+    /* All three of these have the same deadlock concern: calling
+     * httpd_stop() (directly or via webserver_stop / soft_idle_enter /
+     * hibernate_enter) from inside a handler blocks because httpd_stop()
+     * waits for all handlers to drain. Defer to a one-shot timer so this
+     * handler returns first and the httpd task becomes free. */
     if (should_restart_wifi) {
-        /* Same deadlock risk as should_sleep — httpd_stop() inside
-         * webserver_restart_wifi() cannot be called from within a handler. */
         static esp_timer_handle_t s_wifi_restart_timer = NULL;
-        if (s_wifi_restart_timer == NULL) {
-            esp_timer_create_args_t ta = {
-                .callback = webserver_restart_wifi_cb,
-                .name     = "wifi_restart",
-            };
-            esp_timer_create(&ta, &s_wifi_restart_timer);
-        }
-        if (s_wifi_restart_timer != NULL) {
-            esp_timer_start_once(s_wifi_restart_timer, 500 * 1000); /* 500 ms in µs */
-        }
+        defer_call(&s_wifi_restart_timer, "wifi_restart", webserver_restart_wifi_cb, 500 * 1000);
         return ESP_OK;
     }
-
     if (should_sleep) {
         ESP_LOGI(TAG, "Entering soft idle in 2 seconds...");
-        /* Cannot call soft_idle_enter() (→ httpd_stop()) from within an httpd
-         * handler — httpd_stop() waits for all handlers to finish, causing a
-         * deadlock.  Schedule via a one-shot timer so this handler returns
-         * first and the httpd task is free. */
         static esp_timer_handle_t s_sleep_timer = NULL;
-        if (s_sleep_timer == NULL) {
-            esp_timer_create_args_t ta = {
-                .callback = soft_idle_enter_cb,
-                .name     = "soft_idle",
-            };
-            esp_timer_create(&ta, &s_sleep_timer);
-        }
-        if (s_sleep_timer != NULL) {
-            esp_timer_start_once(s_sleep_timer, 2000 * 1000); /* 2 s in µs */
-        }
+        defer_call(&s_sleep_timer, "soft_idle", soft_idle_enter_cb, 2000 * 1000);
+        return ESP_OK;
+    }
+    if (should_hibernate) {
+        ESP_LOGI(TAG, "Hibernating in 2 seconds...");
+        static esp_timer_handle_t s_hibernate_timer = NULL;
+        defer_call(&s_hibernate_timer, "hibernate", hibernate_enter_cb, 2000 * 1000);
         return ESP_OK;
     }
 
-    if (should_hibernate) {
-        ESP_LOGI(TAG, "Hibernating in 2 seconds...");
-        /* Same deadlock concern as soft_idle: webserver_stop() inside
-         * hibernate_enter() blocks on the httpd task; defer via timer. */
-        static esp_timer_handle_t s_hibernate_timer = NULL;
-        if (s_hibernate_timer == NULL) {
-            esp_timer_create_args_t ta = {
-                .callback = hibernate_enter_cb,
-                .name     = "hibernate",
-            };
-            esp_timer_create(&ta, &s_hibernate_timer);
-        }
-        if (s_hibernate_timer != NULL) {
-            esp_timer_start_once(s_hibernate_timer, 2000 * 1000); /* 2 s in µs */
-        }
-        return ESP_OK;
-    }
-    
-    err = httpd_resp_set_hdr(req, "Connection", "close");
-    if (err != ESP_OK) {
-        ESP_LOGW(TAG, "Failed to set connection header: %s", esp_err_to_name(err));
-    }
-    
+    HTTPD_WARN_ON_ERR(httpd_resp_set_hdr(req, "Connection", "close"), "set connection header");
     return err;
 }
 

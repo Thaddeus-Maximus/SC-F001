@@ -1,0 +1,137 @@
+10:33:57.732  
+------------------------------------------------------------
+  Flashing COM3
+------------------------------------------------------------
+10:33:57.734    erase_flash @ COM3
+10:34:01.505    flashing from D:\SC\SC-F001\build
+10:34:01.507    files: [('0x1000', 'bootloader/bootloader.bin'), ('0x10000', 'SC-F001.bin'), ('0x8000', 'partition_table/partition-table.bin'), ('0xd000', 'ota_data_initial.bin')]
+10:34:26.696  Flash complete
+10:34:28.197  Connecting to COM3 @ 115200 ...
+10:34:28.210  -> BU.BEGIN
+10:34:28.470  <- BU.BEGIN
+10:34:28.470  <- 
+10:34:28.470  <- 
+10:34:28.470  <- BU.OK begin fw=85206e1 board=V5 t=0.00
+10:34:28.473  -> BU.INFO
+10:34:28.473  <- E rmt: hw buffer too small, received symbols truncated
+10:34:28.485  <- I (1880) BT_HID: Scanning for HID devices (3s)...
+10:34:28.485  <- I (1880) BT_HID: BLE HID host initialised
+10:34:28.490  <- I (1880) WEBSERVER: Initializing webserver...
+10:34:28.490  <- I (1880) WEBSERVER: AP LAUNCHING
+10:34:28.490  <- I (1900) wifi:wifi driver task: 3ffe28f8, prio:23, stack:6656, core=0
+10:34:28.490  <- I (1900) wifi:wifi firmware version: ccaebfa
+10:34:28.490  <- I (1900) wifi:wifi certification version: v7.0
+10:34:28.516  <- I (1900) wifi:config NVS flash: enabled
+10:34:28.516  <- I (1900) wifi:config nano formating: disabled
+10:34:28.516  <- I (1910) wifi:Init data frame dynamic rx buffer num: 32
+10:34:28.516  <- I (1910) wifi:Init static rx mgmt buffer num: 5
+10:34:28.516  <- I (1920) wifi:Init management short buffer num: 32
+10:34:28.516  <- 
+10:34:28.538  <- BU.OK info reset=POWERON heap=111556 min_heap=111556 fw=85206e1 build=2026-05-01 23:33:51
+10:34:30.409  -> BU.FLASH
+10:34:30.409  <- I (1920) wifi:Init dynamic tx buffer num: 32
+10:34:30.410  <- I (1930) wifi:Init static rx buffer size: 1600
+10:34:30.410  <- I (1940) wifi:Init static rx buffer num: 10
+10:34:30.410  <- I (1940) wifi:Init dynamic rx buffer num: 32
+10:34:30.410  <- I (1950) wifi_init: rx ba win: 6
+10:34:30.410  <- I (1950) wifi_init: accept mbox: 6
+10:34:30.410  <- I (1950) wifi_init: tcpip mbox: 32
+10:34:30.410  <- I (1960) wifi_init: udp mbox: 6
+10:34:30.410  <- I (1960) wifi_init: tcp mbox: 6
+10:34:30.411  <- I (1960) wifi_init: tcp tx win: 5760
+10:34:30.411  <- I (1970) wifi_init: tcp rx win: 5760
+10:34:30.411  <- I (1970) wifi_init: tcp mss: 1440
+10:34:30.411  <- I (2260) wifi:mode : softAP (80:f3:da:65:a9:15)
+10:34:30.411  <- I (2260) wifi:Total power save buffer number: 16
+10:34:30.411  <- I (2270) wifi:Init max length of beacon: 752/752
+10:34:30.411  <- I (2270) wifi:Init max length of beacon: 752/752
+10:34:30.411  <- I (2270) esp_netif_lwip: DHCP server started on interface WIFI_AP_DEF with IP: 192.168.4.1
+10:34:30.411  <- I (2280) DNS_SERVER: DNS server started on port 53
+10:34:30.412  <- I (2280) mdns_mem: mDNS task will be created from internal RAM
+10:34:30.412  <- I (2290) WEBSERVER: SoftAP ready. SSID: sc.local, Channel: 6, Password: password
+10:34:30.412  <- I (2300) WEBSERVER: Access at: http://sc.local.local or http://192.168.4.1
+10:34:30.413  <- I (2300) WEBSERVER: STARTING HTTP
+10:34:30.413  <- I (2310) WEBSERVER: HTTP server started successfully
+10:34:30.413  <- I (2310) WEBSERVER: Registered URI handler: /
+10:34:30.413  <- I (2320) WEBSERVER: Registered URI handler: /get
+10:34:30.413  <- I (2320) WEBSERVER: Registered URI handler: /post
+10:34:30.433  <- I (2330) WEBSERVER: Registered URI handler: /log
+10:34:30.433  <- I (2330) WEBSERVER: Registered URI handler: /ota
+10:34:30.434  <- I (2340) WEBSERVER: Registered URI handler: /*
+10:34:30.434  <- I (2340) WEBSERVER: Webserver initialization complete
+10:34:30.434  <- 
+10:34:30.940  <- BU.OK flash post_part=roundtrip log_head=11 log_tail=0 partitions_size=4128768
+10:34:32.493  -> BU.I2C
+10:34:32.522  <- I (4890) BT_HID: Found 0 HID device(s)
+10:34:32.522  <- I (4890) BT_HID: No HID devices found, retrying in 2000ms...
+10:34:32.522  <- E rmt: hw buffer too small, received symbols truncated
+10:34:32.522  <- I (5940) I2C: POST: TCA9555 OK (port0=0x0121)
+10:34:32.522  <- 
+10:34:33.038  <- BU.OK i2c tca9555=ack
+10:34:33.042  -> BU.LED.WATCH
+10:34:33.555  <- 
+10:34:33.555  <- BU.EVENT led t=4.84 pressed=0
+10:34:33.555  <- I (6890) BT_HID: Scanning for HID devices (3s)...
+10:34:34.564  <- E rmt: hw buffer too small, received symbols truncated
+10:34:34.564  <- 
+10:34:34.564  <- BU.EVENT led t=6.30 pressed=1
+10:34:35.572  <- E rmt: hw buffer too small, received symbols truncated
+10:34:35.572  <- 
+10:34:35.572  <- BU.EVENT led t=7.18 pressed=0
+10:34:36.581  <- I (9900) BT_HID: Found 0 HID device(s)
+10:34:36.581  <- I (9900) BT_HID: No HID devices found, retrying in 2000ms...
+10:34:37.500  -> 
+10:34:37.589  <- 
+10:34:37.589  <- BU.OK led.watch done
+10:34:38.738  -> BU.ADC
+10:34:39.241  <- I (11900) BT_HID: Scanning for HID devices (3s)...
+10:34:39.241  <- 
+10:34:39.241  <- BU.OK adc bat_mv=385 bat_V=3.352 isens_mv=1664 isens_A=-1.06
+10:34:39.260  -> BU.PARAM GET V_SENS_K
+10:34:39.769  <- 
+10:34:39.769  <- BU.OK param key=V_SENS_K value=0.00766666653
+10:34:39.769  -> BU.ADC
+10:34:40.274  <- 
+10:34:40.274  <- BU.OK adc bat_mv=384 bat_V=3.344 isens_mv=1656 isens_A=-0.45
+10:34:52.796  -> BU.SENSORS.WATCH 0
+10:34:52.797  <- E rmt: hw buffer too small, received symbols truncated
+10:34:52.797  <- I (14910) BT_HID: Found 0 HID device(s)
+10:34:52.797  <- I (14910) BT_HID: No HID devices found, retrying in 2000ms...
+10:34:52.797  <- E rmt: hw buffer too small, received symbols truncated
+10:34:52.798  <- E rmt: hw buffer too small, received symbols truncated
+10:34:52.798  <- I (16910) BT_HID: Scanning for HID devices (3s)...
+10:34:52.798  <- E rmt: hw buffer too small, received symbols truncated
+10:34:52.798  <- I (19920) BT_HID: Found 0 HID device(s)
+10:34:52.799  <- I (19920) BT_HID: No HID devices found, retrying in 2000ms...
+10:34:52.799  <- I (21920) BT_HID: Scanning for HID devices (3s)...
+10:34:52.799  <- E rmt: hw buffer too small, received symbols truncated
+10:34:52.799  <- E rmt: hw buffer too small, received symbols truncated
+10:34:52.799  <- I (24930) BT_HID: Found 0 HID device(s)
+10:34:53.309  <- I (24930) BT_HID: No HID devices found, retrying in 2000ms...
+10:34:53.309  <- 
+10:34:53.309  <- BU.EVENT state t=24.59 SAFETY=0 DRIVE=0 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+10:34:53.309  <- 
+10:34:53.309  <- BU.EVENT state t=24.85 SAFETY=0 DRIVE=0 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+10:34:53.813  <- 
+10:34:53.813  <- BU.EVENT state t=25.10 SAFETY=0 DRIVE=0 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+10:34:53.813  <- I (26930) BT_HID: Scanning for HID devices (3s)...
+10:34:53.813  <- 
+10:34:53.813  <- BU.EVENT state t=25.35 SAFETY=0 DRIVE=0 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+10:34:54.319  <- 
+10:34:54.319  <- BU.EVENT state t=25.60 SAFETY=0 DRIVE=0 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+10:34:54.319  <- E rmt: hw buffer too small, received symbols truncated
+10:34:54.319  <- 
+10:34:54.319  <- BU.EVENT state t=25.85 SAFETY=0 DRIVE=0 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+10:34:54.823  <- 
+10:34:54.823  <- BU.EVENT state t=26.10 SAFETY=0 DRIVE=0 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+10:34:54.823  <- 
+10:34:54.823  <- BU.EVENT state t=26.35 SAFETY=0 DRIVE=0 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+10:34:55.327  <- 
+10:34:55.327  <- BU.EVENT state t=26.60 SAFETY=0 DRIVE=0 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+10:34:55.327  <- 
+10:34:55.327  <- BU.EVENT state t=26.85 SAFETY=0 DRIVE=0 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+10:34:55.832  <- 
+10:34:55.832  <- BU.EVENT state t=27.10 SAFETY=0 DRIVE=0 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+10:34:55.832  <- 
+10:34:55.832  <- BU.EVENT state t=27.36 SAFETY=0 DRIVE=0 JACK=0 AUX=0 isr_s=0 isr_d=0 isr_j=0 isr_a=0
+10:34:56.072  -> BU.END

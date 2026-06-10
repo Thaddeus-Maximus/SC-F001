@@ -23,13 +23,13 @@
 #include "version.h"
 #include <string.h>
 
-EventGroupHandle_t comms_event_group = NULL;
+EventGroupHandle_t comms_event_group = NULL; // synchronizing tasks
 
 #define TAG "MAIN"
 
-#define POST_MAX_RETRIES 3
-#define OTA_ROLLBACK_THRESHOLD 5
-#define FACTORY_RESET_HOLD_MS 10000
+#define POST_MAX_RETRIES 3          // how many times to try an init function
+#define OTA_ROLLBACK_THRESHOLD 5    // how many resets in a row required to deem the boot partition faulty and switch to the other
+#define FACTORY_RESET_HOLD_MS 10000 // how many ms is required to hold the button during cold boot to initialize factory reset
 
 // Survives resets (panic, WDT, sw reset) but NOT power-on or external reset
 RTC_DATA_ATTR static uint8_t ota_reset_counter = 0;
@@ -85,9 +85,7 @@ esp_err_t send_bat_log() {
 // LED error code bits: LED1=efuse/battery, LED2=RTC, LED3=safety/leash
 static uint8_t error_code_from_state(void) {
     uint8_t code = 0;
-    if (efuse_get(BRIDGE_JACK)  != EFUSE_OK ||
-        efuse_get(BRIDGE_AUX)   != EFUSE_OK ||
-        efuse_get(BRIDGE_DRIVE) != EFUSE_OK)   code |= 0b001;  // LED1: efuse
+    if (any_efuse_tripped())                    code |= 0b001;  // LED1: efuse
     float bat_v = get_battery_V();
     float low_v = get_param_value_t(PARAM_LOW_PROTECTION_V).f32;
     if (bat_v > 0 && bat_v < low_v)            code |= 0b001;  // LED1: low battery
@@ -154,9 +152,9 @@ void app_main(void) {
     esp_task_wdt_add(NULL);
 
     ESP_LOGI(TAG, "Firmware: %s", FIRMWARE_STRING);
-    ESP_LOGI(TAG, "Version: %s", FIRMWARE_VERSION);
-    ESP_LOGI(TAG, "Branch: %s", FIRMWARE_BRANCH);
-    ESP_LOGI(TAG, "Built: %s", BUILD_DATE);
+    ESP_LOGI(TAG, "Version:  %s", FIRMWARE_VERSION);
+    ESP_LOGI(TAG, "Branch:   %s", FIRMWARE_BRANCH);
+    ESP_LOGI(TAG, "Built:    %s", BUILD_DATE);
     
     // I2C first so we can light the LED immediately
     init_critical("I2C", i2c_init);
@@ -167,7 +165,6 @@ void app_main(void) {
     i2c_relays_idle();
 
     if (rtc_xtal_init() != ESP_OK) ESP_LOGE(TAG, "RTC FAILED");
-    
     
     // Factory reset: cold boot + button held for 10s
     // LEDs flash while waiting, go solid when triggered
@@ -238,8 +235,8 @@ void app_main(void) {
 
     //run_all_log_tests();
 
-    esp_reset_reason_t reset_reason = esp_reset_reason();
-    esp_sleep_wakeup_cause_t wake_cause = esp_sleep_get_wakeup_cause();
+    esp_reset_reason_t       reset_reason = esp_reset_reason();
+    esp_sleep_wakeup_cause_t wake_cause   = esp_sleep_get_wakeup_cause();
 
     // Log every boot: boot_info = wake_cause[7:4] | reset_reason[3:0]
     {
@@ -320,7 +317,7 @@ void app_main(void) {
     esp_ota_mark_app_valid_cancel_rollback();
 
     /*** MAIN LOOP ***/
-    uint8_t tap_count = 0;
+    uint8_t tap_count        = 0;
     int64_t tap_window_start = 0;
 
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -332,23 +329,31 @@ void app_main(void) {
         /* Bring-up tool owns the LEDs, buttons, and relays while active. */
         if (bringup_mode_is_active()) {
             esp_task_wdt_reset();
-            continue;
+            continue; // while in bringup, don't do anything more
         }
 
-        /* In soft idle: slow poll (5s) via direct GPIO, no I2C. */
-        // TODO: Critique & confirm what we do in idle
         if (soft_idle_is_active()) {
-            //vTaskDelay(pdMS_TO_TICKS(1000));
+            // Button wake: just exit idle and fall through to the normal main
+            // loop. The user is physically present, so any actual movement
+            // happens later via triple-tap / RF / web — by then WiFi+BT have
+            // had plenty of time to come back up on their own.
             if (soft_idle_button_raw()) {
                 rtc_reset_shutdown_timer();
                 soft_idle_exit();
                 i2c_poll_buttons();  /* sync TCA9555 state after idle */
                 xLastWakeTime = xTaskGetTickCount();
             }
+
+            // Alarm wake: must immediately issue FSM_CMD_START — nobody is
+            // here to press a button. soft_idle_enter() tore down WiFi+BT
+            // (see rtc.c soft_idle_enter); soft_idle_exit() restarts them
+            // but they come up asynchronously. Block up to 5 s for both
+            // event-group bits so telemetry/abort paths are live before the
+            // automated move begins. Past timeout we start anyway — the
+            // physical safety/efuse interlocks still protect the hardware.
             if (rtc_alarm_tripped()) {
                 soft_idle_exit();
                 xLastWakeTime = xTaskGetTickCount();
-                // Wait for WiFi + BT to come back up (or timeout after 5s)
                 if (comms_event_group) {
                     xEventGroupWaitBits(comms_event_group, COMMS_ALL_BITS,
                                         pdFALSE, pdTRUE, pdMS_TO_TICKS(5000));
@@ -360,14 +365,14 @@ void app_main(void) {
             solar_run_fsm();
             rtc_check_shutdown_timer();
             esp_task_wdt_reset();
-            continue;
+            continue; // while in idle, don't do anything more
         }
 
         i2c_poll_buttons();
 
         if (i2c_get_button_state(0)) {
         	rtc_reset_shutdown_timer();
-        	soft_idle_exit();
+        	// soft_idle_exit(); // this should be superfluous
         }
 
         // --- Button logic: triple-tap, hold-to-reboot, cancel/stop ---
@@ -435,9 +440,7 @@ void app_main(void) {
         		if (!btn_pressed && tap_count == 0) {
 					if (
 						rtc_is_set() &&
-						efuse_get(BRIDGE_JACK)==EFUSE_OK &&
-						efuse_get(BRIDGE_AUX)==EFUSE_OK &&
-						efuse_get(BRIDGE_DRIVE)==EFUSE_OK &&
+						!any_efuse_tripped() &&
 						fsm_get_error() == ESP_OK
 					) {
 	    				drive_leds(LED_IDLE);

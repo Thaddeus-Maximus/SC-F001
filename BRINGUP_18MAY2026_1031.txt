@@ -1,0 +1,486 @@
+10:31:38.960  
+------------------------------------------------------------
+  Flashing COM3
+------------------------------------------------------------
+10:31:38.962    erase_flash @ COM3
+10:31:43.318    flashing from D:\SC\SC-F001\build
+10:31:43.318    files: [('0x1000', 'bootloader/bootloader.bin'), ('0x10000', 'SC-F001.bin'), ('0x8000', 'partition_table/partition-table.bin'), ('0xd000', 'ota_data_initial.bin')]
+10:32:08.923  Flash complete
+10:32:10.424  Connecting to COM3 @ 115200 ...
+10:32:10.437  -> BU.BEGIN
+10:32:10.673  <- BU.BEGIN
+10:32:10.673  <- 
+10:32:10.673  <- 
+10:32:10.673  <- BU.OK begin fw=85206e1 board=V5 t=0.00
+10:32:10.676  -> BU.INFO
+10:32:10.676  <- E rmt: hw buffer too small, received symbols truncated
+10:32:10.688  <- I (1860) BT_HID: Scanning for HID devices (3s)...
+10:32:10.688  <- I (1860) BT_HID: BLE HID host initialised
+10:32:10.693  <- I (1860) WEBSERVER: Initializing webserver...
+10:32:10.693  <- I (1860) WEBSERVER: AP LAUNCHING
+10:32:10.693  <- I (1880) wifi:wifi driver task: 3ffe28d8, prio:23, stack:6656, core=0
+10:32:10.693  <- I (1880) wifi:wifi firmware version: ccaebfa
+10:32:10.693  <- I (1880) wifi:wifi certification version: v7.0
+10:32:10.720  <- I (1880) wifi:config NVS flash: enabled
+10:32:10.720  <- I (1880) wifi:config nano formating: disabled
+10:32:10.720  <- I (1890) wifi:Init data frame dynamic rx buffer num: 32
+10:32:10.720  <- I (1890) wifi:Init static rx mgmt buffer num: 5
+10:32:10.720  <- I (1900) wifi:Init management short buffer num: 32
+10:32:10.720  <- 
+10:32:10.741  <- BU.OK info reset=POWERON heap=111588 min_heap=111588 fw=85206e1 build=2026-05-01 23:33:51
+10:33:33.716  -> BU.FLASH
+10:33:33.716  <- I (1900) wifi:Init dynamic tx buffer num: 32
+10:33:33.716  <- I (1910) wifi:Init static rx buffer size: 1600
+10:33:33.716  <- I (1920) wifi:Init static rx buffer num: 10
+10:33:33.716  <- I (1920) wifi:Init dynamic rx buffer num: 32
+10:33:33.717  <- I (1930) wifi_init: rx ba win: 6
+10:33:33.717  <- I (1930) wifi_init: accept mbox: 6
+10:33:33.717  <- I (1930) wifi_init: tcpip mbox: 32
+10:33:33.717  <- I (1940) wifi_init: udp mbox: 6
+10:33:33.717  <- I (1940) wifi_init: tcp mbox: 6
+10:33:33.718  <- I (1940) wifi_init: tcp tx win: 5760
+10:33:33.718  <- I (1950) wifi_init: tcp rx win: 5760
+10:33:33.718  <- I (1950) wifi_init: tcp mss: 1440
+10:33:33.718  <- I (2240) wifi:mode : softAP (80:f3:da:65:a9:15)
+10:33:33.718  <- I (2250) wifi:Total power save buffer number: 16
+10:33:33.718  <- I (2250) wifi:Init max length of beacon: 752/752
+10:33:33.719  <- I (2250) wifi:Init max length of beacon: 752/752
+10:33:33.719  <- I (2250) esp_netif_lwip: DHCP server started on interface WIFI_AP_DEF with IP: 192.168.4.1
+10:33:33.719  <- I (2260) DNS_SERVER: DNS server started on port 53
+10:33:33.719  <- I (2260) mdns_mem: mDNS task will be created from internal RAM
+10:33:33.719  <- I (2270) WEBSERVER: SoftAP ready. SSID: sc.local, Channel: 6, Password: password
+10:33:33.720  <- I (2280) WEBSERVER: Access at: http://sc.local.local or http://192.168.4.1
+10:33:33.720  <- I (2280) WEBSERVER: STARTING HTTP
+10:33:33.720  <- I (2290) WEBSERVER: HTTP server started successfully
+10:33:33.720  <- I (2290) WEBSERVER: Registered URI handler: /
+10:33:33.720  <- I (2300) WEBSERVER: Registered URI handler: /get
+10:33:33.720  <- I (2300) WEBSERVER: Registered URI handler: /post
+10:33:33.721  <- I (2310) WEBSERVER: Registered URI handler: /log
+10:33:33.721  <- I (2310) WEBSERVER: Registered URI handler: /ota
+10:33:33.721  <- I (2320) WEBSERVER: Registered URI handler: /*
+10:33:33.721  <- I (2330) WEBSERVER: Webserver initialization complete
+10:33:33.722  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.722  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.722  <- I (4870) BT_HID: Found 0 HID device(s)
+10:33:33.722  <- I (4870) BT_HID: No HID devices found, retrying in 2000ms...
+10:33:33.722  <- I (6870) BT_HID: Scanning for HID devices (3s)...
+10:33:33.722  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.722  <- I (9880) BT_HID: Found 0 HID device(s)
+10:33:33.722  <- I (9880) BT_HID: No HID devices found, retrying in 2000ms...
+10:33:33.723  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.723  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.723  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.723  <- I (11880) BT_HID: Scanning for HID devices (3s)...
+10:33:33.723  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.724  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.724  <- I (14890) BT_HID: Found 0 HID device(s)
+10:33:33.724  <- I (14890) BT_HID: No HID devices found, retrying in 2000ms...
+10:33:33.724  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.725  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.725  <- I (16890) BT_HID: Scanning for HID devices (3s)...
+10:33:33.725  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.725  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.725  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.725  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.725  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.725  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.725  <- I (19900) BT_HID: Found 0 HID device(s)
+10:33:33.726  <- I (19900) BT_HID: No HID devices found, retrying in 2000ms...
+10:33:33.726  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.726  <- I (21900) BT_HID: Scanning for HID devices (3s)...
+10:33:33.726  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.727  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.727  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.727  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.727  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.727  <- I (24910) BT_HID: Found 0 HID device(s)
+10:33:33.728  <- I (24910) BT_HID: No HID devices found, retrying in 2000ms...
+10:33:33.728  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.728  <- I (26910) BT_HID: Scanning for HID devices (3s)...
+10:33:33.728  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.729  <- I (29920) BT_HID: Found 0 HID device(s)
+10:33:33.729  <- I (29920) BT_HID: No HID devices found, retrying in 2000ms...
+10:33:33.729  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.729  <- I (31920) BT_HID: Scanning for HID devices (3s)...
+10:33:33.730  <- I (34930) BT_HID: Found 0 HID device(s)
+10:33:33.730  <- I ( small, received symbols truncated
+10:33:33.730  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.730  <- E rmt: hw buffer too small, rece, received symbols truncated
+10:33:33.730  <- E rmt: hw buffer too small, rece, received symbols truncated
+10:33:33.730  <- E rmt: hw buffer too small, received symbols truncated
+10:33:33.730  <- ived symbols truncated
+10:33:33.730  <- ived symbols truncated
+10:33:33.730  <- ived symbols truncated
+10:33:33.730  <- ived symbols truncated
+10:33:33.730  <- ived symbols truncated
+10:33:33.730  <- ived symbols truncated
+10:33:33.730  <- ived symbols truncated
+10:33:33.730  <- ived symbols truncated
+10:33:33.730  <- ived symbols truncated
+10:33:33.731  <- ived symbols truncated
+10:33:33.731  <- ived symbols truncated
+10:33:33.731  <- ived symbols truncated
+10:33:33.731  <- ived symbols truncated
+10:33:33.731  <- ived symbols truncated
+10:33:33.731  <- ived symbols truncated
+10:33:33.731  <- ived symbols truncated
+10:33:33.731  <- ived symbols truncated
+10:33:33.731  <- ived symbols truncated
+10:33:33.731  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.732  <- ived symbols truncated
+10:33:33.733  <- ived symbols truncated
+10:33:33.733  <- ived symbols truncated
+10:33:33.733  <- ived symbols truncated
+10:33:33.733  <- ived symbols truncated
+10:33:33.733  <- ived symbols truncated
+10:33:33.733  <- ived symbols truncated
+10:33:33.733  <- ived symbols truncated
+10:33:33.733  <- ived symbols truncated
+10:33:33.733  <- ived symbols truncated
+10:33:33.733  <- ived symbols truncated
+10:33:33.734  <- ived symbols truncated
+10:33:33.734  <- ived symbols truncated
+10:33:33.734  <- ived symbols truncated
+10:33:33.734  <- ived symbols truncated
+10:33:33.734  <- ived symbols truncated
+10:33:33.734  <- ived symbols truncated
+10:33:33.734  <- ived symbols truncated
+10:33:33.734  <- ived symbols truncated
+10:33:33.734  <- ived symbols truncated
+10:33:33.734  <- ived symbols truncated
+10:33:33.734  <- ived symbols truncated
+10:33:33.735  <- ived symbols truncated
+10:33:33.735  <- ived symbols truncated
+10:33:33.735  <- ived symbols truncated
+10:33:33.735  <- ived symbols truncated
+10:33:33.735  <- ived symbols truncated
+10:33:33.735  <- ived symbols truncated
+10:33:33.735  <- ived symbols truncated
+10:33:33.735  <- ived symbols truncated
+10:33:33.735  <- ived symbols truncated
+10:33:33.735  <- ived symbols truncated
+10:33:33.735  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.736  <- ived symbols truncated
+10:33:33.737  <- ived symbols truncated
+10:33:33.737  <- ived symbols truncated
+10:33:33.737  <- ived symbols truncated
+10:33:33.737  <- ived symbols truncated
+10:33:33.737  <- ived symbols truncated
+10:33:33.737  <- ived symbols truncated
+10:33:33.737  <- ived symbols truncated
+10:33:33.737  <- ived symbols truncated
+10:33:33.737  <- ived symbols truncated
+10:33:33.737  <- ived symbols truncated
+10:33:33.737  <- ived symbols truncated
+10:33:33.738  <- ived symbols truncated
+10:33:33.738  <- ived symbols truncated
+10:33:33.738  <- ived symbols truncated
+10:33:33.738  <- ived symbols truncated
+10:33:33.738  <- ived symbols truncated
+10:33:33.738  <- ived symbols truncated
+10:33:33.738  <- ived symbols truncated
+10:33:33.738  <- ived symbols truncated
+10:33:33.738  <- ived symbols truncated
+10:33:33.738  <- ived symbols truncated
+10:33:33.739  <- ived symbols truncated
+10:33:33.739  <- ived symbols truncated
+10:33:33.739  <- ived symbols truncated
+10:33:33.739  <- ived symbols truncated
+10:33:33.739  <- ived symbols truncated
+10:33:33.739  <- ived symbols truncated
+10:33:33.739  <- ived symbols truncated
+10:33:33.739  <- ived symbols truncated
+10:33:33.739  <- ived symbols truncated
+10:33:33.739  <- ived symbols truncated
+10:33:33.739  <- ived symbols truncated
+10:33:33.740  <- ived symbols truncated
+10:33:33.740  <- ived symbols truncated
+10:33:33.740  <- ived symbols truncated
+10:33:33.740  <- ived symbols truncated
+10:33:33.740  <- ived symbols truncated
+10:33:33.740  <- ived symbols truncated
+10:33:33.740  <- ived symbols truncated
+10:33:33.740  <- ived symbols truncated
+10:33:33.740  <- ived symbols truncated
+10:33:33.740  <- ived symbols truncated
+10:33:33.740  <- ived symbols truncated
+10:33:33.741  <- ived symbols truncated
+10:33:33.741  <- ived symbols truncated
+10:33:33.741  <- ived symbols truncated
+10:33:33.741  <- ived symbols truncated
+10:33:33.741  <- ived symbols truncated
+10:33:33.741  <- ived symbols truncated
+10:33:33.741  <- ived symbols truncated
+10:33:33.741  <- ived symbols truncated
+10:33:33.741  <- ived symbols truncated
+10:33:33.741  <- ived symbols truncated
+10:33:33.742  <- ived symbols truncated
+10:33:33.742  <- ived symbols truncated
+10:33:33.742  <- ived symbols truncated
+10:33:33.742  <- ived symbols truncated
+10:33:33.742  <- ived symbols truncated
+10:33:33.742  <- ived symbols truncated
+10:33:33.742  <- ived symbols truncated
+10:33:33.742  <- ived symbols truncated
+10:33:33.742  <- ived symbols truncated
+10:33:33.742  <- ived symbols truncated
+10:33:33.742  <- ived symbols truncated
+10:33:33.742  <- ived symbols truncated
+10:33:33.742  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.743  <- ived symbols truncated
+10:33:33.744  <- ived symbols truncated
+10:33:33.744  <- ived symbols truncated
+10:33:33.744  <- ived symbols truncated
+10:33:33.744  <- ived symbols truncated
+10:33:33.744  <- ived symbols truncated
+10:33:33.744  <- ived symbols truncated
+10:33:33.744  <- ived symbols truncated
+10:33:33.744  <- ived symbols truncated
+10:33:33.744  <- ived symbols truncated
+10:33:33.744  <- ived symbols truncated
+10:33:33.744  <- ived symbols truncated
+10:33:33.745  <- ived symbols truncated
+10:33:33.745  <- ived symbols truncated
+10:33:33.745  <- ived symbols truncated
+10:33:33.745  <- ived symbols truncated
+10:33:33.745  <- ived symbols truncated
+10:33:33.745  <- ived symbols truncated
+10:33:33.745  <- ived symbols truncated
+10:33:33.745  <- ived symbols truncated
+10:33:33.745  <- ived symbols truncated
+10:33:33.745  <- ived symbols truncated
+10:33:33.745  <- ived symbols truncated
+10:33:33.746  <- ived symbols truncated
+10:33:33.746  <- ived symbols truncated
+10:33:33.746  <- ived symbols truncated
+10:33:33.746  <- ived symbols truncated
+10:33:33.746  <- ived symbols truncated
+10:33:33.746  <- ived symbols truncated
+10:33:33.746  <- ived symbols truncated
+10:33:33.746  <- ived symbols truncated
+10:33:33.746  <- ived symbols truncated
+10:33:33.746  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.747  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.748  <- ived symbols truncated
+10:33:33.749  <- ived symbols truncated
+10:33:33.749  <- ived symbols truncated
+10:33:33.749  <- ived symbols truncated
+10:33:33.749  <- ived symbols truncated
+10:33:33.749  <- ived symbols truncated
+10:33:33.749  <- ived symbols truncated
+10:33:33.749  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.750  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.751  <- ived symbols truncated
+10:33:33.752  <- ived symbols truncated
+10:33:33.752  <- ived symbols truncated
+10:33:33.752  <- ived symbols truncated
+10:33:33.752  <- ived symbols truncated
+10:33:33.752  <- ived symbols truncated
+10:33:33.752  <- ived symbols truncated
+10:33:33.752  <- ived symbols truncated
+10:33:33.752  <- ived symbols truncated
+10:33:33.752  <- ived symbols truncated
+10:33:33.752  <- ived symbols truncated
+10:33:33.752  <- ived symbols truncated
+10:33:33.753  <- ived symbols truncated
+10:33:33.753  <- ived symbols truncated
+10:33:33.753  <- ived symbols truncated
+10:33:33.753  <- ived symbols truncated
+10:33:33.753  <- ived symbols truncated
+10:33:33.753  <- ived symbols truncated
+10:33:33.753  <- ived symbols truncated
+10:33:33.753  <- ived symbols truncated
+10:33:33.753  <- ived symbols truncated
+10:33:33.753  <- ived symbols truncated
+10:33:33.754  <- ived symbols truncated
+10:33:33.754  <- ived symbols truncated
+10:33:33.754  <- ived symbols truncated
+10:33:33.754  <- ived symbols truncated
+10:33:33.754  <- ived symbols truncated
+10:33:33.754  <- ived symbols truncated
+10:33:33.754  <- ived symbols truncated
+10:33:33.754  <- ived symbols truncated
+10:33:33.754  <- ived symbols truncated
+10:33:33.754  <- ived symbols truncated
+10:33:33.754  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.755  <- ived symbols truncated
+10:33:33.756  <- ived symbols truncated
+10:33:33.756  <- ived symbols truncated
+10:33:33.756  <- ived symbols truncated
+10:33:33.756  <- ived symbols truncated
+10:33:33.756  <- ived symbols truncated
+10:33:33.756  <- ived symbols truncated
+10:33:33.756  <- ived symbols truncated
+10:33:33.756  <- ived symbols truncated
+10:33:33.756  <- ived symbols truncated
+10:33:33.756  <- ived symbols truncated
+10:33:33.756  <- ived symbols truncated
+10:33:33.757  <- ived symbols truncated
+10:33:33.757  <- ived symbols truncated
+10:33:33.757  <- ived symbols truncated
+10:33:33.757  <- ived symbols truncated
+10:33:33.757  <- ived symbols truncated
+10:33:33.757  <- ived symbols truncated
+10:33:33.757  <- ived symbols truncated
+10:33:33.757  <- ived symbols truncated
+10:33:34.269  <- ived sK flash post_part=roundtrip log_head=11 log_tail=0 partitions_size=4128768
+10:33:34.269  <- I (85030) BT_HID: Found 0 HID device(s)
+10:33:34.269  <- I (85030) BT_HID: No HID devices found, retrying in 2000ms...
+10:33:34.269  <- E rmt: hw buffer too small, received symbols truncated
+10:33:34.269  <- E rmt: hw buffer too small, received symbols truncated
+10:33:34.775  <- E rmt: hw buffer too small, received symbols truncated
+10:33:36.286  <- I (87030) BT_HID: Scanning for HID devices (3s)...
+10:33:36.790  <- E rmt: hw buffer too small, received symbols truncated
+10:33:36.790  <- E rmt: hw buffer too small, received symbols truncated
+10:33:36.790  <- E rmt: hw buffer too small, received symbols truncated
+10:33:37.293  <- E rmt: hw buffer too small, received symbols truncated
+10:33:38.809  <- E rmt: hw buffer too small, received symbols truncated
+10:33:39.318  <- I (90040) BT_HID: Found 0 HID device(s)
+10:33:39.318  <- I (90040) BT_HID: No HID devices found, retrying in 2000ms...
+10:33:39.318  <- E rmt: hw buffer too small, received symbols truncated
+10:33:41.336  <- I (92040) BT_HID: Scanning for HID devices (3s)...
+10:33:41.336  <- E rmt: hw buffer too small, received symbols truncated
+10:33:55.645  -> BU.END

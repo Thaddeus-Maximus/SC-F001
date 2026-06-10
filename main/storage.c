@@ -149,52 +149,23 @@ static bool validate_param(param_idx_t id) {
 
     // Clamp to [min, max] per type
     bool clamped = false;
+    #define CLAMP_FIELD(field) do { \
+        if (parameter_table[id].field < parameter_mins[id].field) { \
+            parameter_table[id].field = parameter_mins[id].field; clamped = true; \
+        } else if (parameter_table[id].field > parameter_maxs[id].field) { \
+            parameter_table[id].field = parameter_maxs[id].field; clamped = true; \
+        } \
+    } while (0)
     switch (type) {
-        case PARAM_TYPE_u16:
-            if (parameter_table[id].u16 < parameter_mins[id].u16) {
-                parameter_table[id].u16 = parameter_mins[id].u16; clamped = true;
-            } else if (parameter_table[id].u16 > parameter_maxs[id].u16) {
-                parameter_table[id].u16 = parameter_maxs[id].u16; clamped = true;
-            }
-            break;
-        case PARAM_TYPE_i16:
-            if (parameter_table[id].i16 < parameter_mins[id].i16) {
-                parameter_table[id].i16 = parameter_mins[id].i16; clamped = true;
-            } else if (parameter_table[id].i16 > parameter_maxs[id].i16) {
-                parameter_table[id].i16 = parameter_maxs[id].i16; clamped = true;
-            }
-            break;
-        case PARAM_TYPE_u32:
-            if (parameter_table[id].u32 < parameter_mins[id].u32) {
-                parameter_table[id].u32 = parameter_mins[id].u32; clamped = true;
-            } else if (parameter_table[id].u32 > parameter_maxs[id].u32) {
-                parameter_table[id].u32 = parameter_maxs[id].u32; clamped = true;
-            }
-            break;
-        case PARAM_TYPE_i32:
-            if (parameter_table[id].i32 < parameter_mins[id].i32) {
-                parameter_table[id].i32 = parameter_mins[id].i32; clamped = true;
-            } else if (parameter_table[id].i32 > parameter_maxs[id].i32) {
-                parameter_table[id].i32 = parameter_maxs[id].i32; clamped = true;
-            }
-            break;
-        case PARAM_TYPE_f32:
-            if (parameter_table[id].f32 < parameter_mins[id].f32) {
-                parameter_table[id].f32 = parameter_mins[id].f32; clamped = true;
-            } else if (parameter_table[id].f32 > parameter_maxs[id].f32) {
-                parameter_table[id].f32 = parameter_maxs[id].f32; clamped = true;
-            }
-            break;
-        case PARAM_TYPE_f64:
-            if (parameter_table[id].f64 < parameter_mins[id].f64) {
-                parameter_table[id].f64 = parameter_mins[id].f64; clamped = true;
-            } else if (parameter_table[id].f64 > parameter_maxs[id].f64) {
-                parameter_table[id].f64 = parameter_maxs[id].f64; clamped = true;
-            }
-            break;
-        default:
-            break;
+        case PARAM_TYPE_u16: CLAMP_FIELD(u16); break;
+        case PARAM_TYPE_i16: CLAMP_FIELD(i16); break;
+        case PARAM_TYPE_u32: CLAMP_FIELD(u32); break;
+        case PARAM_TYPE_i32: CLAMP_FIELD(i32); break;
+        case PARAM_TYPE_f32: CLAMP_FIELD(f32); break;
+        case PARAM_TYPE_f64: CLAMP_FIELD(f64); break;
+        default: break;
     }
+    #undef CLAMP_FIELD
 
     if (clamped) {
         ESP_LOGW(TAG, "Param %s: out of range, clamped", parameter_names[id]);
@@ -387,70 +358,72 @@ const char* get_param_unit(param_idx_t id) {
 }
 
 // ============================================================================
-// STORAGE HELPER: Pack parameter value into buffer
+// STORAGE HELPERS: Pack / unpack parameter value into a fixed buffer
 // ============================================================================
+// All param_value_t fields share offset 0 of the union, so a single memcpy of
+// param_type_size() bytes covers every type. Strings get an explicit
+// null-termination on unpack to defend against a corrupted flash entry.
 static void pack_param(uint8_t *dest, param_idx_t id) {
     param_type_e type = parameter_types[id];
-    
-    switch(type) {
-        case PARAM_TYPE_u16:
-            memcpy(dest, &parameter_table[id].u16, 2);
-            break;
-        case PARAM_TYPE_i16:
-            memcpy(dest, &parameter_table[id].i16, 2);
-            break;
-        case PARAM_TYPE_u32:
-            memcpy(dest, &parameter_table[id].u32, 4);
-            break;
-        case PARAM_TYPE_i32:
-            memcpy(dest, &parameter_table[id].i32, 4);
-            break;
-        case PARAM_TYPE_f32:
-            memcpy(dest, &parameter_table[id].f32, 4);
-            break;
-        case PARAM_TYPE_f64:
-            memcpy(dest, &parameter_table[id].f64, 8);
-            break;
-        case PARAM_TYPE_str:
-            memcpy(dest, parameter_table[id].str, 16);
-            break;
-        default:
-            memset(dest, 0, 16);
-            break;
+    size_t sz = param_type_size(type);
+    if (sz == 0 || sz > sizeof(param_value_t)) { memset(dest, 0, sizeof(param_value_t)); return; }
+    memcpy(dest, &parameter_table[id], sz);
+}
+
+static void unpack_param(const uint8_t *src, param_idx_t id) {
+    param_type_e type = parameter_types[id];
+    size_t sz = param_type_size(type);
+    if (sz == 0 || sz > sizeof(param_value_t)) return;
+    memcpy(&parameter_table[id], src, sz);
+    if (type == PARAM_TYPE_str) parameter_table[id].str[PARAM_STR_SIZE - 1] = '\0';
+}
+
+// ============================================================================
+// Promote a numeric parameter to double for callers that don't care about
+// the underlying integer/float width (cJSON, UI display). Returns 0.0 for
+// string params — caller must check get_param_type() first when that matters.
+// ============================================================================
+double param_to_double(param_idx_t id) {
+    if (id >= NUM_PARAMS) return 0.0;
+    param_value_t v = parameter_table[id];
+    switch (parameter_types[id]) {
+        case PARAM_TYPE_u16: return (double)v.u16;
+        case PARAM_TYPE_i16: return (double)v.i16;
+        case PARAM_TYPE_u32: return (double)v.u32;
+        case PARAM_TYPE_i32: return (double)v.i32;
+        case PARAM_TYPE_f32: return (double)v.f32;
+        case PARAM_TYPE_f64: return v.f64;
+        default: return 0.0;
     }
 }
 
 // ============================================================================
-// STORAGE HELPER: Unpack parameter value from buffer
+// Sort the 12 MOVE_TIME_* slots: ascending non-negative values first, then
+// every -1 (disabled) entry. Insertion sort over a tiny fixed-width array
+// — N=12 makes algorithmic complexity irrelevant. Treating -1 as +infinity
+// keeps both the "rank by time" and "disabled goes last" behavior in a
+// single comparator. Called by commit_params() so on-disk layout is always
+// the canonical sorted order; UI can read MOVE_TIME_0..N back in order.
 // ============================================================================
-static void unpack_param(const uint8_t *src, param_idx_t id) {
-    param_type_e type = parameter_types[id];
-    
-    switch(type) {
-        case PARAM_TYPE_u16:
-            memcpy(&parameter_table[id].u16, src, 2);
-            break;
-        case PARAM_TYPE_i16:
-            memcpy(&parameter_table[id].i16, src, 2);
-            break;
-        case PARAM_TYPE_u32:
-            memcpy(&parameter_table[id].u32, src, 4);
-            break;
-        case PARAM_TYPE_i32:
-            memcpy(&parameter_table[id].i32, src, 4);
-            break;
-        case PARAM_TYPE_f32:
-            memcpy(&parameter_table[id].f32, src, 4);
-            break;
-        case PARAM_TYPE_f64:
-            memcpy(&parameter_table[id].f64, src, 8);
-            break;
-        case PARAM_TYPE_str:
-            memcpy(parameter_table[id].str, src, 16);
-            parameter_table[id].str[15] = '\0';  // Ensure null termination
-            break;
-        default:
-            break;
+void sort_move_schedule(void) {
+    int32_t v[NUM_MOVE_TIMES];
+    for (int i = 0; i < NUM_MOVE_TIMES; i++) {
+        v[i] = parameter_table[PARAM_MOVE_TIME_0 + i].i32;
+    }
+    for (int i = 1; i < NUM_MOVE_TIMES; i++) {
+        int32_t key = v[i];
+        int32_t key_rank = (key < 0) ? INT32_MAX : key;
+        int j = i - 1;
+        while (j >= 0) {
+            int32_t j_rank = (v[j] < 0) ? INT32_MAX : v[j];
+            if (j_rank <= key_rank) break;
+            v[j + 1] = v[j];
+            j--;
+        }
+        v[j + 1] = key;
+    }
+    for (int i = 0; i < NUM_MOVE_TIMES; i++) {
+        parameter_table[PARAM_MOVE_TIME_0 + i].i32 = v[i];
     }
 }
 
@@ -462,6 +435,11 @@ esp_err_t commit_params(void) {
         ESP_LOGE(TAG, "Params partition not initialized");
         return ESP_ERR_INVALID_STATE;
     }
+
+    /* Canonicalize the schedule before writing — on-disk layout is always
+     * sorted, so anything that reads MOVE_TIME_0..N back can iterate in
+     * time order without re-sorting. */
+    sort_move_schedule();
 
     ESP_LOGI(TAG, "Committing %d parameters to flash...", NUM_PARAMS);
 
@@ -1157,10 +1135,6 @@ static uint32_t log_read_cursor = 0;
  * @return ESP_OK on success, ESP_ERR_NOT_FOUND if no more entries, error code otherwise
  */
 esp_err_t log_read(uint8_t* len, uint8_t* buf, uint8_t* type) {
-    // NOTE: log_read_cursor must be declared as a file-scope static variable
-    // Add this declaration near the other log static variables in storage.c:
-    // static uint32_t log_read_cursor = 0;
-    
     if (!log_initialized || log_partition == NULL) {
         ESP_LOGE(TAG, "Logging not initialized");
         return ESP_ERR_INVALID_STATE;
