@@ -1,0 +1,563 @@
+16:44:48.752  Connecting to COM3 @ 115200 ...
+16:44:48.758  -> BU.BEGIN
+16:44:48.780  <- ets Jul 29 2019 12:21:46
+16:44:48.780  <- 
+16:44:48.780  <- rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:48.783  <- configsip: 0, SPIWP:0xee
+16:44:48.785  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:48.786  <- mode:DIO, clock div:2
+16:44:48.789  <- load:0x3fffeba4,len:4
+16:44:48.790  <- load:0x4009f000,len:3248
+16:44:49.120  <- entry 0x4009f574
+16:44:49.120  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:49.122  <- 
+16:44:49.123  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:49.126  <- configsip: 0, SPIWP:0xee
+16:44:49.138  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:49.142  <- mode:DIO, clock div:2
+16:44:49.462  <- load:0x3fffeba4,len:4
+16:44:49.463  <- load:0x4009f000,len:3248
+16:44:49.465  <- entry 0x4009f574
+16:44:49.469  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:49.470  <- 
+16:44:49.470  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:49.471  <- configsip: 0, SPIWP:0xee
+16:44:49.472  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:49.800  <- mode:DIO, clock div:2
+16:44:49.800  <- load:0x3fffeba4,len:4
+16:44:49.802  <- load:0x4009f000,len:3248
+16:44:49.803  <- entry 0x4009f574
+16:44:49.807  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:49.808  <- 
+16:44:49.808  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:49.808  <- configsip: 0, SPIWP:0xee
+16:44:50.144  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:50.144  <- mode:DIO, clock div:2
+16:44:50.146  <- load:0x3fffeba4,len:4
+16:44:50.151  <- load:0x4009f000,len:3248
+16:44:50.151  <- entry 0x4009f574
+16:44:50.152  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:50.153  <- 
+16:44:50.153  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:50.153  <- configsip: 0, SPIWP:0xee
+16:44:50.268  -> BU.BEGIN
+16:44:50.268  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:50.271  <- mode:DIO, clock div:2
+16:44:50.275  <- load:0x3fffeba4,len:4
+16:44:50.276  <- load:0x4009f000,len:3248
+16:44:50.277  <- entry 0x4009f574
+16:44:50.495  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:50.495  <- 
+16:44:50.495  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:50.497  <- configsip: 0, SPIWP:0xee
+16:44:50.497  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:50.502  <- mode:DIO, clock div:2
+16:44:50.502  <- load:0x3fffeba4,len:4
+16:44:50.835  <- load:0x4009f000,len:3248
+16:44:50.835  <- entry 0x4009f574
+16:44:50.838  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:50.842  <- 
+16:44:50.842  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:50.842  <- configsip: 0, SPIWP:0xee
+16:44:50.843  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:50.844  <- mode:DIO, clock div:2
+16:44:51.178  <- load:0x3fffeba4,len:4
+16:44:51.178  <- load:0x4009f000,len:3248
+16:44:51.180  <- entry 0x4009f574
+16:44:51.184  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:51.184  <- 
+16:44:51.184  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:51.185  <- configsip: 0, SPIWP:0xee
+16:44:51.186  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:51.515  <- mode:DIO, clock div:2
+16:44:51.515  <- load:0x3fffeba4,len:4
+16:44:51.521  <- load:0x4009f000,len:3248
+16:44:51.521  <- entry 0x4009f574
+16:44:51.522  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:51.523  <- 
+16:44:51.523  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:51.523  <- configsip: 0, SPIWP:0xee
+16:44:51.770  -> BU.BEGIN
+16:44:51.770  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:51.772  <- mode:DIO, clock div:2
+16:44:51.776  <- load:0x3fffeba4,len:4
+16:44:51.777  <- load:0x4009f000,len:3248
+16:44:51.777  <- entry 0x4009f574
+16:44:51.867  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:51.867  <- 
+16:44:51.867  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:51.869  <- configsip: 0, SPIWP:0xee
+16:44:51.873  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:51.874  <- mode:DIO, clock div:2
+16:44:51.874  <- load:0x3fffeba4,len:4
+16:44:52.207  <- load:0x4009f000,len:3248
+16:44:52.207  <- entry 0x4009f574
+16:44:52.209  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:52.210  <- 
+16:44:52.210  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:52.214  <- configsip: 0, SPIWP:0xee
+16:44:52.214  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:52.216  <- mode:DIO, clock div:2
+16:44:52.550  <- load:0x3fffeba4,len:4
+16:44:52.550  <- load:0x4009f000,len:3248
+16:44:52.552  <- entry 0x4009f574
+16:44:52.557  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:52.557  <- 
+16:44:52.557  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:52.558  <- configsip: 0, SPIWP:0xee
+16:44:52.558  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:52.888  <- mode:DIO, clock div:2
+16:44:52.888  <- load:0x3fffeba4,len:4
+16:44:52.890  <- load:0x4009f000,len:3248
+16:44:52.894  <- entry 0x4009f574
+16:44:52.895  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:52.895  <- 
+16:44:52.896  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:52.896  <- configsip: 0, SPIWP:0xee
+16:44:53.231  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:53.232  <- mode:DIO, clock div:2
+16:44:53.233  <- load:0x3fffeba4,len:4
+16:44:53.238  <- load:0x4009f000,len:3248
+16:44:53.238  <- entry 0x4009f574
+16:44:53.239  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:53.240  <- 
+16:44:53.240  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:53.240  <- configsip: 0, SPIWP:0xee
+16:44:53.260  -> BU.BEGIN
+16:44:53.260  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:53.262  <- mode:DIO, clock div:2
+16:44:53.266  <- load:0x3fffeba4,len:4
+16:44:53.268  <- load:0x4009f000,len:3248
+16:44:53.269  <- entry 0x4009f574
+16:44:53.583  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:53.584  <- 
+16:44:53.584  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:53.586  <- configsip: 0, SPIWP:0xee
+16:44:53.590  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:53.590  <- mode:DIO, clock div:2
+16:44:53.591  <- load:0x3fffeba4,len:4
+16:44:53.922  <- load:0x4009f000,len:3248
+16:44:53.923  <- entry 0x4009f574
+16:44:53.924  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:53.925  <- 
+16:44:53.926  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:53.930  <- configsip: 0, SPIWP:0xee
+16:44:53.931  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:53.932  <- mode:DIO, clock div:2
+16:44:54.266  <- load:0x3fffeba4,len:4
+16:44:54.266  <- load:0x4009f000,len:3248
+16:44:54.271  <- entry 0x4009f574
+16:44:54.272  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:54.273  <- 
+16:44:54.273  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:54.273  <- configsip: 0, SPIWP:0xee
+16:44:54.274  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:54.604  <- mode:DIO, clock div:2
+16:44:54.604  <- load:0x3fffeba4,len:4
+16:44:54.606  <- load:0x4009f000,len:3248
+16:44:54.610  <- entry 0x4009f574
+16:44:54.610  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:54.611  <- 
+16:44:54.611  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:54.612  <- configsip: 0, SPIWP:0xee
+16:44:54.776  -> BU.BEGIN
+16:44:54.776  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:54.778  <- mode:DIO, clock div:2
+16:44:54.782  <- load:0x3fffeba4,len:4
+16:44:54.782  <- load:0x4009f000,len:3248
+16:44:54.783  <- entry 0x4009f574
+16:44:54.956  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:54.956  <- 
+16:44:54.956  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:54.958  <- configsip: 0, SPIWP:0xee
+16:44:54.958  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:54.963  <- mode:DIO, clock div:2
+16:44:54.963  <- load:0x3fffeba4,len:4
+16:44:55.296  <- load:0x4009f000,len:3248
+16:44:55.307  <- entry 0x4009f574
+16:44:55.309  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:55.313  <- 
+16:44:55.313  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:55.314  <- configsip: 0, SPIWP:0xee
+16:44:55.315  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:55.315  <- mode:DIO, clock div:2
+16:44:55.638  <- load:0x3fffeba4,len:4
+16:44:55.639  <- load:0x4009f000,len:3248
+16:44:55.641  <- entry 0x4009f574
+16:44:55.641  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:55.646  <- 
+16:44:55.646  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:55.647  <- configsip: 0, SPIWP:0xee
+16:44:55.648  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:55.977  <- mode:DIO, clock div:2
+16:44:55.977  <- load:0x3fffeba4,len:4
+16:44:55.978  <- load:0x4009f000,len:3248
+16:44:55.979  <- entry 0x4009f574
+16:44:55.983  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:55.984  <- 
+16:44:55.984  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:55.985  <- configsip: 0, SPIWP:0xee
+16:44:56.291  -> BU.BEGIN
+16:44:56.291  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:56.293  <- mode:DIO, clock div:2
+16:44:56.293  <- load:0x3fffeba4,len:4
+16:44:56.293  <- load:0x4009f000,len:3248
+16:44:56.297  <- entry 0x4009f574
+16:44:56.328  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:56.328  <- 
+16:44:56.328  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:56.330  <- configsip: 0, SPIWP:0xee
+16:44:56.334  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:56.337  <- mode:DIO, clock div:2
+16:44:56.339  <- load:0x3fffeba4,len:4
+16:44:56.668  <- load:0x4009f000,len:3248
+16:44:56.668  <- entry 0x4009f574
+16:44:56.670  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:56.681  <- 
+16:44:56.681  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:56.681  <- configsip: 0, SPIWP:0xee
+16:44:56.683  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:56.683  <- mode:DIO, clock div:2
+16:44:57.011  <- load:0x3fffeba4,len:4
+16:44:57.011  <- load:0x4009f000,len:3248
+16:44:57.014  <- entry 0x4009f574
+16:44:57.014  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:57.015  <- 
+16:44:57.015  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:57.019  <- configsip: 0, SPIWP:0xee
+16:44:57.020  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:57.349  <- mode:DIO, clock div:2
+16:44:57.350  <- load:0x3fffeba4,len:4
+16:44:57.352  <- load:0x4009f000,len:3248
+16:44:57.356  <- entry 0x4009f574
+16:44:57.357  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:57.357  <- 
+16:44:57.358  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:57.358  <- configsip: 0, SPIWP:0xee
+16:44:57.692  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:57.692  <- mode:DIO, clock div:2
+16:44:57.694  <- load:0x3fffeba4,len:4
+16:44:57.699  <- load:0x4009f000,len:3248
+16:44:57.700  <- entry 0x4009f574
+16:44:57.700  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:57.701  <- 
+16:44:57.701  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:57.702  <- configsip: 0, SPIWP:0xee
+16:44:57.809  -> BU.BEGIN
+16:44:57.809  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:57.811  <- mode:DIO, clock div:2
+16:44:57.815  <- load:0x3fffeba4,len:4
+16:44:57.816  <- load:0x4009f000,len:3248
+16:44:57.816  <- entry 0x4009f574
+16:44:58.045  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:58.045  <- 
+16:44:58.045  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:58.047  <- configsip: 0, SPIWP:0xee
+16:44:58.051  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:58.051  <- mode:DIO, clock div:2
+16:44:58.052  <- load:0x3fffeba4,len:4
+16:44:58.384  <- load:0x4009f000,len:3248
+16:44:58.384  <- entry 0x4009f574
+16:44:58.390  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:58.391  <- 
+16:44:58.391  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:58.392  <- configsip: 0, SPIWP:0xee
+16:44:58.392  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:58.393  <- mode:DIO, clock div:2
+16:44:58.728  <- load:0x3fffeba4,len:4
+16:44:58.728  <- load:0x4009f000,len:3248
+16:44:58.730  <- entry 0x4009f574
+16:44:58.733  <- �OHAI�ets Jul 29 2019 12:21:46
+16:44:58.734  <- 
+16:44:58.734  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:44:58.735  <- configsip: 0, SPIWP:0xee
+16:44:58.735  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:44:59.066  <- mode:DIO, clock div:2
+16:45:03.464  -> BU.BEGIN
+16:45:03.464  <- load:0x3fffeba4,len:4
+16:45:03.465  <- load:0x4009f000,len:3248
+16:45:03.466  <- entry 0x4009f574
+16:45:03.466  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.467  <- 
+16:45:03.467  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.468  <- configsip: 0, SPIWP:0xee
+16:45:03.469  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.469  <- mode:DIO, clock div:2
+16:45:03.470  <- load:0x3fffeba4,len:4
+16:45:03.470  <- load:0x4009f000,len:3248
+16:45:03.471  <- entry 0x4009f574
+16:45:03.472  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.477  <- 
+16:45:03.477  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.478  <- configsip: 0, SPIWP:0xee
+16:45:03.479  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.479  <- mode:DIO, clock div:2
+16:45:03.479  <- load:0x3fffeba4,len:4
+16:45:03.480  <- load:0x4009f000,len:3248
+16:45:03.480  <- entry 0x4009f574
+16:45:03.481  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.482  <- 
+16:45:03.482  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.482  <- configsip: 0, SPIWP:0xee
+16:45:03.483  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.483  <- mode:DIO, clock div:2
+16:45:03.484  <- load:0x3fffeba4,len:4
+16:45:03.484  <- load:0x4009f000,len:3248
+16:45:03.485  <- entry 0x4009f574
+16:45:03.485  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.486  <- 
+16:45:03.486  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.487  <- configsip: 0, SPIWP:0xee
+16:45:03.494  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.495  <- mode:DIO, clock div:2
+16:45:03.495  <- load:0x3fffeba4,len:4
+16:45:03.496  <- load:0x4009f000,len:3248
+16:45:03.496  <- entry 0x4009f574
+16:45:03.497  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.497  <- 
+16:45:03.498  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.498  <- configsip: 0, SPIWP:0xee
+16:45:03.499  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.499  <- mode:DIO, clock div:2
+16:45:03.500  <- load:0x3fffeba4,len:4
+16:45:03.500  <- load:0x4009f000,len:3248
+16:45:03.501  <- entry 0x4009f574
+16:45:03.501  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.502  <- 
+16:45:03.503  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.505  <- configsip: 0, SPIWP:0xee
+16:45:03.510  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.510  <- mode:DIO, clock div:2
+16:45:03.511  <- load:0x3fffeba4,len:4
+16:45:03.511  <- load:0x4009f000,len:3248
+16:45:03.512  <- entry 0x4009f574
+16:45:03.513  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.513  <- 
+16:45:03.513  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.514  <- configsip: 0, SPIWP:0xee
+16:45:03.514  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.515  <- mode:DIO, clock div:2
+16:45:03.515  <- load:0x3fffeba4,len:4
+16:45:03.516  <- load:0x4009f000,len:3248
+16:45:03.517  <- entry 0x4009f574
+16:45:03.517  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.517  <- 
+16:45:03.517  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.518  <- configsip: 0, SPIWP:0xee
+16:45:03.525  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.526  <- mode:DIO, clock div:2
+16:45:03.527  <- load:0x3fffeba4,len:4
+16:45:03.527  <- load:0x4009f000,len:3248
+16:45:03.527  <- entry 0x4009f574
+16:45:03.528  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.529  <- 
+16:45:03.529  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.529  <- configsip: 0, SPIWP:0xee
+16:45:03.530  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.531  <- mode:DIO, clock div:2
+16:45:03.531  <- load:0x3fffeba4,len:4
+16:45:03.531  <- load:0x4009f000,len:3248
+16:45:03.532  <- entry 0x4009f574
+16:45:03.532  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.533  <- 
+16:45:03.533  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.536  <- configsip: 0, SPIWP:0xee
+16:45:03.540  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.541  <- mode:DIO, clock div:2
+16:45:03.542  <- load:0x3fffeba4,len:4
+16:45:03.542  <- load:0x4009f000,len:3248
+16:45:03.543  <- entry 0x4009f574
+16:45:03.543  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.544  <- 
+16:45:03.544  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.545  <- configsip: 0, SPIWP:0xee
+16:45:03.546  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.546  <- mode:DIO, clock div:2
+16:45:03.546  <- load:0x3fffeba4,len:4
+16:45:03.547  <- load:0x4009f000,len:3248
+16:45:03.548  <- entry 0x4009f574
+16:45:03.548  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.549  <- 
+16:45:03.549  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.555  <- configsip: 0, SPIWP:0xee
+16:45:03.556  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.556  <- mode:DIO, clock div:2
+16:45:03.558  <- load:0x3fffeba4,len:4
+16:45:03.558  <- load:0x4009f000,len:3248
+16:45:03.559  <- entry 0x4009f574
+16:45:03.559  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.560  <- 
+16:45:03.560  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.561  <- configsip: 0, SPIWP:0xee
+16:45:03.561  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.562  <- mode:DIO, clock div:2
+16:45:03.563  <- load:0x3fffeba4,len:4
+16:45:03.563  <- load:0x4009f000,len:3248
+16:45:03.564  <- entry 0x4009f574
+16:45:03.564  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.565  <- 
+16:45:03.860  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:03.860  <- configsip: 0, SPIWP:0xee
+16:45:03.863  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:03.866  <- mode:DIO, clock div:2
+16:45:03.867  <- load:0x3fffeba4,len:4
+16:45:03.867  <- load:0x4009f000,len:3248
+16:45:03.868  <- entry 0x4009f574
+16:45:03.868  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:03.869  <- 
+16:45:04.203  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:04.203  <- configsip: 0, SPIWP:0xee
+16:45:04.205  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:04.209  <- mode:DIO, clock div:2
+16:45:04.210  <- load:0x3fffeba4,len:4
+16:45:04.211  <- load:0x4009f000,len:3248
+16:45:04.211  <- entry 0x4009f574
+16:45:04.224  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:04.224  <- 
+16:45:04.224  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:04.228  <- configsip: 0, SPIWP:0xee
+16:45:04.228  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:04.229  <- mode:DIO, clock div:2
+16:45:04.229  <- load:0x3fffeba4,len:4
+16:45:04.230  <- load:0x4009f000,len:3248
+16:45:04.563  <- entry 0x4009f574
+16:45:04.563  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:04.565  <- 
+16:45:04.565  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:04.569  <- configsip: 0, SPIWP:0xee
+16:45:04.569  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:04.570  <- mode:DIO, clock div:2
+16:45:04.571  <- load:0x3fffeba4,len:4
+16:45:04.906  <- load:0x4009f000,len:3248
+16:45:04.906  <- entry 0x4009f574
+16:45:04.908  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:04.909  <- 
+16:45:04.909  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:04.913  <- configsip: 0, SPIWP:0xee
+16:45:04.913  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:04.969  -> BU.BEGIN
+16:45:04.970  <- mode:DIO, clock div:2
+16:45:04.972  <- load:0x3fffeba4,len:4
+16:45:04.976  <- load:0x4009f000,len:3248
+16:45:04.977  <- entry 0x4009f574
+16:45:05.252  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:05.252  <- 
+16:45:05.252  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:05.254  <- configsip: 0, SPIWP:0xee
+16:45:05.258  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:05.259  <- mode:DIO, clock div:2
+16:45:05.260  <- load:0x3fffeba4,len:4
+16:45:05.592  <- load:0x4009f000,len:3248
+16:45:05.593  <- entry 0x4009f574
+16:45:05.594  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:05.599  <- 
+16:45:05.599  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:05.600  <- configsip: 0, SPIWP:0xee
+16:45:05.600  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:05.601  <- mode:DIO, clock div:2
+16:45:05.935  <- load:0x3fffeba4,len:4
+16:45:05.935  <- load:0x4009f000,len:3248
+16:45:05.938  <- entry 0x4009f574
+16:45:05.942  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:05.943  <- 
+16:45:05.943  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:05.944  <- configsip: 0, SPIWP:0xee
+16:45:05.944  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:06.274  <- mode:DIO, clock div:2
+16:45:06.274  <- load:0x3fffeba4,len:4
+16:45:06.276  <- load:0x4009f000,len:3248
+16:45:06.280  <- entry 0x4009f574
+16:45:06.280  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:06.281  <- 
+16:45:06.281  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:06.282  <- configsip: 0, SPIWP:0xee
+16:45:06.470  -> BU.BEGIN
+16:45:06.470  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:06.472  <- mode:DIO, clock div:2
+16:45:06.476  <- load:0x3fffeba4,len:4
+16:45:06.477  <- load:0x4009f000,len:3248
+16:45:06.478  <- entry 0x4009f574
+16:45:06.625  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:06.626  <- 
+16:45:06.626  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:06.627  <- configsip: 0, SPIWP:0xee
+16:45:06.628  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:06.632  <- mode:DIO, clock div:2
+16:45:06.633  <- load:0x3fffeba4,len:4
+16:45:06.965  <- load:0x4009f000,len:3248
+16:45:06.965  <- entry 0x4009f574
+16:45:06.967  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:06.971  <- 
+16:45:06.971  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:06.972  <- configsip: 0, SPIWP:0xee
+16:45:06.973  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:06.974  <- mode:DIO, clock div:2
+16:45:07.308  <- load:0x3fffeba4,len:4
+16:45:07.308  <- load:0x4009f000,len:3248
+16:45:07.310  <- entry 0x4009f574
+16:45:07.315  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:07.315  <- 
+16:45:07.315  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:07.316  <- configsip: 0, SPIWP:0xee
+16:45:07.317  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:07.646  <- mode:DIO, clock div:2
+16:45:07.647  <- load:0x3fffeba4,len:4
+16:45:07.649  <- load:0x4009f000,len:3248
+16:45:07.653  <- entry 0x4009f574
+16:45:07.654  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:07.655  <- 
+16:45:07.655  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:07.655  <- configsip: 0, SPIWP:0xee
+16:45:07.983  -> BU.BEGIN
+16:45:07.983  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:07.985  <- mode:DIO, clock div:2
+16:45:07.989  <- load:0x3fffeba4,len:4
+16:45:07.990  <- load:0x4009f000,len:3248
+16:45:07.990  <- entry 0x4009f574
+16:45:07.991  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:07.993  <- 
+16:45:08.321  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:08.322  <- configsip: 0, SPIWP:0xee
+16:45:08.324  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:08.328  <- mode:DIO, clock div:2
+16:45:08.329  <- load:0x3fffeba4,len:4
+16:45:08.330  <- load:0x4009f000,len:3248
+16:45:08.330  <- entry 0x4009f574
+16:45:08.331  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:08.331  <- 
+16:45:08.665  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:08.665  <- configsip: 0, SPIWP:0xee
+16:45:08.667  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:08.672  <- mode:DIO, clock div:2
+16:45:08.673  <- load:0x3fffeba4,len:4
+16:45:08.674  <- load:0x4009f000,len:3248
+16:45:08.674  <- entry 0x4009f574
+16:45:08.684  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:08.685  <- 
+16:45:08.685  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:08.685  <- configsip: 0, SPIWP:0xee
+16:45:08.686  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:08.687  <- mode:DIO, clock div:2
+16:45:08.694  <- load:0x3fffeba4,len:4
+16:45:08.695  <- load:0x4009f000,len:3248
+16:45:09.024  <- entry 0x4009f574
+16:45:09.025  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:09.027  <- 
+16:45:09.027  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:09.031  <- configsip: 0, SPIWP:0xee
+16:45:09.032  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:09.032  <- mode:DIO, clock div:2
+16:45:09.033  <- load:0x3fffeba4,len:4
+16:45:09.368  <- load:0x4009f000,len:3248
+16:45:09.368  <- entry 0x4009f574
+16:45:09.370  <- �OHAI�ets Jul 29 2019 12:21:46
+16:45:09.374  <- 
+16:45:09.374  <- rst:0x10 (RTCWDT_RTC_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+16:45:09.375  <- configsip: 0, SPIWP:0xee
+16:45:09.375  <- clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+16:45:09.501  -> BU.BEGIN
+16:45:09.501  <- mode:DIO, clock div:2
+16:45:09.503  <- load:0x3fffeba4,len:4
+16:45:09.507  <- load:0x4009f000,len:3248
+16:45:09.508  <- entry 0x4009f574
+16:45:09.718  -> BU.END
