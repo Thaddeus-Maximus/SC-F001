@@ -30,6 +30,7 @@
 #include "nvs_flash.h"
 #include "esp_http_server.h"
 #include "esp_netif.h"
+#include "lwip/sockets.h"   // close() for the WS disconnect callback
 #include <math.h>
 #include <stdint.h>
 #include <sys/param.h>
@@ -161,12 +162,13 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
     }
 
     bringup_notify_http_request();
+    rtc_reset_shutdown_timer();   // serving the page is real activity → wake from soft idle
 
     HTTPD_RET_ON_ERR(httpd_resp_set_type(req, "text/html"),                 "set response type");
     HTTPD_RET_ON_ERR(httpd_resp_set_hdr(req, "Content-Encoding", "gzip"),   "set content encoding header");
+    HTTPD_RET_ON_ERR(httpd_resp_set_hdr(req, "Connection", "close"),        "set connection header");
     HTTPD_RET_ON_ERR(httpd_resp_send(req, (const char *)html_content, html_content_len),
                                                                             "send HTML response");
-    HTTPD_WARN_ON_ERR(httpd_resp_set_hdr(req, "Connection", "close"),       "set connection header");
     return ESP_OK;
 }
 
@@ -306,6 +308,8 @@ static esp_err_t log_handler_locked(httpd_req_t *req) {
         return err;
     }
 
+    httpd_resp_set_hdr(req, "Connection", "close");
+
     // Send JSON length (4 bytes, big-endian)
     uint32_t json_len_be = htobe32(json_len);
     memcpy(&http_buffer[0], &json_len_be, 4);
@@ -352,7 +356,6 @@ static esp_err_t log_handler_locked(httpd_req_t *req) {
 
     // Send empty chunk to signal end
     HTTPD_RET_ON_ERR(httpd_resp_send_chunk(req, NULL, 0), "send final chunk");
-    HTTPD_WARN_ON_ERR(httpd_resp_set_hdr(req, "Connection", "close"), "set connection header");
     return ESP_OK;
 }
 
@@ -410,20 +413,16 @@ static esp_err_t get_handler(httpd_req_t *req) {
         free(json_str);
         return err;
     }
-    
+
+    httpd_resp_set_hdr(req, "Connection", "close");
     err = httpd_resp_send(req, json_str, strlen(json_str));
     free(json_str);
-    
+
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to send response: %s", esp_err_to_name(err));
         return err;
     }
-    
-    err = httpd_resp_set_hdr(req, "Connection", "close");
-    if (err != ESP_OK) {
-        ESP_LOGW(TAG, "Failed to set connection header: %s", esp_err_to_name(err));
-    }
-    
+
     return err;
 }
 
@@ -502,14 +501,16 @@ static esp_err_t post_handler_locked(httpd_req_t *req) {
     }
     
     // Check for special response flags
-    cJSON *reboot_flag       = cJSON_GetObjectItem(response, "reboot");
-    cJSON *sleep_flag        = cJSON_GetObjectItem(response, "sleep");
-    cJSON *hibernate_flag    = cJSON_GetObjectItem(response, "hibernate");
-    cJSON *wifi_restart_flag = cJSON_GetObjectItem(response, "wifi_restart");
-    bool should_reboot        = cJSON_IsTrue(reboot_flag);
-    bool should_sleep         = cJSON_IsTrue(sleep_flag);
-    bool should_hibernate     = cJSON_IsTrue(hibernate_flag);
-    bool should_restart_wifi  = cJSON_IsTrue(wifi_restart_flag);
+    cJSON *reboot_flag         = cJSON_GetObjectItem(response, "reboot");
+    cJSON *factory_reset_flag  = cJSON_GetObjectItem(response, "factory_reset");
+    cJSON *sleep_flag          = cJSON_GetObjectItem(response, "sleep");
+    cJSON *hibernate_flag      = cJSON_GetObjectItem(response, "hibernate");
+    cJSON *wifi_restart_flag   = cJSON_GetObjectItem(response, "wifi_restart");
+    bool should_reboot         = cJSON_IsTrue(reboot_flag);
+    bool should_factory_reset  = cJSON_IsTrue(factory_reset_flag);
+    bool should_sleep          = cJSON_IsTrue(sleep_flag);
+    bool should_hibernate      = cJSON_IsTrue(hibernate_flag);
+    bool should_restart_wifi   = cJSON_IsTrue(wifi_restart_flag);
     
     // Convert response to string
     char *json_str = cJSON_PrintUnformatted(response);
@@ -521,22 +522,30 @@ static esp_err_t post_handler_locked(httpd_req_t *req) {
                                     "Failed to serialize response");
     }
     
-    // Send response
+    // Send response — keep-alive intentional; held-button remote pulses reuse this connection
     err = httpd_resp_set_type(req, "application/json");
     if (err == ESP_OK) {
         err = httpd_resp_send(req, json_str, strlen(json_str));
     }
     free(json_str);
-    
+
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to send response: %s", esp_err_to_name(err));
         return err;
     }
-    
+
     // Handle special actions after response is sent
     if (should_reboot) {
         ESP_LOGI(TAG, "Rebooting in 2 seconds...");
         vTaskDelay(pdMS_TO_TICKS(2000));
+        esp_restart();
+        return ESP_OK;  // Never reached
+    }
+
+    if (should_factory_reset) {
+        ESP_LOGW(TAG, "Factory reset in 2 seconds...");
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        factory_reset();
         esp_restart();
         return ESP_OK;  // Never reached
     }
@@ -564,7 +573,6 @@ static esp_err_t post_handler_locked(httpd_req_t *req) {
         return ESP_OK;
     }
 
-    HTTPD_WARN_ON_ERR(httpd_resp_set_hdr(req, "Connection", "close"), "set connection header");
     return err;
 }
 
@@ -738,46 +746,45 @@ static esp_err_t catchall_handler(httpd_req_t *req) {
     // Windows NCSI
     if (strcmp(uri, "/connecttest.txt") == 0) {
         httpd_resp_set_type(req, "text/plain");
-        httpd_resp_sendstr(req, "Microsoft Connect Test");
         httpd_resp_set_hdr(req, "Connection", "close");
+        httpd_resp_sendstr(req, "Microsoft Connect Test");
         return ESP_OK;
     }
-    
+
     if (strncmp(uri, "/success.txt", 12) == 0) {  // Handles query params too
         httpd_resp_set_type(req, "text/plain");
-        httpd_resp_sendstr(req, "Success");
         httpd_resp_set_hdr(req, "Connection", "close");
+        httpd_resp_sendstr(req, "Success");
         return ESP_OK;
     }
-    
+
     if (strcmp(uri, "/canonical.html") == 0) {
         httpd_resp_set_type(req, "text/html");
-        httpd_resp_sendstr(req, "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>");
         httpd_resp_set_hdr(req, "Connection", "close");
+        httpd_resp_sendstr(req, "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>");
         return ESP_OK;
     }
-    
+
     // Android
     if (strcmp(uri, "/generate_204") == 0 || strcmp(uri, "/gen_204") == 0) {
         httpd_resp_set_status(req, "204 No Content");
-        httpd_resp_send(req, NULL, 0);
         httpd_resp_set_hdr(req, "Connection", "close");
+        httpd_resp_send(req, NULL, 0);
         return ESP_OK;
     }
-    
-    // iOS/macOS
-    if (strcmp(uri, "/hotspot-detect.html") == 0 || 
+
+    // iOS/macOS — return 200 Success so the OS stops probing
+    if (strcmp(uri, "/hotspot-detect.html") == 0 ||
         strcmp(uri, "/library/test/success.html") == 0) {
-        httpd_resp_set_status(req, "302 Found");
-        httpd_resp_set_hdr(req, "Location", "/");
-        httpd_resp_send(req, NULL, 0);
+        httpd_resp_set_type(req, "text/html");
         httpd_resp_set_hdr(req, "Connection", "close");
+        httpd_resp_sendstr(req, "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>");
         return ESP_OK;
     }
-    
+
     // Default 404
-    httpd_resp_send_404(req);
     httpd_resp_set_hdr(req, "Connection", "close");
+    httpd_resp_send_404(req);
     
     return ESP_OK;
 }
@@ -787,6 +794,10 @@ static esp_err_t catchall_handler(httpd_req_t *req) {
 /************************************************
 **************** URI HANDLER MAP ****************
 ************************************************/
+
+/* Real-time control + status channel. Defined further down (needs the
+ * server_running / http_server_instance globals declared below). */
+static esp_err_t ws_handler(httpd_req_t *req);
 
 httpd_uri_t uris[] = {{
     .uri       = "/",
@@ -814,6 +825,17 @@ httpd_uri_t uris[] = {{
     .handler   = ota_post_handler,
     .user_ctx  = NULL
 },{
+    /* WebSocket: must be registered before the wildcard catchall so the
+     * handshake GET to /ws is matched here, not by catchall_handler. */
+    .uri       = "/ws",
+    .method    = HTTP_GET,
+    .handler   = ws_handler,
+    .user_ctx  = NULL,
+    .is_websocket = true,
+    /* Let httpd handle PING/PONG/CLOSE internally. A clean CLOSE still closes
+     * the socket, which fires ws_close_fn -> stop_override(). */
+    .handle_ws_control_frames = false
+},{
     .uri       = "/*",
     .method    = HTTP_GET,
     .handler   = catchall_handler,
@@ -830,6 +852,185 @@ static bool s_wifi_running = false;
 static esp_netif_t      *s_ap_netif      = NULL;
 static bool              s_wifi_initted  = false;
 
+/**********************************************************
+**************** WEBSOCKET (REAL-TIME) ********************
+**********************************************************/
+/* The page opens a WebSocket to /ws for two things:
+ *   - client -> server: low-latency remote-control commands (extend, retract,
+ *     fwd, rev, aux, stop_override) sent as small JSON text frames. These are
+ *     routed through comms_handle_post() so they share the POST command
+ *     vocabulary exactly.
+ *   - server -> client: a ~1 Hz status push (same JSON as /get) so the page
+ *     no longer has to poll over HTTP.
+ *
+ * Safety: any WS socket close (tab closed, WiFi drop, crash) invokes
+ * stop_override() via the httpd close callback, halting remote motion with no
+ * dependence on the 350 ms pulse timeout. */
+
+#define WS_MAX_CLIENTS 7   /* mirrors config.max_open_sockets */
+#define WS_RX_MAX      256 /* remote-control JSON frames are tiny */
+
+/* Non-blocking writability poll. A live browser drains a ~1 KB status frame
+ * instantly, so a WS socket that isn't writable here is effectively dead — the
+ * classic case being a phone that dropped off WiFi without sending a TCP FIN.
+ * Sending to such a socket would block the httpd task for up to
+ * send_wait_timeout (30 s), wedging the server so a reconnect can't even load
+ * the page. We skip + reclaim those instead. */
+static bool ws_sock_writable(int fd) {
+    fd_set wfds;
+    FD_ZERO(&wfds);
+    FD_SET(fd, &wfds);
+    struct timeval tv = { .tv_sec = 0, .tv_usec = 0 };  // poll, never block
+    int r = select(fd + 1, NULL, &wfds, NULL, &tv);
+    return r > 0 && FD_ISSET(fd, &wfds);
+}
+
+/* Build the status JSON and push it to every connected WS client. Runs on the
+ * httpd task (queued via httpd_queue_work) so all WS sends happen in the
+ * server's own context. Dead/stuck sockets are reclaimed rather than sent to,
+ * so one vanished client can't block status (or new connections) for everyone. */
+static void ws_broadcast_work(void *arg) {
+    httpd_handle_t hd = http_server_instance;
+    if (hd == NULL) return;
+
+    size_t fds = WS_MAX_CLIENTS;
+    int client_fds[WS_MAX_CLIENTS];
+    if (httpd_get_client_list(hd, &fds, client_fds) != ESP_OK) return;
+
+    /* Collect just the WS clients first so we skip building the (large) JSON
+     * payload entirely when no browser is connected — zero heap churn idle. */
+    int ws_fds[WS_MAX_CLIENTS];
+    int n_ws = 0;
+    for (size_t i = 0; i < fds; i++) {
+        if (httpd_ws_get_fd_info(hd, client_fds[i]) == HTTPD_WS_CLIENT_WEBSOCKET)
+            ws_fds[n_ws++] = client_fds[i];
+    }
+    if (n_ws == 0) return;
+
+    cJSON *root = comms_build_status();   /* does NOT reset shutdown timer */
+    if (root == NULL) return;
+    char *json = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+    if (json == NULL) return;
+
+    httpd_ws_frame_t frame = {
+        .type    = HTTPD_WS_TYPE_TEXT,
+        .payload = (uint8_t *)json,
+        .len     = strlen(json),
+    };
+    int sent = 0;
+    for (int i = 0; i < n_ws; i++) {
+        int fd = ws_fds[i];
+        if (!ws_sock_writable(fd)) {
+            ESP_LOGW(TAG, "WS fd=%d not writable — reclaiming stale client", fd);
+            httpd_sess_trigger_close(hd, fd);
+            continue;
+        }
+        esp_err_t e = httpd_ws_send_frame_async(hd, fd, &frame);
+        if (e != ESP_OK) {
+            ESP_LOGW(TAG, "WS send fd=%d failed (%s) — reclaiming", fd, esp_err_to_name(e));
+            httpd_sess_trigger_close(hd, fd);
+        } else {
+            sent++;
+        }
+    }
+    free(json);
+
+    /* A live, connected browser keeps the device awake — same intent as the
+     * old 2 s poll resetting the shutdown timer. Only count genuinely-reachable
+     * clients so a pile of stale sockets can't pin the device awake. */
+    if (sent > 0) rtc_reset_shutdown_timer();
+}
+
+/* 1 Hz timer that queues a broadcast onto the httpd task. */
+static esp_timer_handle_t s_ws_push_timer = NULL;
+static void ws_push_timer_cb(void *arg) {
+    if (server_running && http_server_instance)
+        httpd_queue_work(http_server_instance, ws_broadcast_work, NULL);
+}
+static void ws_push_timer_start(void) {
+    if (s_ws_push_timer == NULL) {
+        esp_timer_create_args_t ta = { .callback = ws_push_timer_cb, .name = "ws_push" };
+        if (esp_timer_create(&ta, &s_ws_push_timer) != ESP_OK) return;
+    }
+    esp_timer_start_periodic(s_ws_push_timer, 1000 * 1000);  // 1 Hz
+}
+static void ws_push_timer_stop(void) {
+    if (s_ws_push_timer) esp_timer_stop(s_ws_push_timer);
+}
+
+/* WebSocket handler. The handshake arrives as HTTP_GET; subsequent frames
+ * carry remote-control commands. */
+static esp_err_t ws_handler(httpd_req_t *req) {
+    if (req->method == HTTP_GET) {
+        int fd = httpd_req_to_sockfd(req);
+        /* Bound how long a status push can block on this socket. httpd defaults
+         * WS sockets to send_wait_timeout (30 s); if this client vanishes, a
+         * push must not hang the shared httpd task that long. 2 s is ample for
+         * a live client to drain ~1 KB. */
+        struct timeval tv = { .tv_sec = 2, .tv_usec = 0 };
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+        ESP_LOGI(TAG, "WS connect, fd=%d", fd);
+        rtc_reset_shutdown_timer();
+        return ESP_OK;  // httpd completed the handshake
+    }
+
+    /* First recv with max_len=0 fills in frame.len/type without copying. */
+    httpd_ws_frame_t frame = { .type = HTTPD_WS_TYPE_TEXT };
+    esp_err_t ret = httpd_ws_recv_frame(req, &frame, 0);
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "WS recv (len query) failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    ESP_LOGD(TAG, "WS frame type=%d len=%u fd=%d",
+             frame.type, (unsigned)frame.len, httpd_req_to_sockfd(req));
+
+    if (frame.type == HTTPD_WS_TYPE_CLOSE) {
+        stop_override();   // explicit close → halt remote motion
+        return ESP_OK;
+    }
+    if (frame.type != HTTPD_WS_TYPE_TEXT || frame.len == 0) return ESP_OK;
+    if (frame.len >= WS_RX_MAX) {
+        ESP_LOGW(TAG, "WS frame too large (%u bytes), dropping", (unsigned)frame.len);
+        return ESP_OK;
+    }
+
+    uint8_t buf[WS_RX_MAX];
+    frame.payload = buf;
+    ret = httpd_ws_recv_frame(req, &frame, WS_RX_MAX);
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "WS recv (payload) failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+    buf[frame.len] = '\0';
+    ESP_LOGD(TAG, "WS cmd: %s", (char *)buf);
+
+    /* Route through the shared command dispatcher. Remote-control commands act
+     * immediately (pulse_override); request/response commands like reboot just
+     * set response flags we don't act on here — those stay on the HTTP path. */
+    cJSON *root = cJSON_Parse((char *)buf);
+    if (root) {
+        cJSON *resp = NULL;
+        comms_handle_post(root, &resp);
+        cJSON_Delete(root);
+        if (resp) cJSON_Delete(resp);
+    } else {
+        ESP_LOGW(TAG, "WS cmd parse failed");
+    }
+    return ESP_OK;
+}
+
+/* Global socket-close callback. Fires for every socket the server closes; we
+ * only act on WS sockets so a stray HTTP socket close can't stop an active
+ * remote hold. Must close the socket ourselves (we replaced the default). */
+static void ws_close_fn(httpd_handle_t hd, int sockfd) {
+    if (httpd_ws_get_fd_info(hd, sockfd) == HTTPD_WS_CLIENT_WEBSOCKET) {
+        ESP_LOGI(TAG, "WS disconnect, fd=%d — stop_override()", sockfd);
+        stop_override();
+    }
+    close(sockfd);
+}
+
 static esp_err_t start_http_server(void) {
 	if (server_running) return ESP_OK;
 	ESP_LOGI(TAG, "STARTING HTTP");
@@ -843,7 +1044,8 @@ static esp_err_t start_http_server(void) {
     config.recv_wait_timeout = 10;  // seconds (default 5)
     config.send_wait_timeout = 30;  // seconds (default 5) — log download needs headroom in STA mode
     config.uri_match_fn = httpd_uri_match_wildcard; // enable wildcarding
-    
+    config.close_fn = ws_close_fn;  // halt remote motion on any WS disconnect
+
     esp_err_t err = httpd_start(&http_server_instance, &config);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start HTTP server: %s", esp_err_to_name(err));
@@ -865,7 +1067,9 @@ static esp_err_t start_http_server(void) {
     }
     
     server_running = true;
-    
+
+    ws_push_timer_start();  // begin 1 Hz status push to WS clients
+
     return ESP_OK;
 }
 
@@ -876,7 +1080,9 @@ static esp_err_t stop_http_server(void) {
         ESP_LOGW(TAG, "HTTP server not running");
         return ESP_ERR_INVALID_STATE;
     }
-    
+
+    ws_push_timer_stop();
+
     esp_err_t err = httpd_stop(http_server_instance);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to stop HTTP server: %s", esp_err_to_name(err));
@@ -909,7 +1115,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
         if (event_id == WIFI_EVENT_AP_STACONNECTED) {
             wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
             ESP_LOGI(TAG, "Station connected, AID=%d", event->aid);
-            rtc_reset_shutdown_timer();
+            rtc_reset_shutdown_timer();   // also wakes from soft idle if needed
             n_connected++;
             /* HTTP lifecycle is no longer tied to client count — the server
              * is started once in webserver_init() and stays up. Tying
@@ -1078,6 +1284,18 @@ esp_err_t webserver_stop(void) {
     }
     if (comms_event_group) xEventGroupClearBits(comms_event_group, WIFI_READY_BIT);
     return ESP_OK;
+}
+
+/* Soft-idle entry: stop HTTP server but leave WiFi AP running so clients
+ * can still associate and trigger auto-wake via WIFI_EVENT_AP_STACONNECTED. */
+esp_err_t webserver_sleep(void) {
+    stop_http_server();
+    return ESP_OK;
+}
+
+/* Soft-idle exit: restart HTTP server (WiFi AP is already up). */
+esp_err_t webserver_wake(void) {
+    return start_http_server();
 }
 
 esp_err_t webserver_restart_wifi(void) {

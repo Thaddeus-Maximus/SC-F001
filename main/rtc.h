@@ -19,7 +19,8 @@
 #include <time.h>
 
 
-#define POWER_INACTIVITY_TIMEOUT_MS 180000
+/* Fallback only — runtime value comes from PARAM_INACTIVITY_TIMEOUT_S in storage. */
+#define POWER_INACTIVITY_TIMEOUT_MS 300000
 
 /* -------------------------------------------------------------------------- */
 /*  Public API                                                                */

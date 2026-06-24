@@ -403,12 +403,12 @@ double param_to_double(param_idx_t id) {
 // — N=12 makes algorithmic complexity irrelevant. Treating -1 as +infinity
 // keeps both the "rank by time" and "disabled goes last" behavior in a
 // single comparator. Called by commit_params() so on-disk layout is always
-// the canonical sorted order; UI can read MOVE_TIME_0..N back in order.
+// the canonical sorted order; UI can read MOVE_TIME_00..N back in order.
 // ============================================================================
 void sort_move_schedule(void) {
     int32_t v[NUM_MOVE_TIMES];
     for (int i = 0; i < NUM_MOVE_TIMES; i++) {
-        v[i] = parameter_table[PARAM_MOVE_TIME_0 + i].i32;
+        v[i] = parameter_table[PARAM_MOVE_TIME_00 + i].i32;
     }
     for (int i = 1; i < NUM_MOVE_TIMES; i++) {
         int32_t key = v[i];
@@ -423,7 +423,7 @@ void sort_move_schedule(void) {
         v[j + 1] = key;
     }
     for (int i = 0; i < NUM_MOVE_TIMES; i++) {
-        parameter_table[PARAM_MOVE_TIME_0 + i].i32 = v[i];
+        parameter_table[PARAM_MOVE_TIME_00 + i].i32 = v[i];
     }
 }
 

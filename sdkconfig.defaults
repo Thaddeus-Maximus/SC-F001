@@ -14,3 +14,10 @@ CONFIG_RTC_CLK_SRC_INT_RC=y
 # WDT timeout triggers a panic (→ reboot + core dump) instead of just logging.
 # Required for OTA rollback: a hung task causes a reboot, incrementing the reset counter.
 CONFIG_ESP_TASK_WDT_PANIC=y
+
+# --- Web server ---
+
+# Enable WebSocket support in esp_http_server. The web UI opens a /ws socket for
+# low-latency remote-control commands (with stop-on-disconnect safety) and a 1 Hz
+# server-pushed status feed, replacing the old 2 s HTTP polling.
+CONFIG_HTTPD_WS_SUPPORT=y

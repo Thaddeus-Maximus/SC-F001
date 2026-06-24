@@ -90,6 +90,7 @@ typedef enum {
 #define N_BRIDGES 3
 
 void pulse_override(fsm_override_t cmd);
+void stop_override(void);
 
 esp_err_t fsm_init();
 esp_err_t fsm_stop();
@@ -111,6 +112,7 @@ int8_t fsm_get_current_progress(int8_t remainder);
 
 fsm_state_t fsm_get_state();
 bool fsm_is_idle(void);
+int64_t fsm_get_jack_pos_us(void);
 
 /* Human-readable name for a fsm_state_t value — used by logs and any web
  * UI surface that wants to render a friendly state name. Returns a literal. */

@@ -63,6 +63,11 @@ static int64_t jack_start_us  = 0;
 static int64_t jack_trans_us  = 0;
 static int64_t jack_finish_us = 0;
 
+/* Cumulative jack extension estimate in microseconds (0 = fully retracted).
+ * Reset to 0 whenever SENSOR_JACK trips (home position). Persists across
+ * panics/WDT resets so the guard survives a mid-extension reboot. */
+RTC_DATA_ATTR static int64_t jack_pos_us = 0;
+
 volatile fsm_state_t current_state = STATE_IDLE;
 volatile int64_t fsm_now = 0;
 volatile bool start_running_request = false;
@@ -74,6 +79,10 @@ fsm_state_t fsm_get_state() {
 
 bool fsm_is_idle(void) {
 	return current_state == STATE_IDLE;
+}
+
+int64_t fsm_get_jack_pos_us(void) {
+	return jack_pos_us;
 }
 
 static int64_t timer_end = 0;
@@ -94,6 +103,12 @@ void pulse_override(fsm_override_t cmd) {
         override_time = deadline;
         portEXIT_CRITICAL(&override_spin);
     }
+}
+
+void stop_override(void) {
+    portENTER_CRITICAL(&override_spin);
+    override_time = 0;
+    portEXIT_CRITICAL(&override_spin);
 }
 
 /* Atomic snapshot of override_time + override_cmd for the control task. */
@@ -210,7 +225,8 @@ int8_t fsm_get_current_progress(int8_t denominator) {
 }
 
 
-#define JACK_TIME  get_param_value_t(PARAM_JACK_KT).f32  * get_param_value_t(PARAM_JACK_DIST ).f32
+#define JACK_TIME      get_param_value_t(PARAM_JACK_KT).f32 * get_param_value_t(PARAM_JACK_DIST).f32
+#define JACK_MAX_TIME  get_param_value_t(PARAM_JACK_KT).f32 * get_param_value_t(PARAM_JACK_MAX ).f32
 
 /* Symmetric jack-down duration: how long jack-up actually ran, plus 5%.
  * If jack_start_us / jack_finish_us are zero or negative (panic recovery,
@@ -678,7 +694,7 @@ void control_task(void *param) {
 							}
                             break;
                         case FSM_OVERRIDE_JACK_UP:
-			            	if (efuse_get(BRIDGE_JACK)){
+			            	if (efuse_get(BRIDGE_JACK) || jack_pos_us >= (int64_t)JACK_MAX_TIME) {
 				            	drive_relays((relay_port_t){.bridges = {
 									.DRIVE=BRIDGE_OFF,
 									.JACK=BRIDGE_OFF,
@@ -813,6 +829,48 @@ void control_task(void *param) {
         }
         
         
+        /**** JACK POSITION TRACKING ****/
+        /* Update jack_pos_us each tick based on what the relay outputs just did.
+         * SENSOR_JACK tripping is the definitive home reset (overrides everything). */
+        {
+            const int64_t TICK_US = 20000LL;
+            bridge_dir_t jack_dir = BRIDGE_OFF;
+
+            switch (current_state) {
+                case STATE_JACK_UP_START:
+                case STATE_JACK_UP:
+                case STATE_CALIBRATE_JACK_MOVE:
+                    jack_dir = BRIDGE_FWD;
+                    break;
+                case STATE_JACK_DOWN:
+                    jack_dir = BRIDGE_REV;
+                    break;
+                case STATE_IDLE: {
+                    int64_t local_time;
+                    fsm_override_t local_cmd;
+                    override_snapshot(&local_time, &local_cmd);
+                    if (local_time > fsm_now && !efuse_get(BRIDGE_JACK)) {
+                        if (local_cmd == FSM_OVERRIDE_JACK_UP && jack_pos_us < (int64_t)JACK_MAX_TIME)
+                            jack_dir = BRIDGE_FWD;
+                        else if (local_cmd == FSM_OVERRIDE_JACK_DOWN)
+                            jack_dir = BRIDGE_REV;
+                    }
+                    break;
+                }
+                default: break;
+            }
+
+            if (jack_dir == BRIDGE_FWD)
+                jack_pos_us += TICK_US;
+            else if (jack_dir == BRIDGE_REV) {
+                jack_pos_us -= TICK_US;
+                if (jack_pos_us < 0LL) jack_pos_us = 0LL;
+            }
+
+            if (get_sensor(SENSOR_JACK))
+                jack_pos_us = 0LL;
+        }
+
         /**** LOGGING ****/
         if (log) send_fsm_log();
 

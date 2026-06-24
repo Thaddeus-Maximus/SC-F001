@@ -77,8 +77,8 @@
  * Usage codes sent by generic BLE media remotes (HID Consumer Control page).
  * Only the four we care about are mapped; everything else is ignored.
  */
-#define USAGE_VOL_UP    0x00E9u   /* -> jack up   */
-#define USAGE_VOL_DOWN  0x00EAu   /* -> jack down */
+#define USAGE_VOL_UP    0x00E9u   /* -> jack extend  */
+#define USAGE_VOL_DOWN  0x00EAu   /* -> jack retract */
 #define USAGE_PREV      0x00B6u   /* -> reverse   */
 #define USAGE_NEXT      0x00B5u   /* -> forward   */
 #define USAGE_NONE      0x0000u

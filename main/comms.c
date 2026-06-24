@@ -42,13 +42,11 @@ static bool set_param_from_json(param_idx_t idx, cJSON *value_json) {
 }
 
 /**
- * Build a JSON object containing complete system status
+ * Build the full system-status JSON object WITHOUT touching the shutdown
+ * timer. Used by the 1 Hz WebSocket push, which must not keep the device
+ * awake on its own — only genuine client activity (commands) should.
  */
-cJSON* comms_handle_get(void) {
-    //ESP_LOGI(TAG, "GET request");
-    
-    rtc_reset_shutdown_timer();
-    
+cJSON* comms_build_status(void) {
     // Create root JSON object
     cJSON *root = cJSON_CreateObject();
     if (root == NULL) {
@@ -67,6 +65,9 @@ cJSON* comms_handle_get(void) {
     cJSON_AddNumberToObject(root, "next_alarm", (double)rtc_get_next_alarm_s());
     cJSON_AddNumberToObject(root, "board_rev", hw_get_board_rev());
     cJSON_AddNumberToObject(root, "fsm_error", fsm_get_error());
+    cJSON_AddNumberToObject(root, "jack_pos_us", (double)fsm_get_jack_pos_us());
+    cJSON_AddNumberToObject(root, "free_heap",   (double)esp_get_free_heap_size());
+    cJSON_AddNumberToObject(root, "min_free_heap", (double)esp_get_minimum_free_heap_size());
 
     // Structured error flags (match LED error code bits)
     cJSON *errors = cJSON_CreateObject();
@@ -156,8 +157,17 @@ cJSON* comms_handle_get(void) {
     }
     
     cJSON_AddItemToObject(root, "parameters", parameters);
-    
+
     return root;
+}
+
+/**
+ * Build a JSON object containing complete system status (GET request).
+ * Resets the shutdown timer because an HTTP GET is a genuine client poll.
+ */
+cJSON* comms_handle_get(void) {
+    rtc_reset_shutdown_timer();
+    return comms_build_status();
 }
 
 /**
@@ -177,6 +187,7 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
     bool sleep_requested = false;
     bool hibernate_requested = false;
     bool reboot_requested = false;
+    bool factory_reset_requested = false;
     bool wifi_params_changed = false;
     bool wifi_restart_requested = false;
     bool refresh_battery_ema = false;
@@ -226,11 +237,11 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
             pulse_override(FSM_OVERRIDE_DRIVE_REV);
             cmd_executed = true;
         }
-        else if (strcmp(cmd_str, "up") == 0) {
+        else if (strcmp(cmd_str, "extend") == 0) {
             pulse_override(FSM_OVERRIDE_JACK_UP);
             cmd_executed = true;
         }
-        else if (strcmp(cmd_str, "down") == 0) {
+        else if (strcmp(cmd_str, "retract") == 0) {
             pulse_override(FSM_OVERRIDE_JACK_DOWN);
             cmd_executed = true;
         }
@@ -238,8 +249,16 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
             pulse_override(FSM_OVERRIDE_AUX);
             cmd_executed = true;
         }
+        else if (strcmp(cmd_str, "stop_override") == 0) {
+            stop_override();
+            cmd_executed = true;
+        }
         else if (strcmp(cmd_str, "reboot") == 0) {
             reboot_requested = true;
+            cmd_executed = true;
+        }
+        else if (strcmp(cmd_str, "factory_reset") == 0) {
+            factory_reset_requested = true;
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "sleep") == 0) {
@@ -427,6 +446,14 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
         cJSON_AddStringToObject(response, "status", "ok");
         cJSON_AddStringToObject(response, "message", "Rebooting...");
         cJSON_AddBoolToObject(response, "reboot", true);
+        *response_json = response;
+        return ESP_OK;
+    }
+
+    if (factory_reset_requested) {
+        cJSON_AddStringToObject(response, "status", "ok");
+        cJSON_AddStringToObject(response, "message", "Factory reset — erasing params and rebooting...");
+        cJSON_AddBoolToObject(response, "factory_reset", true);
         *response_json = response;
         return ESP_OK;
     }

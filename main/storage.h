@@ -66,6 +66,12 @@ typedef struct {
 // min == max → skip bounds validation (used for keycodes, strings, informational params)
 // Division-critical params have min > 0 to prevent div-by-zero
 // NaN/Inf floats are always reset to default regardless of bounds
+//
+// *** FLASH LAYOUT WARNING ***
+// Parameters are stored in flash indexed by their enum position (order in this list).
+// NEVER insert a new parameter in the middle — it shifts all subsequent indices and
+// corrupts every stored value after the insertion point.
+// ALWAYS append new parameters at the very end of PARAM_LIST.
 
 #define PARAM_LIST \
     PARAM_DEF(BOOT_TIME,         i32, 0,             "us",      0, 0) /* informational, skip */ \
@@ -117,6 +123,7 @@ typedef struct {
     PARAM_DEF(SAFETY_MAKE_US,    u32, 1000000,       "",        0, 10000000) \
     PARAM_DEF(JACK_IS_DOWN,      f32, 8.0,           "A",       0.0, 200.0) /* deprecated: may duplicate JACK_I_DOWN */ \
     PARAM_DEF(FLUFF_PREDRIVE_MS, u32, 2000,          "ms",      0, 60000) \
+    PARAM_DEF(INACTIVITY_TIMEOUT_S, u32, 300,        "s",       10, 86400) \
     /* Tabular schedule: up to 12 daily move times (seconds since local midnight). \
      * A value of -1 marks the slot as disabled — the default. Slots are sorted \
      * by commit_params() so non-negative values appear first in ascending order, \
@@ -125,21 +132,23 @@ typedef struct {
      * end of PARAM_LIST so existing flash layout / CRC offsets stay stable. \
      * MOVE_START / MOVE_END / NUM_MOVES above are deprecated; the scheduler \
      * no longer reads them and the web UI no longer surfaces them. */ \
-    PARAM_DEF(MOVE_TIME_0,       i32, -1,            "s",       -1, 86399) \
-    PARAM_DEF(MOVE_TIME_1,       i32, -1,            "s",       -1, 86399) \
-    PARAM_DEF(MOVE_TIME_2,       i32, -1,            "s",       -1, 86399) \
-    PARAM_DEF(MOVE_TIME_3,       i32, -1,            "s",       -1, 86399) \
-    PARAM_DEF(MOVE_TIME_4,       i32, -1,            "s",       -1, 86399) \
-    PARAM_DEF(MOVE_TIME_5,       i32, -1,            "s",       -1, 86399) \
-    PARAM_DEF(MOVE_TIME_6,       i32, -1,            "s",       -1, 86399) \
-    PARAM_DEF(MOVE_TIME_7,       i32, -1,            "s",       -1, 86399) \
-    PARAM_DEF(MOVE_TIME_8,       i32, -1,            "s",       -1, 86399) \
-    PARAM_DEF(MOVE_TIME_9,       i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_00,      i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_01,      i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_02,      i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_03,      i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_04,      i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_05,      i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_06,      i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_07,      i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_08,      i32, -1,            "s",       -1, 86399) \
+    PARAM_DEF(MOVE_TIME_09,      i32, -1,            "s",       -1, 86399) \
     PARAM_DEF(MOVE_TIME_10,      i32, -1,            "s",       -1, 86399) \
-    PARAM_DEF(MOVE_TIME_11,      i32, -1,            "s",       -1, 86399)
+    PARAM_DEF(MOVE_TIME_11,      i32, -1,            "s",       -1, 86399) \
+    /* Appended at end to avoid shifting existing flash layout: */ \
+    PARAM_DEF(JACK_MAX,          f32, 5.0,            "in",      0.0, 10.0)
 
 /* Tabular schedule width. The enum entries above must remain contiguous so
- * PARAM_MOVE_TIME_0 + i indexes slot i. */
+ * PARAM_MOVE_TIME_00 + i indexes slot i. */
 #define NUM_MOVE_TIMES 12
 
 // Generate enum for parameter indices

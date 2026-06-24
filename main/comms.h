@@ -13,12 +13,23 @@
  */
 
 /**
- * Process a GET request - returns complete system status as JSON
- * 
+ * Process a GET request - returns complete system status as JSON.
+ * Resets the inactivity/shutdown timer (a GET is a real client poll).
+ *
  * @return cJSON object containing system status, or NULL on error
  *         Caller is responsible for deleting the returned object with cJSON_Delete()
  */
 cJSON* comms_handle_get(void);
+
+/**
+ * Build the same system-status JSON as comms_handle_get() but WITHOUT
+ * resetting the shutdown timer. Used by the periodic WebSocket status push
+ * so an open-but-idle browser tab doesn't prevent the device from sleeping.
+ *
+ * @return cJSON object containing system status, or NULL on error
+ *         Caller is responsible for deleting the returned object with cJSON_Delete()
+ */
+cJSON* comms_build_status(void);
 
 /**
  * Process a POST request - handles commands, parameter updates, time updates

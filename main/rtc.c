@@ -77,6 +77,13 @@ esp_err_t rtc_xtal_init(void) {
 
 void rtc_reset_shutdown_timer(void)
 {
+    /* Any genuine activity (HTTP/WS request, command, new association) flows
+     * through here. If we're soft-idle, that activity is the wake trigger —
+     * this is what lets an already-associated client reconnect and revive the
+     * device WITHOUT having to re-associate (which would be the only other
+     * wake signal). The HTTP server stays up during soft idle precisely so it
+     * can receive that reconnect and call us. */
+    if (in_soft_idle) soft_idle_exit();
     last_activity_tick = xTaskGetTickCount();
     rtc_wdt_feed();
 }
@@ -85,8 +92,7 @@ void soft_idle_enter(void)
 {
     if (in_soft_idle) return;
     in_soft_idle = true;
-    ESP_LOGI("RTC", "Entering soft idle (WiFi/BT off, LEDs off, sensors off)");
-    webserver_stop();
+    ESP_LOGI("RTC", "Entering soft idle (BT off, LEDs off, sensors off; WiFi AP + HTTP stay up for wake-on-request)");
     bt_hid_stop();
     i2c_set_led1(0);
     /* Drop P10 to kill sensor rail power while we're asleep. */
@@ -103,9 +109,12 @@ void soft_idle_exit(void)
     ESP_LOGI("RTC", "Exiting soft idle");
     /* Bring sensor rail back before anything else tries to read sensors. */
     i2c_relays_idle();
-    webserver_restart_wifi();
     bt_hid_resume();
-    rtc_reset_shutdown_timer();
+    /* Reset the timer directly rather than via rtc_reset_shutdown_timer() —
+     * in_soft_idle is already false so it wouldn't re-enter, but being explicit
+     * keeps the wake path obvious and avoids any future recursion footgun. */
+    last_activity_tick = xTaskGetTickCount();
+    rtc_wdt_feed();
 }
 
 void hibernate_enter(void)
@@ -273,9 +282,11 @@ void rtc_check_shutdown_timer(void)
 {
     // Unsigned subtraction handles TickType_t (uint32_t) wraparound correctly:
     // e.g. if tick wrapped from 0xFFFFFFFE to 5, elapsed = 5 - 0xFFFFFFFE = 7.
-    // At 1ms/tick, uint32_t wraps after ~49.7 days — well beyond the 180s timeout.
+    // At 1ms/tick, uint32_t wraps after ~49.7 days — well beyond any reasonable timeout.
     TickType_t elapsed = xTaskGetTickCount() - last_activity_tick;
-    if (elapsed * portTICK_PERIOD_MS >= POWER_INACTIVITY_TIMEOUT_MS)
+    uint32_t timeout_ms = get_param_value_t(PARAM_INACTIVITY_TIMEOUT_S).u32 * 1000u;
+    if (timeout_ms == 0) timeout_ms = POWER_INACTIVITY_TIMEOUT_MS;  // guard against zero
+    if (elapsed * portTICK_PERIOD_MS >= timeout_ms)
         soft_idle_enter();
 }
 
@@ -308,7 +319,7 @@ void adjust_rtc_min(char *key, int8_t dir)
 
 
 void rtc_schedule_next_alarm(void) {
-    /* Walk MOVE_TIME_0..MOVE_TIME_(NUM_MOVE_TIMES-1). Each slot is either
+    /* Walk MOVE_TIME_00..MOVE_TIME_(NUM_MOVE_TIMES-1). Each slot is either
      * -1 (disabled) or a 0..86399 seconds-into-day offset. For each enabled
      * slot we compute its absolute Unix time for today and tomorrow, keep
      * whichever is the soonest still-future timestamp, and take the minimum
@@ -333,7 +344,7 @@ void rtc_schedule_next_alarm(void) {
 
     time_t best = -1;
     for (int i = 0; i < NUM_MOVE_TIMES; i++) {
-        int32_t slot = get_param_value_t(PARAM_MOVE_TIME_0 + i).i32;
+        int32_t slot = get_param_value_t(PARAM_MOVE_TIME_00 + i).i32;
         if (slot < 0) continue;  // disabled
 
         /* Candidate is today's occurrence if still in the future, else

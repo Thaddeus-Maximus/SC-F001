@@ -106,6 +106,8 @@
             margin: 0;
             min-height: 64px;
         }
+        #schedule_rows div { display: flex; align-items: center; gap: 4px; }
+        #schedule_rows input, #schedule_rows button { width: auto; }
         .cmd {
             font-size: 1.5rem;
             font-weight: bold;
@@ -271,23 +273,22 @@
         </tr>
         <tr>
             <td>Schedule</td>
-            <td>
-                <!-- Visible rows are rendered by renderSchedule() from the
-                     12 hidden PARAM_MOVE_TIME_N inputs below. -->
-                <div id="schedule_rows"></div>
-                <button id="schedule_add_btn" onclick="addScheduleSlot()">+ Add move</button>
-                <!-- Hidden inputs hold the seconds-of-day value for each of
-                     the 12 schedule slots (-1 = disabled). They participate
-                     in the regular PARAM_* save flow: when the user edits
-                     a row we mark the corresponding hidden input .changed,
-                     and commitParams() picks it up like any other param. -->
-                <div style="display:none" id="schedule_hidden_inputs"></div>
+            <td id="schedule_rows">
+                <div id="UX_SCHEDULE_ROW_0" ><input type="time" id="UX_MOVE_TIME_0"  onchange="scheduleTimeChanged(0,  this.value)"> <button onclick="removeScheduleSlot(0)">✕</button></div>
+                <div id="UX_SCHEDULE_ROW_1"  style="display:none"><input type="time" id="UX_MOVE_TIME_1"  onchange="scheduleTimeChanged(1,  this.value)"> <button onclick="removeScheduleSlot(1)">✕</button></div>
+                <div id="UX_SCHEDULE_ROW_2"  style="display:none"><input type="time" id="UX_MOVE_TIME_2"  onchange="scheduleTimeChanged(2,  this.value)"> <button onclick="removeScheduleSlot(2)">✕</button></div>
+                <div id="UX_SCHEDULE_ROW_3"  style="display:none"><input type="time" id="UX_MOVE_TIME_3"  onchange="scheduleTimeChanged(3,  this.value)"> <button onclick="removeScheduleSlot(3)">✕</button></div>
+                <div id="UX_SCHEDULE_ROW_4"  style="display:none"><input type="time" id="UX_MOVE_TIME_4"  onchange="scheduleTimeChanged(4,  this.value)"> <button onclick="removeScheduleSlot(4)">✕</button></div>
+                <div id="UX_SCHEDULE_ROW_5"  style="display:none"><input type="time" id="UX_MOVE_TIME_5"  onchange="scheduleTimeChanged(5,  this.value)"> <button onclick="removeScheduleSlot(5)">✕</button></div>
+                <div id="UX_SCHEDULE_ROW_6"  style="display:none"><input type="time" id="UX_MOVE_TIME_6"  onchange="scheduleTimeChanged(6,  this.value)"> <button onclick="removeScheduleSlot(6)">✕</button></div>
+                <div id="UX_SCHEDULE_ROW_7"  style="display:none"><input type="time" id="UX_MOVE_TIME_7"  onchange="scheduleTimeChanged(7,  this.value)"> <button onclick="removeScheduleSlot(7)">✕</button></div>
+                <div id="UX_SCHEDULE_ROW_8"  style="display:none"><input type="time" id="UX_MOVE_TIME_8"  onchange="scheduleTimeChanged(8,  this.value)"> <button onclick="removeScheduleSlot(8)">✕</button></div>
+                <div id="UX_SCHEDULE_ROW_9"  style="display:none"><input type="time" id="UX_MOVE_TIME_9"  onchange="scheduleTimeChanged(9,  this.value)"> <button onclick="removeScheduleSlot(9)">✕</button></div>
+                <div id="UX_SCHEDULE_ROW_10" style="display:none"><input type="time" id="UX_MOVE_TIME_10" onchange="scheduleTimeChanged(10, this.value)"> <button onclick="removeScheduleSlot(10)">✕</button></div>
+                <div id="UX_SCHEDULE_ROW_11" style="display:none"><input type="time" id="UX_MOVE_TIME_11" onchange="scheduleTimeChanged(11, this.value)"> <button onclick="removeScheduleSlot(11)">✕</button></div>
             </td>
         </tr>
-        <tr>
-            <td>Next Move At</td>
-            <td><input type="datetime-local" id="UX_NEXT_ALARM" readonly=""/></td>
-        </tr>
+
         <tr>
             <td>Leash (ft)</td>
             <td><input type="number" id="UX_REM_DIST" onchange="handleRemainingDistChange(this)"/></td>
@@ -343,20 +344,20 @@
 	    REV
 	  </button>
 	  <button class="sqbtn"
-	    onmousedown="startRemote('up', event)" 
-	    onmouseup="stopRemote()" 
+	    onmousedown="startRemote('extend', event)"
+	    onmouseup="stopRemote()"
 	    onmouseleave="stopRemote()"
-	    ontouchstart="startRemote('up', event)" 
+	    ontouchstart="startRemote('extend', event)"
 	    ontouchend="stopRemote()">
-	    UP
+	    EXTEND
 	  </button>
 	  <button class="sqbtn"
-	    onmousedown="startRemote('down', event)" 
-	    onmouseup="stopRemote()" 
+	    onmousedown="startRemote('retract', event)"
+	    onmouseup="stopRemote()"
 	    onmouseleave="stopRemote()"
-	    ontouchstart="startRemote('down', event)" 
+	    ontouchstart="startRemote('retract', event)"
 	    ontouchend="stopRemote()">
-	    DOWN
+	    RETRACT
 	  </button>
 	  <button class="sqbtn"
 	    onmousedown="startRemote('aux', event)" 
@@ -421,6 +422,14 @@
             <button onclick="calibrate('drive')">Drive Calibration</button></td>
         </tr>
         <tr>
+            <td>Jack Position</td>
+            <td><span id="jack_pos_readout">—</span></td>
+        </tr>
+        <tr>
+            <td>Heap (free / low watermark)</td>
+            <td><span id="heap_readout">—</span></td>
+        </tr>
+        <tr>
             <td>Current Version</td>
             <td><input readonly="" id="version"/></td>
         </tr>
@@ -441,6 +450,8 @@
     <table id="table"></table>
     <button class="cmd" onclick="sendCommand('reboot')" style="background-color:var(--red); color:#fff">REBOOT</button>
     <button class="cmd" onclick="sendCommand('sleep')" style="background-color:var(--surface-2); color:var(--text)">SLEEP</button>
+    <button class="cmd" onclick="restartWifi()" style="background-color:var(--surface-2); color:var(--text)">RESTART WIFI</button>
+    <button class="cmd" onclick="factoryReset()" style="background-color:var(--red); color:#fff">FACTORY RESET</button>
     </details>
     </div>
     </div>
@@ -481,6 +492,78 @@
         let paramTableCreated = false; // Track if param table has been created
         let pollInterval = null; // Store interval ID for polling
         let modalResolve = null;
+
+        // Real-time channel: a WebSocket carries low-latency remote-control
+        // commands (client->server) and a ~1 Hz status push (server->client).
+        // When the WS is down we fall back to HTTP polling + POST.
+        let ws = null;
+        let wsReconnectTimer = null;
+        let wsSuppressed = false; // true while tab hidden — don't auto-reconnect
+        const wsConnected = () => ws && ws.readyState === WebSocket.OPEN;
+
+        // Lightweight tagged logger so WS/remote traffic is easy to filter in
+        // the browser console (filter on "[WS]").
+        let wsMsgCount = 0;
+        const wlog = (...a) => console.log('[WS]', ...a);
+
+        function connectWS() {
+            if (ws && (ws.readyState === WebSocket.OPEN ||
+                       ws.readyState === WebSocket.CONNECTING)) {
+                wlog('connectWS skipped, readyState=', ws.readyState);
+                return;
+            }
+            const url = (location.protocol === 'https:' ? 'wss://' : 'ws://')
+                        + location.host + '/ws';
+            wlog('connecting to', url);
+            try { ws = new WebSocket(url); }
+            catch (e) { wlog('constructor threw', e); scheduleWSReconnect(); return; }
+
+            ws.onopen = () => {
+                wlog('OPEN — status now via push, commands via WS');
+                stopPolling();             // status now arrives via push
+            };
+            ws.onmessage = (ev) => {
+                wsMsgCount++;
+                if (wsMsgCount <= 3 || wsMsgCount % 30 === 0)
+                    wlog('status push #' + wsMsgCount, '(' + ev.data.length + ' bytes)');
+                try { data = JSON.parse(ev.data); updateUI(); }
+                catch (e) { console.error('[WS] parse error', e); }
+            };
+            ws.onerror = (e) => { wlog('ERROR event', e); try { ws.close(); } catch (e2) {} };
+            ws.onclose = (e) => {
+                wlog('CLOSE code=' + e.code + ' reason="' + e.reason + '" clean=' + e.wasClean);
+                ws = null;
+                if (wsSuppressed) { wlog('suppressed (tab hidden), not reconnecting'); return; }
+                startPolling();             // fall back to HTTP polling
+                scheduleWSReconnect();
+            };
+        }
+
+        function scheduleWSReconnect() {
+            if (wsReconnectTimer || wsSuppressed) return;
+            wlog('reconnect scheduled in 3s');
+            wsReconnectTimer = setTimeout(() => {
+                wsReconnectTimer = null;
+                connectWS();
+            }, 3000);
+        }
+
+        // Send a command, preferring the WebSocket; fall back to fire-and-forget
+        // POST so controls still work if the socket is momentarily down.
+        function sendCmd(cmd) {
+            if (wsConnected()) {
+                try { ws.send(JSON.stringify({cmd})); wlog('sent via WS:', cmd); return; }
+                catch (e) { wlog('WS send threw, falling back to POST', e); }
+            } else {
+                wlog('WS not open (readyState=' + (ws ? ws.readyState : 'null') + '), POST:', cmd);
+            }
+            fetch('./post', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({cmd})
+            }).then(r => wlog('POST', cmd, '->', r.status))
+              .catch(e => wlog('POST', cmd, 'failed', e));
+        }
         
         const ge = (id) => document.getElementById(id);
         
@@ -701,20 +784,18 @@
         let intervalId = null;
         
         function remote(command) {
-        	// Fire-and-forget POST. Held-button jog sends this every 150 ms —
-        	// transient NetworkErrors must not pop a modal (would spam the UI
-        	// and race with subsequent sends). Any error is swallowed.
-        	fetch('./post', {
-        		method: 'POST',
-        		headers: {'Content-Type': 'application/json'},
-        		body: JSON.stringify({cmd: command})
-        	}).catch(() => {});
+        	// Held-button jog calls this every 150 ms. Over the WebSocket each
+        	// send re-arms the firmware's pulse timeout (safety net if a stop
+        	// is ever lost); sendCmd falls back to a fire-and-forget POST when
+        	// the socket is down.
+        	sendCmd(command);
         	try {
         		navigator.vibrate(200);
         	} catch (error) {}
         }
 
 		function startRemote(command, event) {
+		  wlog('startRemote(' + command + ') ' + (event ? event.type : 'no-event'));
 		  if (event) {
 		    event.preventDefault();
 		  }
@@ -722,21 +803,23 @@
 		  if (intervalId) {
 		    clearInterval(intervalId);
 		  }
-		  
+
 		  // Send immediately
 		  remote(command);
-		  
+
 		  // Then send while held
 		  intervalId = setInterval(() => {
 		    remote(command);
 		  }, 150); //ms
 		}
-		
+
 		function stopRemote() {
+		  wlog('stopRemote');
 		  if (intervalId) {
 		    clearInterval(intervalId);
 		    intervalId = null;
 		  }
+		  sendCmd('stop_override');   // explicit halt on button release
 		}
         
         // Single action-button dispatcher. STATE_IDLE (0) → start, anything else
@@ -790,6 +873,31 @@
             }
         }
         
+        async function factoryReset() {
+            if (!await modalConfirm("FACTORY RESET: all parameters will be erased and reset to defaults. The device will reboot. Are you sure?", "Factory Reset")) return;
+            if (!await modalConfirm("This cannot be undone. Confirm factory reset?", "Confirm")) return;
+            try {
+                await fetch('./post', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({cmd: 'factory_reset'})
+                });
+            } catch(e) { /* expected — device reboots */ }
+            showRebootModal();
+        }
+
+        async function restartWifi() {
+            if (!await modalConfirm("Restart WiFi? You will lose the connection briefly.")) return;
+            try {
+                await fetch('./post', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({wifi_restart: true})
+                });
+            } catch(e) { /* expected — connection drops during restart */ }
+            setTimeout(fetchStatus, 3000);
+        }
+
         async function calibrate(type) {
             const cmdName = type === 'jack' ? 'cal_jack' : 'cal_drive';
             
@@ -844,44 +952,10 @@
         
         const scheduleInputs = ['DRIVE_DIST', 'JACK_DIST'];
 
-        // ============================================================
-        // Tabular schedule (up to 12 daily move times)
-        // ============================================================
-        // The user thinks in "list of times-of-day". The firmware stores
-        // 12 i32 params (MOVE_TIME_0..MOVE_TIME_11), each holding either
-        // seconds-since-local-midnight (0..86399) or -1 = disabled. The
-        // device sorts the array ascending after every commit so on every
-        // poll the enabled slots arrive packed at the front in time order.
-        //
-        // We back the UI with 12 hidden `<input id="PARAM_MOVE_TIME_N">`
-        // elements so the values plug into the existing PARAM_* save flow:
-        // editing a row marks its hidden input .changed, commitParams()
-        // picks it up like any other param.
+        // 12 daily move-time slots. Firmware stores seconds-since-local-midnight
+        // (0..86399) or -1 = disabled. Server key names are zero-padded: MOVE_TIME_00..11.
         const NUM_MOVE_TIMES = 12;
-
-        (function initScheduleHiddenInputs() {
-            const host = ge('schedule_hidden_inputs');
-            if (!host) return;
-            for (let i = 0; i < NUM_MOVE_TIMES; i++) {
-                const inp = document.createElement('input');
-                inp.type = 'hidden';
-                inp.id = `PARAM_MOVE_TIME_${i}`;
-                inp.value = -1;
-                host.appendChild(inp);
-            }
-        })();
-
-        function readScheduleSlot(i) {
-            const inp = ge(`PARAM_MOVE_TIME_${i}`);
-            return inp ? parseInt(inp.value, 10) : -1;
-        }
-
-        function writeScheduleSlot(i, value) {
-            const inp = ge(`PARAM_MOVE_TIME_${i}`);
-            if (!inp) return;
-            inp.value = value;
-            markChanged(inp);
-        }
+        const mtKey = i => `MOVE_TIME_${String(i).padStart(2,'0')}`;
 
         // Format seconds-of-day as HH:MM for an <input type="time">.
         function secondsToHM(seconds) {
@@ -890,91 +964,58 @@
             return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
         }
 
-        function renderSchedule() {
-            const host = ge('schedule_rows');
-            if (!host) return;
-
-            // If any time input inside the schedule is currently focused,
-            // the user is mid-edit; re-rendering would steal focus on every
-            // 2-second poll. Skip — the next poll after blur picks it up.
-            if (host.contains(document.activeElement)
-                && document.activeElement.type === 'time') return;
-
-            host.innerHTML = '';
-            let enabledCount = 0;
+        // Show only filled slots plus one trailing empty slot (for entering the next time).
+        // Server always sorts non-negative values to the front, so filled slots are contiguous.
+        function renderScheduleVisibility() {
+            let showCount = 1;
             for (let i = 0; i < NUM_MOVE_TIMES; i++) {
-                const v = readScheduleSlot(i);
-                if (v < 0) continue;
-                enabledCount++;
-
-                const row = document.createElement('div');
-                row.style.display = 'flex';
-                row.style.alignItems = 'center';
-                row.style.gap = '4px';
-
-                const t = document.createElement('input');
-                t.type = 'time';
-                t.value = secondsToHM(v);
-                // Capture the slot index — at render time `i` is the slot,
-                // which is also where the hidden input lives.
-                t.oninput = ((slot) => () => onScheduleTimeEdit(slot, t.value))(i);
-                row.appendChild(t);
-
-                const x = document.createElement('button');
-                x.textContent = '✕';   // ✕
-                x.style.width = '40px';
-                x.style.flexShrink = '0';
-                x.onclick = ((slot) => () => onScheduleRemove(slot))(i);
-                row.appendChild(x);
-
-                host.appendChild(row);
+                const inp = ge(`UX_MOVE_TIME_${i}`);
+                if (inp && inp.value !== '') showCount = i + 2;
             }
-
-            // The + Add button is disabled when all 12 slots are in use.
-            const addBtn = ge('schedule_add_btn');
-            if (addBtn) addBtn.disabled = enabledCount >= NUM_MOVE_TIMES;
-        }
-
-        function onScheduleTimeEdit(slot, hhmm) {
-            if (!hhmm) return;   // empty edit — leave previous value
-            const parts = hhmm.split(':').map(Number);
-            if (parts.length < 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return;
-            writeScheduleSlot(slot, parts[0] * 3600 + parts[1] * 60);
-            // Don't re-render: the visible <input> already shows the new
-            // value and a rebuild would steal focus mid-edit.
-        }
-
-        function onScheduleRemove(slot) {
-            writeScheduleSlot(slot, -1);
-            renderSchedule();
-        }
-
-        function addScheduleSlot() {
-            // Find the first disabled slot and arm it with a default of
-            // 12:00. Visible rows are sorted alphabetically by storage
-            // index so the new row appears at whatever position holds the
-            // first -1 — the device will re-sort canonically on commit.
+            showCount = Math.min(showCount, NUM_MOVE_TIMES);
             for (let i = 0; i < NUM_MOVE_TIMES; i++) {
-                if (readScheduleSlot(i) < 0) {
-                    writeScheduleSlot(i, 12 * 3600);
-                    renderSchedule();
-                    return;
+                const row = ge(`UX_SCHEDULE_ROW_${i}`);
+                if (!row) continue;
+                if (i < showCount) {
+                    row.style.display = '';
+                    const inp = ge(`UX_MOVE_TIME_${i}`);
+                    const btn = row.querySelector('button');
+                    if (btn) btn.style.display = (inp && inp.value !== '') ? '' : 'none';
+                } else {
+                    row.style.display = 'none';
                 }
             }
         }
 
-        // Called once per /get poll from updateUI(). Syncs the 12 hidden
-        // inputs from the server's `parameters` object using _safeSet so
-        // any slot the user has edited (marked .changed) survives the
-        // sync. renderSchedule() then redraws the visible rows.
+        function removeScheduleSlot(i) {
+            const inp = ge(`UX_MOVE_TIME_${i}`);
+            if (inp) { inp.value = ''; scheduleTimeChanged(i, ''); }
+        }
+
+        // Called when a UX_MOVE_TIME_N time input changes. Converts HH:MM to
+        // seconds (or blank → -1) and pushes the value into the corresponding
+        // PARAM_MOVE_TIME_NN raw-table input so the normal save flow picks it up.
+        function scheduleTimeChanged(i, val) {
+            const seconds = val === '' ? -1
+                : (() => { const p = val.split(':').map(Number); return p[0]*3600 + p[1]*60; })();
+            const raw = ge(`PARAM_${mtKey(i)}`);
+            if (raw) { raw.value = seconds; markChanged(raw); }
+            markChanged(ge(`UX_MOVE_TIME_${i}`));  // protect from _safeSet until saved
+            renderScheduleVisibility();
+        }
+
+        // Sync the 12 visible time inputs from the server's parameters object.
+        // Uses UX_MOVE_TIME_N (not PARAM_) so there's no ID conflict with the
+        // raw parameter table. _safeSet skips inputs the user has pending edits on.
         function updateScheduleFromServer() {
             if (!data.parameters) return;
             for (let i = 0; i < NUM_MOVE_TIMES; i++) {
-                const inp = ge(`PARAM_MOVE_TIME_${i}`);
-                const v = data.parameters[`MOVE_TIME_${i}`];
-                if (typeof v === 'number') _safeSet(inp, v);
+                const inp = ge(`UX_MOVE_TIME_${i}`);
+                const v = data.parameters[mtKey(i)];
+                if (inp && typeof v === 'number')
+                    _safeSet(inp, v < 0 ? '' : secondsToHM(v));
             }
-            renderSchedule();
+            renderScheduleVisibility();
         }
             
         
@@ -1048,11 +1089,11 @@
                 } else if (id.startsWith('PARAM_')) {
                     // Parameter table inputs
                     const paramName = id.substring(6);
-                    
+
                     let value = input.value;
                     if (input.type === 'number')
 	                    value = parseFloat(input.value) || 0;
-                    
+
                     // Add to parameters object
                     if (!payload.parameters) {
                         payload.parameters = {};
@@ -1061,6 +1102,26 @@
                 }
             }
             
+            // If any schedule times changed, send all 12 slots pre-sorted so
+            // the displayed order matches what the server will store.
+            if (payload.parameters &&
+                Object.keys(payload.parameters).some(k => k.startsWith('MOVE_TIME_'))) {
+                const times = [];
+                for (let i = 0; i < NUM_MOVE_TIMES; i++) {
+                    const raw = ge(`PARAM_${mtKey(i)}`);
+                    const v = raw ? parseInt(raw.value, 10) : NaN;
+                    times.push(isNaN(v) ? -1 : v);
+                }
+                times.sort((a, b) => {
+                    if (a < 0 && b < 0) return 0;
+                    if (a < 0) return 1;
+                    if (b < 0) return -1;
+                    return a - b;
+                });
+                for (let i = 0; i < NUM_MOVE_TIMES; i++)
+                    payload.parameters[mtKey(i)] = times[i];
+            }
+
             try {
             	console.log('Sending data:', payload);
             
@@ -1193,35 +1254,38 @@
 				_safeSet(timeInput, `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`);
             }
 
-            const timeOutput = ge('UX_NEXT_ALARM');
-            if (data.next_alarm !== undefined && document.activeElement !== timeOutput) {
-                if (data.next_alarm > 0) {
-                    // Flip the element back to a datetime-local input so
-                    // the value parses — the "disabled" branch swaps it to
-                    // a plain text input to display a message.
-                    if (timeOutput.type !== 'datetime-local') timeOutput.type = 'datetime-local';
-                    // Treat incoming timestamp as local time (no timezone conversion)
-                    const dt = new Date(data.next_alarm * 1000);
-                    const year = dt.getUTCFullYear();
-                    const month = String(dt.getUTCMonth() + 1).padStart(2, '0');
-                    const day = String(dt.getUTCDate()).padStart(2, '0');
-                    const hours = String(dt.getUTCHours()).padStart(2, '0');
-                    const minutes = String(dt.getUTCMinutes()).padStart(2, '0');
-                    const seconds = String(dt.getUTCSeconds()).padStart(2, '0');
-                    timeOutput.value = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-                } else {
-                    // <=0 means firmware has no alarm scheduled — either every
-                    // MOVE_TIME_* slot is -1, or the RTC isn't set yet.
-                    if (timeOutput.type !== 'text') timeOutput.type = 'text';
-                    timeOutput.value = 'DISABLED';
-                }
-            }
-
             // Update parameters
             if (data.parameters) {
                 updateParamTable();
                 updateScheduleInputs();
                 updateScheduleFromServer();
+            }
+
+            // Jack position accumulator readout (DANGER ZONE)
+            {
+                const el = ge('jack_pos_readout');
+                const pos = data.jack_pos_us;
+                if (el && typeof pos === 'number' && data.parameters) {
+                    const kt  = data.parameters.JACK_KT;
+                    const max = data.parameters.JACK_MAX;
+                    if (kt > 0 && max > 0) {
+                        const pos_in = pos / kt;
+                        const pct = Math.round(pos_in / max * 100);
+                        el.textContent = `${pct}% (${pos_in.toFixed(2)} in / ${max.toFixed(2)} in)`;
+                    }
+                }
+            }
+
+            // Heap readout (DANGER ZONE) — low watermark < 20 KB is danger territory
+            {
+                const el = ge('heap_readout');
+                if (el && typeof data.free_heap === 'number') {
+                    const freeKB = (data.free_heap / 1024).toFixed(1);
+                    const minKB  = (data.min_free_heap / 1024).toFixed(1);
+                    const warn   = data.min_free_heap < 20480;
+                    el.textContent = `${freeKB} KB free  /  ${minKB} KB min`;
+                    el.style.color = warn ? 'var(--red)' : '';
+                }
             }
 
             // Update remaining distance (special parameter)
@@ -1245,11 +1309,8 @@
             'MOVE_START', 'MOVE_END', 'NUM_MOVES',
         ]);
 
-        // MOVE_TIME_0..11 are rendered in the dedicated Schedule section;
-        // exclude them from the DANGER ZONE table the same way (kept as a
-        // prefix check so we don't have to maintain a 12-entry list).
         function paramSkipped(key) {
-            return PARAM_TABLE_SKIP.has(key) || key.startsWith('MOVE_TIME_');
+            return PARAM_TABLE_SKIP.has(key);
         }
 
         function updateParamTable() {
@@ -1422,7 +1483,7 @@
 		}
         
         async function programRFSequence() {
-            const buttonNames = ["Forward", "Reverse", "Up", "Down"];
+            const buttonNames = ["Forward", "Reverse", "Extend", "Retract"];
             const learnedCodes = [null, null, null, null];
             
             if (!await modalConfirm("This will program all 4 RF remote buttons in sequence.\n\nPress OK to begin, then follow the prompts.")) {
@@ -2003,39 +2064,47 @@
             });
         }
 
-        // Start automatic polling
+        // HTTP-polling fallback for when the WebSocket isn't connected. The
+        // interval itself no-ops while the WS is up, so it's safe to leave
+        // running; we still stop it on WS open to avoid wasted timers.
         function startPolling() {
-            // Initial fetch
-            fetchStatus();
-            
-            // Set up interval for polling in ms
-            pollInterval = setInterval(fetchStatus, 3000);
+            if (pollInterval) return;          // already polling
+            fetchStatus();                     // immediate populate
+            pollInterval = setInterval(() => {
+                if (!wsConnected()) fetchStatus();
+            }, 3000);
         }
-        
-        // Stop polling (if needed in the future)
+
         function stopPolling() {
             if (pollInterval) {
                 clearInterval(pollInterval);
                 pollInterval = null;
             }
         }
-        
+
         document.addEventListener('visibilitychange', function() {
 		    if (document.hidden) {
-		        // Tab is hidden - stop polling
+		        // Tab hidden: drop the WS so status pushes stop and the device
+		        // can reach its inactivity timeout, and stop polling.
+		        wsSuppressed = true;
 		        stopPolling();
+		        if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+		        if (ws) { try { ws.close(); } catch (e) {} }
 		    } else {
-		        // Tab is visible again - resume polling
-		        fetchStatus(); // Immediate fetch when returning
-		        pollInterval = setInterval(fetchStatus, 3000);
+		        // Visible again: reconnect WS and resume the polling fallback.
+		        wsSuppressed = false;
+		        connectWS();
+		        startPolling();
 		    }
 		});
 
-        // Initial Load with polling
+        // Initial load: open the real-time WebSocket and start the polling
+        // fallback (which also does the first immediate status fetch).
         window.onload = function() {
         	ge('commit_btn').disabled = true;
             ge('cancel_btn').disabled = true;
             _attachLogViewerToggle();
+            connectWS();
         	startPolling();
         }
     </script>

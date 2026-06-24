@@ -27,6 +27,7 @@ See `README.md` for full project documentation (hardware, architecture, protocol
 |---------|-------|-----|
 | `CONFIG_ESP_TASK_WDT_PANIC` | y | WDT timeout → panic → reboot (feeds OTA rollback counter) |
 | `CONFIG_RTC_CLK_SRC_INT_RC` | y | Use internal 150kHz RC oscillator — no external 32kHz crystal. Avoids failed XTAL probe that corrupts RTC slow memory. |
+| `CONFIG_HTTPD_WS_SUPPORT` | y | WebSocket support in esp_http_server — `/ws` real-time control + 1 Hz status push. |
 
 **Already correct at IDF defaults (verified, no override needed):**
 | Setting | Value | Status |
@@ -66,13 +67,17 @@ Single-file SPA. Compiled to a gzip binary embedded in firmware. All JS is inlin
 
 **Key globals:**
 - `const ge = (id) => document.getElementById(id)` — shorthand used everywhere
-- `let data = {}` — full `/get` JSON response, updated every poll cycle
+- `let data = {}` — full status JSON; refreshed by the WebSocket push (or the poll fallback)
 - `let paramTableCreated = false` — tracks whether the DANGER ZONE param table has been built yet
-- `let pollInterval` — handle for the 2-second `fetchStatus()` interval
+- `let ws` — the `/ws` WebSocket; `wsConnected()` is the live check. `connectWS()` opens it, auto-reconnects (3 s backoff), and `stopPolling()` once open
+- `let pollInterval` — handle for the `fetchStatus()` poll **fallback** (only fetches while the WS is down)
+
+**Real-time channel (`./ws` WebSocket):** primary transport. Server pushes status JSON ~1 Hz (drives `updateUI()` exactly like a poll); client sends remote-control commands via `sendCmd()` (`ws.send()`, falling back to `./post`). Tab-hidden closes the WS so the device can soft-idle; tab-visible reconnects. See README "WebSocket" section for the server side + stop-on-disconnect safety.
 
 **Endpoints used by JS (all relative):**
-- `./get` — GET, returns full system status JSON; polled every 2 s by `fetchStatus()`
-- `./post` — POST `application/json`, handles commands + parameter updates
+- `./ws` — WebSocket, real-time status push + remote-control commands (primary)
+- `./get` — GET, full system status JSON; polled by `fetchStatus()` only as a fallback when the WS is down
+- `./post` — POST `application/json`, handles commands + parameter updates (also the remote-control fallback)
 - `./log` — GET/POST, binary log download
 - `./ota` — POST, firmware upload
 
@@ -90,13 +95,13 @@ All fields optional. `parameters` is a flat object of param key → value.
 
 **Sections (top to bottom):**
 1. Status display (voltage, state, distance, error flags) — auto-updated from `data`
-2. Schedule settings (`<details>`) — MOVE_START / MOVE_END / NUM_MOVES
+2. Schedule settings (`<details>`) — daily `MOVE_TIME_NN` slots (HH:MM); `startRemote`/`stopRemote` jog via `sendCmd()`, releasing sends `stop_override`
 3. Remote Control (`<details open>`) — jog buttons + RF programming
 4. **WiFi Settings** (`<details>`) — WIFI_SSID, WIFI_PASS (STA mode disabled: NET_SSID/NET_PASS inputs commented out)
-5. **DANGER ZONE** (`<details>`) — calibration, version, OTA upload, log download, auto-generated parameter table, REBOOT/SLEEP
+5. **DANGER ZONE** (`<details>`) — calibration, version, OTA upload, log download, auto-generated parameter table, jack-position + heap (free / min) readouts, REBOOT / SLEEP / RESTART WIFI / FACTORY RESET
 
 **`updateParamTable()`:**
-- On first call: builds a `<table id="table">` row per parameter, sorted alphabetically, skipping `WIFI_PARAM_KEYS = {NET_SSID, NET_PASS, WIFI_SSID, WIFI_PASS}` (those live in the dedicated WiFi section)
+- On first call: builds a `<table id="table">` row per parameter, sorted alphabetically, skipping keys for which `paramSkipped(key)` is true — i.e. members of `PARAM_TABLE_SKIP = {NET_SSID, NET_PASS, WIFI_SSID, WIFI_PASS, MOVE_START, MOVE_END, NUM_MOVES}` (WiFi keys live in the dedicated WiFi section; the MOVE_* trio is deprecated/superseded by the `MOVE_TIME_NN` schedule)
 - On subsequent calls: updates existing input values (skips changed/focused inputs); if a new key appears, rebuilds
 
 **Modal helpers** (all return Promises):
@@ -106,5 +111,5 @@ All fields optional. `parameters` is a flat object of param key → value.
 
 **Adding a new dedicated UI section:**
 1. Add `<input id="PARAM_<KEY>" onchange="markChanged(this)"/>` in HTML
-2. Add key to `WIFI_PARAM_KEYS` (or equivalent filter set) in `updateParamTable()` so it isn't duplicated in the raw table
+2. Add the key to `PARAM_TABLE_SKIP` so it isn't duplicated in the auto-generated raw table. (Note: keep dedicated inputs out of the raw table — a stray `PARAM_<KEY>` input that's *also* in the table makes `updateParamTable()` rebuild every poll.)
 3. Optionally add a dedicated apply function following `applyWifiSettings()` pattern

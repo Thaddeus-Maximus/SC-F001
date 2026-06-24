@@ -64,7 +64,7 @@ app_main()
 ├── fsm_init()              Control FSM task (priority 10, 20ms tick)
 ├── rf_433_init()           433MHz RMT receiver task
 ├── bt_hid_init()           BLE HID host scanner task
-└── webserver_init()        WiFi softAP + HTTP + mDNS + DNS
+└── webserver_init()        WiFi softAP + HTTP + WebSocket + mDNS + DNS
 
 Main loop (50ms):
     soft-idle check
@@ -76,7 +76,7 @@ Main loop (50ms):
     fsm_request() based on button events
     solar_run_fsm()
     drive_leds() status animation
-    rtc_check_shutdown_timer() → soft idle on inactivity (180s)
+    rtc_check_shutdown_timer() → soft idle after INACTIVITY_TIMEOUT_S (default 300s)
     esp_task_wdt_reset()
 ```
 
@@ -181,15 +181,26 @@ Safety break → immediate `STATE_UNDO_JACK_START`.
 - mDNS hostname: `sc.local`
 - Captive portal DNS: all queries → 192.168.4.1
 - HTTP port 80
+- The softAP and HTTP server stay up during soft idle so a client can always associate and revive the device (see Power Management).
 
 ### HTTP API (port 80)
 | Endpoint   | Method | Description                                                          |
 |------------|--------|----------------------------------------------------------------------|
 | `/`        | GET    | Embedded gzip HTML webpage                                           |
-| `/get`     | GET    | JSON system status                                                   |
+| `/get`     | GET    | JSON system status (polling fallback when the WebSocket is down)     |
 | `/post`    | POST   | JSON commands + parameter updates                                    |
+| `/ws`      | GET    | WebSocket: real-time control channel (see below)                    |
 | `/log`     | ANY    | Binary log download (4B JSON len + JSON + 8B offsets + log data)     |
 | `/ota`     | POST   | Firmware update upload                                               |
+
+### WebSocket (`/ws`) — real-time channel
+Requires `CONFIG_HTTPD_WS_SUPPORT=y` (set in `sdkconfig.defaults`). The web UI opens a WebSocket on load and uses it for:
+- **client → server:** low-latency remote-control commands (`fwd`/`rev`/`extend`/`retract`/`aux`/`stop_override`) as small JSON text frames, routed through `comms_handle_post()` so they share the POST command vocabulary.
+- **server → client:** a 1 Hz status push (same JSON as `/get`), replacing the old 2 s HTTP poll. Built only when ≥1 client is connected (no heap churn when idle).
+
+**Safety:** any WS socket close (tab closed, WiFi dropped, crash) fires `stop_override()` via the httpd `close_fn`, halting jogged motion without relying on the `RF_PULSE_LENGTH` timeout. Held jog also re-sends every 150 ms, re-arming that timeout as a backstop.
+
+**Robustness:** a vanished client leaves a stale TCP socket (no FIN). The broadcast pre-checks writability with a zero-timeout `select()` and sets a 2 s `SO_SNDTIMEO` on WS sockets, so a dead client is reclaimed (`httpd_sess_trigger_close`) instead of blocking the shared httpd task — which previously wedged the server and broke reconnects. The client falls back to `/get` polling + `/post` if the WS won't connect.
 
 ### UART (115200 8N1)
 - `GET` → same as HTTP GET /get
@@ -276,7 +287,7 @@ Single physical button (button 0 via TCA9555 I2C expander) controls all interact
 
 **Calibration states** — tap advances through calibration steps (unchanged)
 
-**Factory reset** — power cycle with GPIO13 held for 10 seconds. Resets all params and erases log/post_test partitions. Preserves NVS (board_rev, BT pairing, RTC time). Only triggers on `ESP_RST_POWERON` or `ESP_RST_EXT`.
+**Factory reset** — two ways, both run `factory_reset()`: (1) power cycle with GPIO13 held for 10 seconds (only triggers on `ESP_RST_POWERON` or `ESP_RST_EXT`), or (2) the **FACTORY RESET** button in the DANGER ZONE (web UI → `cmd: "factory_reset"` → reset + reboot). Resets all params and erases log/post_test partitions. Preserves NVS (board_rev, BT pairing, RTC time).
 
 ### LED Status Indicators
 
@@ -324,7 +335,7 @@ Error codes are also shown on the web interface status field with individual fla
 
 - **Battery voltage:** GPIO35, thru divider → `V = raw × V_SENS_K + V_SENS_OFFSET` (defaults: K=0.00766̄, offset=0.4)
 - **Solar charger:** GPIO26 (RTC hold) — FLOAT/BULK FSM, bulk for 20s when V < 5V for 5s
-- **Inactivity shutdown:** 180s → **soft idle** (WiFi/BT off, LEDs off — not deep sleep). Button press exits soft idle.
+- **Inactivity shutdown:** after `INACTIVITY_TIMEOUT_S` (default 300s) → **soft idle** (BT off, LEDs off, sensor rail off — not deep sleep). **WiFi softAP + HTTP server stay up.** Any incoming request (page load, `/get`, WS connect, command) or a button press calls `rtc_reset_shutdown_timer()`, which wakes from soft idle — so an already-associated client can revive the device just by reconnecting, without re-associating.
 - **RTC_DATA_ATTR:** Sync timestamps, alarm times, charge state — survive software resets (panics, WDT)
 
 ---
