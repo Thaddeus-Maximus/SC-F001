@@ -49,6 +49,37 @@ static void init_critical(const char *name, esp_err_t (*fn)(void)) {
     esp_restart();
 }
 
+/* Record the running firmware version into the BUILD_VERSION param and detect a
+ * change since last boot. `prev` is the version the device last ran (loaded from
+ * flash by storage_init); we overwrite the param with the current FIRMWARE_VERSION
+ * in RAM here — it is persisted lazily by the next commit_params() (a param save
+ * or alarm reschedule), per design ("committed eventually").
+ *
+ * The `changed` branch is the hook for one-time firmware-migration actions:
+ * add version-specific code there, keyed off `prev` (e.g. `prev` == "undefined"
+ * = first boot with this param; or gate on a specific old version string). Both
+ * strings are compared AFTER truncation to PARAM_STR_SIZE so a long
+ * `git describe` value compares consistently against the stored (truncated) one. */
+static void check_firmware_version(void) {
+    char prev[PARAM_STR_SIZE];
+    strncpy(prev, get_param_string(PARAM_BUILD_VERSION), sizeof(prev));
+    prev[sizeof(prev) - 1] = '\0';
+
+    set_param_string(PARAM_BUILD_VERSION, FIRMWARE_VERSION);
+    const char *now = get_param_string(PARAM_BUILD_VERSION);  // truncated identically
+
+    if (strcmp(prev, now) != 0) {
+        ESP_LOGW(TAG, "Firmware version changed: '%s' -> '%s'", prev, now);
+        /* === Firmware migration hook =======================================
+         * Runs once per version change. Add migrations here, e.g.:
+         *   if (strcmp(prev, "undefined") == 0) { ...first boot with param... }
+         * The new BUILD_VERSION is committed by the next commit_params().
+         * ================================================================== */
+    } else {
+        ESP_LOGI(TAG, "Firmware version: '%s' (unchanged)", now);
+    }
+}
+
 int64_t last_bat_log_time = 0;
 esp_err_t send_bat_log() {
 	if(!rtc_is_set()) return ESP_OK;
@@ -76,13 +107,13 @@ esp_err_t send_bat_log() {
 // Status LEDs:
 //   IDLE:        LED1 blinks 0.5Hz (1s on / 1s off)
 //   ERROR:       5Hz rapid blink 1s, then hold error code 2s (3s cycle)
-//     Error code bits: LED1=efuse, LED2=RTC/battery, LED3=safety/leash/FSM
+//     Error code bits: LED1=efuse, LED2=RTC/battery, LED3=safety/travel-limit/FSM
 //   WATERFALL:   001→011→111→110→100→000, ~1 cycle/s (moving, delays)
 //   CALIBRATING: all LEDs flash 1Hz (500ms on / 500ms off)
 //   UNDO:        solid all LEDs on
 //   BOOTING:     LED1 solid
 
-// LED error code bits: LED1=efuse/battery, LED2=RTC, LED3=safety/leash
+// LED error code bits: LED1=efuse/battery, LED2=RTC, LED3=safety/travel-limit
 static uint8_t error_code_from_state(void) {
     uint8_t code = 0;
     if (any_efuse_tripped())                    code |= 0b001;  // LED1: efuse
@@ -92,7 +123,7 @@ static uint8_t error_code_from_state(void) {
     if (!rtc_is_set())                          code |= 0b010;  // LED2: RTC not set
     esp_err_t fe = fsm_get_error();
     if (fe == SC_ERR_SAFETY_TRIP)               code |= 0b100;  // LED3: safety
-    if (fe == SC_ERR_LEASH_HIT)                 code |= 0b100;  // LED3: leash
+    if (fe == SC_ERR_TRAVEL_LIMIT)              code |= 0b100;  // LED3: travel limit
     if (fe != ESP_OK && code == 0)              code = 0b111;    // unknown error
     return code;
 }
@@ -232,6 +263,10 @@ void app_main(void) {
     // POST checks — verify hardware is responding correctly
     adc_post();      // ADC channels readable and not frozen
     storage_post();  // flash write-read-verify on test sector
+
+    // Record running firmware version + run any version-transition migrations.
+    // Must be after storage_init (params loaded) so `prev` is the last-run build.
+    check_firmware_version();
 
     //run_all_log_tests();
 

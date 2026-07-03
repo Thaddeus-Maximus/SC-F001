@@ -36,10 +36,11 @@
 #define LOG_MAX_PAYLOAD 200
 
 /* Helper macro to check if a byte is a valid log type. Includes the
- * 0..13 FSM-state range, the 100..103 system-event range, and the legacy
+ * 0..15 FSM-state range (must cover the highest fsm_state_t value — currently
+ * STATE_MOVE_JACK_SETTLE = 15), the 100..103 system-event range, and the legacy
  * 0xC0-0xCF magic range. Used as a soft sanity check during log_read —
  * unknown types are still surfaced to callers, just with a warning. */
-#define IS_VALID_LOG_TYPE(x) (((x) <= 13) || \
+#define IS_VALID_LOG_TYPE(x) (((x) <= 15) || \
                               ((x) >= 100 && (x) <= 103) || \
                               ((x) >= 0xC0 && (x) <= 0xCF))
 
@@ -78,8 +79,8 @@ typedef struct {
     PARAM_DEF(NUM_MOVES,         u32, 0,             "",        0, 1000) \
     PARAM_DEF(MOVE_START,        u32, 0,             "s",       0, 86400) \
     PARAM_DEF(MOVE_END,          u32, 0,             "s",       0, 86400) \
-    PARAM_DEF(DRIVE_DIST,        f32, 4,            "ft",      0.0, 100.0) \
-    PARAM_DEF(JACK_DIST,         f32, 1.5,            "in",      0.0, 10.0) \
+    PARAM_DEF(DRIVE_DIST,        f32, 4,             "ft",      0.0, 100.0) \
+    PARAM_DEF(JACK_DIST,         f32, 2.0,           "in",      0.0, 10.0) /* phase-2 lift after pre-jack */ \
     PARAM_DEF(DRIVE_KE,          f32, 29.2,          "n/ft",    1.0, 1e9) \
     PARAM_DEF(DRIVE_KT,          f32, 1440000,       "us/ft",   1.0, 1e9) /* div-critical */ \
     PARAM_DEF(JACK_KT,           f32, 1725698,       "ms/in",   1.0, 1e9) /* div-critical */ \
@@ -112,16 +113,16 @@ typedef struct {
     PARAM_DEF(NET_SSID,          str, "",             "",        "", "") \
     PARAM_DEF(NET_PASS,          str, "",             "",        "", "") \
     PARAM_DEF(WIFI_CHANNEL,      u16, 6,             "",        1, 14) \
-    PARAM_DEF(WIFI_SSID,         str, "sc.local",    "",        "", "") \
+    PARAM_DEF(WIFI_SSID,         str, "StockCropper","",        "", "") \
     PARAM_DEF(WIFI_PASS,         str, "password",    "",        "", "") \
     PARAM_DEF(EFUSE_INRUSH_US,   u32, 250000,        "us",      0, 10000000) \
     PARAM_DEF(JACK_I_UP,         f32, 8.0,           "A",       0.0, 200.0) \
-    PARAM_DEF(JACK_I_DOWN,       f32, 15.0,          "A",       0.0, 200.0) \
+    PARAM_DEF(JACK_I_DOWN,       f32, 1.6,           "A",       0.0, 200.0) \
     PARAM_DEF(V_SENS_K,          f32, 0.00766666666, "V/mV",    0.0, 1.0) \
     PARAM_DEF(BUILD_VERSION,     str, "undefined",   "",        "", "") \
     PARAM_DEF(SAFETY_BREAK_US,   u32, 300000,        "",        0, 10000000) \
     PARAM_DEF(SAFETY_MAKE_US,    u32, 1000000,       "",        0, 10000000) \
-    PARAM_DEF(JACK_IS_DOWN,      f32, 8.0,           "A",       0.0, 200.0) /* deprecated: may duplicate JACK_I_DOWN */ \
+    PARAM_DEF(JACK_IS_DOWN,      f32, 1.6,           "A",       0.0, 200.0) /* deprecated: may duplicate JACK_I_DOWN */ \
     PARAM_DEF(FLUFF_PREDRIVE_MS, u32, 2000,          "ms",      0, 60000) \
     PARAM_DEF(INACTIVITY_TIMEOUT_S, u32, 300,        "s",       10, 86400) \
     /* Tabular schedule: up to 12 daily move times (seconds since local midnight). \
@@ -145,7 +146,19 @@ typedef struct {
     PARAM_DEF(MOVE_TIME_10,      i32, -1,            "s",       -1, 86399) \
     PARAM_DEF(MOVE_TIME_11,      i32, -1,            "s",       -1, 86399) \
     /* Appended at end to avoid shifting existing flash layout: */ \
-    PARAM_DEF(JACK_MAX,          f32, 5.0,            "in",      0.0, 10.0)
+    PARAM_DEF(JACK_MAX,          f32, 5.0,            "in",      0.0, 10.0) \
+    /* Deadman for web/WebSocket jog only (RF/BT keep RF_PULSE_LENGTH). Longer \
+     * than RF's because a browser jog rides a TCP WebSocket, which stalls on \
+     * head-of-line blocking during Wi-Fi loss (worst near running motors). \
+     * Release + tab-close stop instantly via reliable paths; this only bounds \
+     * continued motion on a silent link blackout. Default 1 s. */ \
+    PARAM_DEF(WEB_PULSE_LENGTH,  u32, 1000000,        "us",      0, 10000000) \
+    /* Two-phase jack extension. Phase 1 ("pre-jack") raises JACK_PRE_DIST inches \
+     * OR until the jack up-current threshold (JACK_I_UP) trips, whichever first — \
+     * i.e. raise until the jack engages the load. Phase 2 then lifts an additional \
+     * JACK_DIST inches. JACK_PRE_DIST + JACK_I_UP are both exposed in the web \
+     * DANGER ZONE. Appended at end to keep flash layout stable. */ \
+    PARAM_DEF(JACK_PRE_DIST,     f32, 4.0,            "in",      0.0, 10.0)
 
 /* Tabular schedule width. The enum entries above must remain contiguous so
  * PARAM_MOVE_TIME_00 + i indexes slot i. */

@@ -93,16 +93,31 @@ static inline void set_timer(uint64_t us) {
 }
 static inline bool timer_done() { return fsm_now >= timer_end; }
 
-void pulse_override(fsm_override_t cmd) {
+/* Arm the override deadman for `duration_us` from now. Shared by the RF/BT
+ * path (short RF_PULSE_LENGTH) and the web/WS path (longer WEB_PULSE_LENGTH). */
+static void arm_override(fsm_override_t cmd, uint32_t duration_us) {
     if (soft_idle_is_active()) return;
     if (current_state == STATE_IDLE) {
         rtc_reset_shutdown_timer();
-        int64_t deadline = fsm_now + (int64_t)get_param_value_t(PARAM_RF_PULSE_LENGTH).u32;
+        int64_t deadline = fsm_now + (int64_t)duration_us;
         portENTER_CRITICAL(&override_spin);
         override_cmd = cmd;
         override_time = deadline;
         portEXIT_CRITICAL(&override_spin);
     }
+}
+
+/* RF remote / BT HID jog: short deadman, matched to their fast physical-layer
+ * repeat rate (no TCP in between). */
+void pulse_override(fsm_override_t cmd) {
+    arm_override(cmd, get_param_value_t(PARAM_RF_PULSE_LENGTH).u32);
+}
+
+/* Web / WebSocket jog: longer deadman to ride out TCP stalls (head-of-line
+ * blocking on Wi-Fi loss). Safe because release/tab-close stop via reliable
+ * paths; this only bounds motion on a silent link blackout. See WEB_PULSE_LENGTH. */
+void pulse_override_web(fsm_override_t cmd) {
+    arm_override(cmd, get_param_value_t(PARAM_WEB_PULSE_LENGTH).u32);
 }
 
 void stop_override(void) {
@@ -130,7 +145,7 @@ const char *sc_err_str(esp_err_t e) {
         case SC_ERR_EFUSE_TRIP_2: return "EFUSE 2 TRIP";
         case SC_ERR_EFUSE_TRIP_3: return "EFUSE 3 TRIP";
         case SC_ERR_SAFETY_TRIP:  return "SAFETY NOT SET";
-        case SC_ERR_LEASH_HIT:    return "NO REMAINING DISTANCE";
+        case SC_ERR_TRAVEL_LIMIT: return "TRAVEL LIMIT REACHED";
         case SC_ERR_RTC_NOT_SET:  return "CLOCK NOT SET";
         case SC_ERR_LOW_BATTERY:  return "INSUFFICIENT VOLTAGE";
         default:                  return "UNKNOWN";
@@ -148,6 +163,8 @@ const char *fsm_state_str(fsm_state_t s) {
         case STATE_DRIVE:                 return "DRIVE";
         case STATE_DRIVE_END_DELAY:       return "DRIVE_END_DELAY";
         case STATE_JACK_DOWN:             return "JACK_DOWN";
+        case STATE_MOVE_JACK_RETRACT:     return "MOVE_JACK_RETRACT";
+        case STATE_MOVE_JACK_SETTLE:      return "MOVE_JACK_SETTLE";
         case STATE_UNDO_JACK_START:       return "UNDO_JACK_START";
         case STATE_CALIBRATE_JACK_DELAY:  return "CALIBRATE_JACK_DELAY";
         case STATE_CALIBRATE_JACK_MOVE:   return "CALIBRATE_JACK_MOVE";
@@ -206,6 +223,8 @@ int8_t fsm_get_current_progress(int8_t denominator) {
 		case STATE_JACK_UP_START:
 		case STATE_JACK_UP:
 		case STATE_JACK_DOWN:
+		case STATE_MOVE_JACK_RETRACT:
+		case STATE_MOVE_JACK_SETTLE:
 		case STATE_MOVE_START_DELAY:
 		case STATE_DRIVE_START_DELAY:
 		case STATE_DRIVE_FLUFF_START:
@@ -227,6 +246,9 @@ int8_t fsm_get_current_progress(int8_t denominator) {
 
 #define JACK_TIME      get_param_value_t(PARAM_JACK_KT).f32 * get_param_value_t(PARAM_JACK_DIST).f32
 #define JACK_MAX_TIME  get_param_value_t(PARAM_JACK_KT).f32 * get_param_value_t(PARAM_JACK_MAX ).f32
+/* Phase-1 ("pre-jack") duration: raise JACK_PRE_DIST inches, but the phase also
+ * ends early on the jack up-current threshold (JACK_I_UP) or an e-fuse trip. */
+#define JACK_PRE_TIME  get_param_value_t(PARAM_JACK_KT).f32 * get_param_value_t(PARAM_JACK_PRE_DIST).f32
 
 /* Symmetric jack-down duration: how long jack-up actually ran, plus 5%.
  * If jack_start_us / jack_finish_us are zero or negative (panic recovery,
@@ -329,8 +351,8 @@ void control_task(void *param) {
                 case FSM_CMD_START:
                 	// Check if we have remaining distance before starting
                 	if (remaining_distance <= 0.0f) {
-						ESP_LOGI(TAG, "FAILED TO START; %s", sc_err_str(SC_ERR_LEASH_HIT));
-                		fsm_error = SC_ERR_LEASH_HIT;
+						ESP_LOGI(TAG, "FAILED TO START; %s", sc_err_str(SC_ERR_TRAVEL_LIMIT));
+                		fsm_error = SC_ERR_TRAVEL_LIMIT;
                 		log = true;
                 		continue;
                 	}
@@ -438,25 +460,77 @@ void control_task(void *param) {
 			    break;
 
             case STATE_MOVE_START_DELAY:
-            	// 1s pause before raising jack — lets operator abort after pressing start
+            	// 1s pause before moving — lets operator abort after pressing start
             	if (!get_is_safe()) {
 					fsm_error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_IDLE; // haven't raised jack yet, safe to just stop
                 	log = true;
 				} else if (timer_done()) {
+					if (get_sensor(SENSOR_JACK)) {
+						// Jack already home — skip the retract and go straight up.
+						// The jack has been off through this delay, so this is a
+						// clean off→forward start with no motor reversal.
+						current_state = STATE_JACK_UP_START;
+						set_timer((uint64_t)JACK_PRE_TIME);
+						jack_start_us = fsm_now;
+					} else {
+						// Jack left partway up — retract to home first so ride
+						// height is correct regardless of where it was left.
+						current_state = STATE_MOVE_JACK_RETRACT;
+						set_timer((uint64_t)JACK_MAX_TIME);  // generous — home sensor is the real stop
+					}
+					log = true;
+				}
+                break;
+
+            case STATE_MOVE_JACK_RETRACT:
+            	// Drive the jack down to home before extending. Ends on the home
+            	// sensor (normal), a jack efuse trip, or the timeout (safety net),
+            	// then an all-off settle so the upcoming jack-up isn't a direct
+            	// REV→FWD reversal (which the relay driver blocks).
+            	if (!get_is_safe()) {
+					fsm_error = SC_ERR_SAFETY_TRIP;
+					current_state = STATE_IDLE; // jack is lowering — safe to just stop
+                	log = true;
+				} else if (get_sensor(SENSOR_JACK) || efuse_get(BRIDGE_JACK) || timer_done()) {
+					current_state = STATE_MOVE_JACK_SETTLE;
+					set_timer(TRANSITION_DELAY_US);
+					log = true;
+				}
+                break;
+
+            case STATE_MOVE_JACK_SETTLE:
+            	// All motors off (~1s) so the jack de-energizes after the retract,
+            	// then begin the upward move with a clean off→forward transition.
+            	if (!get_is_safe()) {
+					fsm_error = SC_ERR_SAFETY_TRIP;
+					current_state = STATE_IDLE; // jack is off — safe to just stop
+                	log = true;
+				} else if (timer_done()) {
 					current_state = STATE_JACK_UP_START;
-					set_timer(JACK_TIME / 2);  // first phase: detect engagement (half of total jack time)
+					set_timer((uint64_t)JACK_PRE_TIME);  // phase 1: raise JACK_PRE_DIST, or until current/e-fuse
 					jack_start_us = fsm_now;
+					log = true;
 				}
                 break;
 
             case STATE_JACK_UP_START:
-            	// Detect when jack engages the load (current spike, efuse, or timeout)
+            	// Phase 1 (pre-jack): raise until the jack engages the load — ends on
+            	// the up-current threshold (JACK_I_UP), an e-fuse trip, or the
+            	// JACK_PRE_DIST timeout. Then phase 2 lifts an additional JACK_DIST.
             	if (!get_is_safe()) {
 					fsm_error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
 					jack_finish_us = fsm_now;
                 	log = true;
+				} else if (jack_pos_us >= (int64_t)JACK_MAX_TIME) {
+					// Hit the JACK_MAX height ceiling during pre-jack — never lift
+					// past JACK_MAX. Skip phase 2 and go drive.
+					ESP_LOGI(TAG, "START->DRIVE BY JACK_MAX");
+					current_state = STATE_DRIVE_START_DELAY;
+					jack_finish_us = fsm_now;
+					set_timer(TRANSITION_DELAY_US);
+					log = true;
 				} else {
 					if (efuse_get(BRIDGE_JACK)) {
 						ESP_LOGI(TAG, "START->UP BY EFUSE");
@@ -485,7 +559,9 @@ void control_task(void *param) {
                 break;
 
             case STATE_JACK_UP:
-            	// Continue raising until timer or efuse — records finish time for symmetric jack-down
+            	// Phase 2: lift an additional JACK_DIST (JACK_TIME) — ends on timer,
+            	// efuse, or the JACK_MAX height ceiling (never lift past JACK_MAX).
+            	// Records finish time for the symmetric jack-down duration.
             	if (!get_is_safe()) {
 					fsm_error = SC_ERR_SAFETY_TRIP;
 					current_state = STATE_UNDO_JACK_START;
@@ -493,7 +569,8 @@ void control_task(void *param) {
 					set_timer(JACK_DOWN_TIME);
                 	log = true;
 				} else {
-                	if (timer_done() || efuse_get(BRIDGE_JACK)) {
+                	if (timer_done() || efuse_get(BRIDGE_JACK) ||
+                	    jack_pos_us >= (int64_t)JACK_MAX_TIME) {
 						current_state  = STATE_DRIVE_START_DELAY;
 						jack_finish_us = fsm_now; // used to calculate symmetric jack-down duration
 						log = true;
@@ -569,7 +646,7 @@ void control_task(void *param) {
 				} else {
 					int32_t current_encoder = get_sensor_counter(SENSOR_DRIVE);
 					if (timer_done() || current_encoder > 0) {
-						// Normal completion — deduct planned distance from leash
+						// Normal completion — deduct planned distance from remaining travel
 						remaining_distance -= this_move_dist;
 
 						current_state = STATE_DRIVE_END_DELAY;
@@ -708,6 +785,22 @@ void control_task(void *param) {
 								}});
 							}
                             break;
+                        case FSM_OVERRIDE_JACK_UP_FORCE:
+                        	// Force jack up past the JACK_MAX cap — only the efuse stops it.
+			            	if (efuse_get(BRIDGE_JACK)) {
+				            	drive_relays((relay_port_t){.bridges = {
+									.DRIVE=BRIDGE_OFF,
+									.JACK=BRIDGE_OFF,
+									.AUX=BRIDGE_OFF
+								}});
+							} else {
+								drive_relays((relay_port_t){.bridges = {
+									.DRIVE=BRIDGE_OFF,
+									.JACK=BRIDGE_FWD,
+									.AUX=BRIDGE_OFF
+								}});
+							}
+                            break;
                         case FSM_OVERRIDE_JACK_DOWN:
                         	/*if (get_bridge_overcurrent(BRIDGE_JACK, get_param_value_t(PARAM_JACK_I_DOWN).f32) ||
 			            	    get_bridge_spike(BRIDGE_JACK, get_param_value_t(PARAM_JACK_IS_DOWN).f32))
@@ -715,6 +808,22 @@ void control_task(void *param) {
                         	*/
                         	if (get_sensor(SENSOR_JACK) || efuse_get(BRIDGE_JACK)) {
 								drive_relays((relay_port_t){.bridges = {
+									.DRIVE=BRIDGE_OFF,
+									.JACK=BRIDGE_OFF,
+									.AUX=BRIDGE_OFF
+								}});
+							} else {
+								drive_relays((relay_port_t){.bridges = {
+									.DRIVE=BRIDGE_OFF,
+									.JACK=BRIDGE_REV,
+									.AUX=BRIDGE_OFF
+								}});
+							}
+                            break;
+                        case FSM_OVERRIDE_JACK_DOWN_FORCE:
+                        	// Force jack down past the home sensor — only the efuse stops it.
+			            	if (efuse_get(BRIDGE_JACK)) {
+				            	drive_relays((relay_port_t){.bridges = {
 									.DRIVE=BRIDGE_OFF,
 									.JACK=BRIDGE_OFF,
 									.AUX=BRIDGE_OFF
@@ -785,6 +894,7 @@ void control_task(void *param) {
                 rtc_reset_shutdown_timer();
                 log = true;
                 break;
+            case STATE_MOVE_JACK_RETRACT:
             case STATE_JACK_DOWN:
             	drive_relays((relay_port_t){.bridges = {
 					.DRIVE=BRIDGE_OFF,
@@ -794,9 +904,11 @@ void control_task(void *param) {
                 rtc_reset_shutdown_timer();
                 log = true;
                 break;
+			case STATE_MOVE_JACK_SETTLE:
 			case STATE_DRIVE_START_DELAY:
-            	// Quiet 1s after jack-up — all motors off so jack current
-            	// settles before the fluffer starts.
+            	// Quiet 1s — all motors off. DRIVE_START_DELAY: let jack-up current
+            	// settle before the fluffer starts. MOVE_JACK_SETTLE: let the jack
+            	// de-energize after the retract before the clean off→forward jack-up.
             	drive_relays((relay_port_t){.bridges = {
 					.DRIVE=BRIDGE_OFF,
 					.JACK=BRIDGE_OFF,
@@ -842,6 +954,7 @@ void control_task(void *param) {
                 case STATE_CALIBRATE_JACK_MOVE:
                     jack_dir = BRIDGE_FWD;
                     break;
+                case STATE_MOVE_JACK_RETRACT:
                 case STATE_JACK_DOWN:
                     jack_dir = BRIDGE_REV;
                     break;
@@ -850,9 +963,11 @@ void control_task(void *param) {
                     fsm_override_t local_cmd;
                     override_snapshot(&local_time, &local_cmd);
                     if (local_time > fsm_now && !efuse_get(BRIDGE_JACK)) {
-                        if (local_cmd == FSM_OVERRIDE_JACK_UP && jack_pos_us < (int64_t)JACK_MAX_TIME)
+                        if ((local_cmd == FSM_OVERRIDE_JACK_UP && jack_pos_us < (int64_t)JACK_MAX_TIME) ||
+                             local_cmd == FSM_OVERRIDE_JACK_UP_FORCE)
                             jack_dir = BRIDGE_FWD;
-                        else if (local_cmd == FSM_OVERRIDE_JACK_DOWN)
+                        else if (local_cmd == FSM_OVERRIDE_JACK_DOWN ||
+                                 local_cmd == FSM_OVERRIDE_JACK_DOWN_FORCE)
                             jack_dir = BRIDGE_REV;
                     }
                     break;

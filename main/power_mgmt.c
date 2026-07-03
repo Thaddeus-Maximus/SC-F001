@@ -95,6 +95,8 @@ typedef struct {
 	
 	int64_t on_us;
 	int64_t off_us;
+
+	int64_t oc_since_us;  // when get_bridge_overcurrent first went over (0 = not over); debounce
 } isens_channel_t;
 static isens_channel_t isens[N_BRIDGES] = {0};
 
@@ -333,11 +335,28 @@ void disable_autozero(bridge_t bridge) {
 	//ESP_LOGI(TAG, "KILLING BRIDGE %d; %lld -> %lld", bridge, (long long int) now, (long long int) isens[bridge].az_enable_time);
 }
 
+/* Sustained-overcurrent detector used for jack load-engagement (JACK_I_UP), NOT
+ * the fast e-fuse instant trip. Two changes from a raw per-tick compare so a low
+ * threshold is trustworthy on V5's noisy shared ACS:
+ *   1. Compares the EMA (smoothed), auto-zero-corrected current, not the raw
+ *      per-tick value — a single ripple spike no longer counts.
+ *   2. Requires the current to stay over the threshold for OC_DEBOUNCE_US before
+ *      returning true — so a brief burst that gets past the EMA is ignored.
+ * Signed compare (not fabsf) so negative sensor-noise excursions never trip. */
+#define OC_DEBOUNCE_US 100000  /* 100 ms sustained */
 bool get_bridge_overcurrent(bridge_t bridge, float threshold) {
 	if (bridge < 0 || bridge>=NUM_BRIDGES) return true; // I GUESS?
-	if (fsm_now < isens[bridge].on_us + get_param_value_t(PARAM_EFUSE_INRUSH_US).u32) return false;
-	if (isens[bridge].raw_current < threshold) return false;
-	return true;
+	if (fsm_now < isens[bridge].on_us + get_param_value_t(PARAM_EFUSE_INRUSH_US).u32) {
+		isens[bridge].oc_since_us = 0;
+		return false;
+	}
+	float smoothed = isens[bridge].ema_current - isens[bridge].az_offset;
+	if (smoothed < threshold) {
+		isens[bridge].oc_since_us = 0;
+		return false;
+	}
+	if (isens[bridge].oc_since_us == 0) isens[bridge].oc_since_us = fsm_now;
+	return (fsm_now - isens[bridge].oc_since_us) >= OC_DEBOUNCE_US;
 }
 bool get_bridge_spike(bridge_t bridge, float threshold) {
 	if (bridge < 0 || bridge>=NUM_BRIDGES) return true; // I GUESS?
@@ -395,6 +414,31 @@ static bool v5_any_bridge_in_inrush(void) {
     }
     return false;
 }
+
+/* Which active bridge should own the shared-sensor reading. With one sensor we
+ * can't split a co-active current (only DRIVE+AUX ever overlap — jack is
+ * mutually exclusive), so attribute the whole reading to the bridge that draws
+ * the most — approximated by the highest nominal current (EFUSE_INOM). The
+ * quieter co-active bridge then reads 0, so the big DRIVE current can't
+ * false-trip the tiny AUX e-fuse. The dominant bridge still sees the full
+ * combined current, so total-overcurrent protection is preserved (a real AUX
+ * fault during DRIVE shows up as excess DRIVE current and trips there).
+ * Returns -1 if no bridge is active. */
+static bridge_t v5_dominant_active_bridge(void) {
+    static const param_idx_t inom[N_BRIDGES] = {
+        [BRIDGE_DRIVE] = PARAM_EFUSE_INOM_1,
+        [BRIDGE_JACK]  = PARAM_EFUSE_INOM_2,
+        [BRIDGE_AUX]   = PARAM_EFUSE_INOM_3,
+    };
+    bridge_t best = -1;
+    float best_inom = -1.0f;
+    for (bridge_t b = 0; b < N_BRIDGES; b++) {
+        if (!v5_bridge_is_active(b)) continue;
+        float i = get_param_value_t(inom[b]).f32;
+        if (i > best_inom) { best_inom = i; best = b; }
+    }
+    return best;
+}
 #endif
 
 esp_err_t process_bridge_current(bridge_t bridge) {
@@ -416,15 +460,16 @@ esp_err_t process_bridge_current(bridge_t bridge) {
     // that forward motor current gives negative delta from Vqvo).
     float measured_A = -(voltage_mv - 1650.0f) / 13.2f;
 
-    // Per-bridge attribution:
-    //   - bridge active and alone      → it owns the entire reading
-    //   - bridge active, others active → attribute full reading to each active
-    //       bridge (worst-case; protects hardware). Jack/drive are mutually
-    //       exclusive per design, so this only affects drive+aux overlap.
-    //   - bridge OFF                   → no current from this bridge
-    // TODO(V5): better drive+aux simultaneous attribution (e.g. subtract the
-    //           quieter bridge's nominal draw from the total).
-    if (v5_bridge_is_active(bridge)) {
+    // Per-bridge attribution with a single shared sensor:
+    //   - bridge active and the dominant (highest-nominal) active bridge → owns
+    //       the whole reading.
+    //   - bridge active but a bigger bridge is co-active → reads 0, so the big
+    //       DRIVE current can't false-trip the small AUX e-fuse during a move.
+    //       (Only DRIVE+AUX overlap; jack is mutually exclusive.)
+    //   - bridge OFF → no current from this bridge.
+    // The dominant bridge carries the full combined current, so total-overcurrent
+    // protection is preserved; a real AUX fault during DRIVE trips the DRIVE fuse.
+    if (v5_bridge_is_active(bridge) && bridge == v5_dominant_active_bridge()) {
         channel->raw_current = measured_A;
     } else {
         channel->raw_current = 0.0f;
@@ -468,6 +513,14 @@ esp_err_t process_bridge_current(bridge_t bridge) {
     if (!channel->ema_init) {
         channel->ema_current = channel->raw_current;
         channel->ema_init = true;
+    } else if (fsm_now < channel->on_us + (int64_t)get_param_value_t(PARAM_EFUSE_INRUSH_US).u32) {
+        /* Freeze the EMA through the inrush window. The startup current spike
+         * (tens of amps) must not bleed into the smoothed value that
+         * get_bridge_overcurrent() uses for load-engagement (JACK_I_UP) — an
+         * inflated EMA tail would false-trip the moment the inrush mask lifts.
+         * The EMA holds its pre-inrush baseline and resumes cleanly after.
+         * NaN guard still applies so a bad sample resets it. */
+        if (isnan(channel->raw_current)) channel->ema_current = NAN;
     } else {
         float alpha = get_param_value_t(PARAM_ADC_ALPHA_ISENS).f32;
 		if (isnan(channel->raw_current)) {

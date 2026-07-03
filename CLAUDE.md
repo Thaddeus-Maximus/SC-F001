@@ -28,6 +28,7 @@ See `README.md` for full project documentation (hardware, architecture, protocol
 | `CONFIG_ESP_TASK_WDT_PANIC` | y | WDT timeout → panic → reboot (feeds OTA rollback counter) |
 | `CONFIG_RTC_CLK_SRC_INT_RC` | y | Use internal 150kHz RC oscillator — no external 32kHz crystal. Avoids failed XTAL probe that corrupts RTC slow memory. |
 | `CONFIG_HTTPD_WS_SUPPORT` | y | WebSocket support in esp_http_server — `/ws` real-time control + 1 Hz status push. |
+| `CONFIG_HTTPD_MAX_REQ_HDR_LEN` | 1024 | Fit Android captive-portal probe headers (default 512 → "Header fields are too long"). |
 
 **Already correct at IDF defaults (verified, no override needed):**
 | Setting | Value | Status |
@@ -96,12 +97,11 @@ All fields optional. `parameters` is a flat object of param key → value.
 **Sections (top to bottom):**
 1. Status display (voltage, state, distance, error flags) — auto-updated from `data`
 2. Schedule settings (`<details>`) — daily `MOVE_TIME_NN` slots (HH:MM); `startRemote`/`stopRemote` jog via `sendCmd()`, releasing sends `stop_override`
-3. Remote Control (`<details open>`) — jog buttons + RF programming
-4. **WiFi Settings** (`<details>`) — WIFI_SSID, WIFI_PASS (STA mode disabled: NET_SSID/NET_PASS inputs commented out)
-5. **DANGER ZONE** (`<details>`) — calibration, version, OTA upload, log download, auto-generated parameter table, jack-position + heap (free / min) readouts, REBOOT / SLEEP / RESTART WIFI / FACTORY RESET
+3. Remote Control — a **modal** (`#remote-overlay`), launched by the blue **REMOTE CONTROL** button that sits directly below START MOVE / E-STOP. `openRemoteModal()` also fires `stop` (acts as an E-STOP) and resets Override off; `closeRemoteModal()` sends `stop_override`. Press-and-hold jog buttons (glyph + text label) in two labelled groups: **JACK** (extend = diverging ▲/▼ "ext", retract = converging ▼/▲ "ret") and **TIRES** (forward ↑ "fwd", reverse ↓ "rev"), plus **FLUFF** (aux). An **Override limits** checkbox (off on every open, confirm-gated with Cancel as the default) arms `_force` command variants for all JACK/TIRES jogs — `extend_force`/`retract_force` bypass the jack height cap / home sensor, `fwd_force`/`rev_force` are the normal drive overrides; the e-fuse always applies and FLUFF is never forced. Armed override rings the four jog buttons red.
+4. **DANGER ZONE** (`<details>`) — calibration, version, OTA upload, log download, **Program RF Remote**, **WiFi AP SSID/password + Apply** (moved here from a standalone section), auto-generated parameter table, jack-position + heap (free / min) readouts, REBOOT / SLEEP / RESTART WIFI / FACTORY RESET
 
 **`updateParamTable()`:**
-- On first call: builds a `<table id="table">` row per parameter, sorted alphabetically, skipping keys for which `paramSkipped(key)` is true — i.e. members of `PARAM_TABLE_SKIP = {NET_SSID, NET_PASS, WIFI_SSID, WIFI_PASS, MOVE_START, MOVE_END, NUM_MOVES}` (WiFi keys live in the dedicated WiFi section; the MOVE_* trio is deprecated/superseded by the `MOVE_TIME_NN` schedule)
+- On first call: builds a `<table id="table">` row per parameter, sorted alphabetically, skipping keys for which `paramSkipped(key)` is true — i.e. members of `PARAM_TABLE_SKIP = {NET_SSID, NET_PASS, WIFI_SSID, WIFI_PASS, MOVE_START, MOVE_END, NUM_MOVES}` (WiFi keys have dedicated inputs in the DANGER ZONE; the MOVE_* trio is deprecated/superseded by the `MOVE_TIME_NN` schedule)
 - On subsequent calls: updates existing input values (skips changed/focused inputs); if a new key appears, rebuilds
 
 **Modal helpers** (all return Promises):

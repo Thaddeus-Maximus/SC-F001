@@ -44,7 +44,21 @@ typedef enum {
 	 * Runs the fluffer alone for ~1 s between DRIVE_START_DELAY and DRIVE
 	 * so the aux motor never overlaps with the jack (which caused the aux
 	 * e-fuse to spuriously trip on V5's shared current sensor). */
-	STATE_DRIVE_FLUFF_START
+	STATE_DRIVE_FLUFF_START,
+
+	/* New — appended to keep existing log-entry numbering stable.
+	 * Runs at the very start of an auto-move (after the abort delay) to fully
+	 * retract the jack before extending, so ride height is correct even if the
+	 * operator left the jack partway up. Ends on home sensor / efuse / timeout.
+	 * Skipped when the jack already reads home. */
+	STATE_MOVE_JACK_RETRACT,
+
+	/* All-off settle between MOVE_JACK_RETRACT and JACK_UP_START. Lets the jack
+	 * fully de-energize so the upward move begins with a clean off→forward
+	 * transition — a direct REV→FWD flip is blocked by the relay driver
+	 * (BRIDGE_TRANSITION_LOGIC) and would force ~500 ms off with a misaligned
+	 * inrush window. Appended to keep log-entry numbering stable. */
+	STATE_MOVE_JACK_SETTLE
 } fsm_state_t;
 #define LOG_TYPE_BAT      100
 #define LOG_TYPE_CRASH    101
@@ -83,13 +97,22 @@ typedef enum {
 	FSM_OVERRIDE_DRIVE_REV,
 	FSM_OVERRIDE_JACK_UP,
 	FSM_OVERRIDE_JACK_DOWN,
-	FSM_OVERRIDE_AUX
+	FSM_OVERRIDE_AUX,
+	/* "Force" jog variants, armed by the Override checkbox in the remote modal.
+	 * They bypass the soft/position limits but STILL respect the e-fuse:
+	 *   JACK_UP_FORCE   — ignores the JACK_MAX height cap.
+	 *   JACK_DOWN_FORCE — ignores the home sensor (SENSOR_JACK) stop.
+	 * (Drive fwd/rev have no soft limit, so their "force" maps to the normal
+	 * override.) Appended to keep enum values stable. */
+	FSM_OVERRIDE_JACK_UP_FORCE,
+	FSM_OVERRIDE_JACK_DOWN_FORCE
 } fsm_override_t;
 
 #define N_RELAYS 8
 #define N_BRIDGES 3
 
-void pulse_override(fsm_override_t cmd);
+void pulse_override(fsm_override_t cmd);      // RF/BT jog — short RF_PULSE_LENGTH deadman
+void pulse_override_web(fsm_override_t cmd);  // web/WS jog — longer WEB_PULSE_LENGTH deadman
 void stop_override(void);
 
 esp_err_t fsm_init();

@@ -119,8 +119,15 @@ Main loop (50ms):
 ```
 STATE_IDLE
 STATE_MOVE_START_DELAY      (1s)
-STATE_JACK_UP_START         (detect current spike → jack engaged)
-STATE_JACK_UP               (continue until timer/e-fuse)
+STATE_MOVE_JACK_RETRACT     (retract jack to home first, so ride height is correct even
+                             if the operator left it partway up; ends on home sensor /
+                             jack e-fuse / timeout. SKIPPED when SENSOR_JACK already reads
+                             home — then we go straight to JACK_UP_START.)
+STATE_MOVE_JACK_SETTLE      (~1s all-off after a retract, so the jack-up is a clean
+                             off→forward start, not a blocked REV→FWD reversal)
+STATE_JACK_UP_START         (phase 1 / pre-jack: raise JACK_PRE_DIST in, or until the
+                             jack up-current threshold JACK_I_UP / e-fuse → engaged)
+STATE_JACK_UP               (phase 2: lift an additional JACK_DIST in, until timer/e-fuse)
 STATE_DRIVE_START_DELAY     (1s)
 STATE_DRIVE_FLUFF_START
 STATE_DRIVE                 (encoder-based distance control)
@@ -136,7 +143,7 @@ STATE_CALIBRATE_DRIVE_DELAY / STATE_CALIBRATE_DRIVE_MOVE  (drive calibration seq
 ```
 
 **Guards before START:**
-- Remaining distance > 0 (leash protection)
+- Remaining distance > 0 (travel-limit protection)
 - Battery V ≥ `LOW_PROTECTION_V` (default 10V)
 - Safety sensor active (debounced stable)
 - All e-fuses not tripped
@@ -178,9 +185,9 @@ Safety break → immediate `STATE_UNDO_JACK_START`.
 
 ### WiFi (softAP)
 - SSID/password/channel configurable via params (`WIFI_SSID`, `WIFI_PASS`, `WIFI_CHANNEL`)
-- mDNS hostname: `sc.local`
-- Captive portal DNS: all queries → 192.168.4.1
-- HTTP port 80
+- mDNS hostname: resolves as `sc.local` (firmware sets the mDNS label to `sc`; the mDNS component appends `.local`. Apple/iOS resolve `.local` names over mDNS only, so the label must **not** itself contain `.local` — otherwise it advertises as `sc.local.local` and Apple lookups fail).
+- Captive portal: a wildcard DNS server answers every query with 192.168.4.1, and the OS connectivity probes (Apple `/hotspot-detect.html`, Android `/generate_204`, Windows `/connecttest.txt`, …) are served a small landing page by `catchall_handler` instead of each OS's "success" token — so joining the AP pops the captive sign-in sheet. The landing page sends the user to the full control UI at `http://sc.local` / `http://192.168.4.1` in a **real browser**, because the captive webview can't reliably run the `/ws` status push or OTA upload. (`CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024` — Android's probe sends larger headers than the 512-byte default, which otherwise returns "Header fields are too long".)
+- HTTP only (no HTTPS), port 80
 - The softAP and HTTP server stay up during soft idle so a client can always associate and revive the device (see Power Management).
 
 ### HTTP API (port 80)
@@ -195,10 +202,10 @@ Safety break → immediate `STATE_UNDO_JACK_START`.
 
 ### WebSocket (`/ws`) — real-time channel
 Requires `CONFIG_HTTPD_WS_SUPPORT=y` (set in `sdkconfig.defaults`). The web UI opens a WebSocket on load and uses it for:
-- **client → server:** low-latency remote-control commands (`fwd`/`rev`/`extend`/`retract`/`aux`/`stop_override`) as small JSON text frames, routed through `comms_handle_post()` so they share the POST command vocabulary.
+- **client → server:** low-latency remote-control commands (`fwd`/`rev`/`extend`/`retract`/`aux`, their `_force` variants `fwd_force`/`rev_force`/`extend_force`/`retract_force`, and `stop_override`) as small JSON text frames, routed through `comms_handle_post()` so they share the POST command vocabulary. The web UI exposes these through a blue **Remote Control modal** (below START/E-STOP; opening it also fires `stop`) with two labelled jog groups — **JACK** (extend ▲/▼, retract ▼/▲) and **TIRES** (forward ↑, reverse ↓) — plus **FLUFF**. An **Override limits** checkbox (off on every open, confirm-gated with Cancel as the default) arms the `_force` command variants for all JACK/TIRES jogs: `extend_force`/`retract_force` bypass the jack height cap / home sensor, `fwd_force`/`rev_force` are the normal drive overrides. The e-fuse always applies and FLUFF is never forced.
 - **server → client:** a 1 Hz status push (same JSON as `/get`), replacing the old 2 s HTTP poll. Built only when ≥1 client is connected (no heap churn when idle).
 
-**Safety:** any WS socket close (tab closed, WiFi dropped, crash) fires `stop_override()` via the httpd `close_fn`, halting jogged motion without relying on the `RF_PULSE_LENGTH` timeout. Held jog also re-sends every 150 ms, re-arming that timeout as a backstop.
+**Safety / deadman:** a held jog re-sends every 150 ms, each re-arming an override deadman. The web/WS path uses `WEB_PULSE_LENGTH` (default **1 s**, `pulse_override_web()`) — deliberately longer than the RF/BT remotes' `RF_PULSE_LENGTH` (350 ms, `pulse_override()`) — because a browser jog rides a **TCP** WebSocket that stalls on head-of-line blocking during Wi-Fi loss (worst right when motors run). A too-short deadman starved on those stalls and stopped the motor mid-hold (the "remote-control timeout"). Stopping stays fast via reliable paths: on release the client sends `stop_override` (in-order over TCP), and any WS socket close (tab closed, Wi-Fi dropped, crash) fires `stop_override()` via the httpd `close_fn`. The deadman only bounds continued motion on a **silent** link blackout (no FIN) — hence ~1 s worst case, tunable live via `WEB_PULSE_LENGTH`.
 
 **Robustness:** a vanished client leaves a stale TCP socket (no FIN). The broadcast pre-checks writability with a zero-timeout `select()` and sets a 2 s `SO_SNDTIMEO` on WS sockets, so a dead client is reclaimed (`httpd_sess_trigger_close`) instead of blocking the shared httpd task — which previously wedged the server and broke reconnects. The client falls back to `/get` polling + `/post` if the WS won't connect.
 
@@ -318,7 +325,7 @@ A pattern written as `001` (LSB first) means **only the bottom LED is lit**,
 |--------------------------|--------------------------------------------------------|
 | 001 — only bottom (P05) lit | Efuse tripped (any bridge) or low battery           |
 | 010 — only middle (P06) lit | RTC/clock not set                                   |
-| 100 — only top (P07) lit    | Safety sensor break or leash limit hit              |
+| 100 — only top (P07) lit    | Safety sensor break or travel limit hit             |
 | 111 — all three lit         | Unknown FSM error (fallback)                        |
 
 Error codes are also shown on the web interface status field with individual flag names.
@@ -347,7 +354,7 @@ SC_ERR_EFUSE_TRIP_1  = 0x201  // Drive overcurrent/overheat
 SC_ERR_EFUSE_TRIP_2  = 0x202  // Jack
 SC_ERR_EFUSE_TRIP_3  = 0x203  // Aux
 SC_ERR_SAFETY_TRIP   = 0x210  // Safety sensor break
-SC_ERR_LEASH_HIT     = 0x211  // Distance limit reached
+SC_ERR_TRAVEL_LIMIT  = 0x211  // Travel limit reached (remaining distance exhausted)
 SC_ERR_RTC_NOT_SET   = 0x220  // Clock not synchronized
 SC_ERR_LOW_BATTERY   = 0x230  // Voltage below threshold
 ```

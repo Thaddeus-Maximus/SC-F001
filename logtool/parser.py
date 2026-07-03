@@ -34,6 +34,8 @@ _FALLBACK_FSM_STATES = {
     11: "CALIBRATE_DRIVE_DELAY",
     12: "CALIBRATE_DRIVE_MOVE",
     13: "DRIVE_FLUFF_START",
+    14: "MOVE_JACK_RETRACT",
+    15: "MOVE_JACK_SETTLE",
 }
 
 ESP_RESET_REASONS = {
@@ -198,7 +200,10 @@ def _unpack_time_set(payload: bytes) -> dict:
 
 
 def _is_valid_entry_type(t: int) -> bool:
-    return (0 <= t <= 13) or t in (LOG_TYPE_BAT, LOG_TYPE_CRASH, LOG_TYPE_BOOT, LOG_TYPE_TIME_SET)
+    # FSM state-tagged entries are 0..max(FSM state). Keep this in lockstep with
+    # the fsm_state_t enum (fallback map is updated when states are appended).
+    return (0 <= t <= max(_FALLBACK_FSM_STATES)) or \
+        t in (LOG_TYPE_BAT, LOG_TYPE_CRASH, LOG_TYPE_BOOT, LOG_TYPE_TIME_SET)
 
 
 def parse_entries(data: bytes, fsm_states: dict = None, type_first: bool = False) -> list:
@@ -287,7 +292,7 @@ def parse_entries(data: bytes, fsm_states: dict = None, type_first: bool = False
             i = end_offset + 1
 
         try:
-            if 0 <= entry_type <= 13:
+            if 0 <= entry_type <= max(fsm_states):
                 e = _unpack_fsm(payload, fsm_states)
                 e['entry_type'] = entry_type
                 e['state_name'] = fsm_states.get(entry_type, f"STATE_{entry_type}")

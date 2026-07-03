@@ -17,7 +17,7 @@
 
 #define SC_ERR_SAFETY_TRIP		0x210
 
-#define SC_ERR_LEASH_HIT		0x211
+#define SC_ERR_TRAVEL_LIMIT		0x211  /* remaining travel distance exhausted (was SC_ERR_LEASH_HIT) */
 
 #define SC_ERR_RTC_NOT_SET      0x220
 #define SC_ERR_LOW_BATTERY      0x230

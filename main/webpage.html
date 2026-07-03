@@ -13,6 +13,7 @@
             --green:  #38B000;
             --red:    #C1121F;
             --yellow: #FFDD00;
+            --blue:   #2563EB;   /* remote-control launcher */
 
             /* Dark theme surfaces (item 15) */
             --bg:        #1a1a1a;   /* page background */
@@ -242,6 +243,88 @@
             padding: 30px;
             font-weight: bold;
         }
+
+        /* === REMOTE CONTROL MODAL === */
+        #remote-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            z-index: 900;   /* below #popup-overlay (1000) so the override confirm stacks on top */
+            justify-content: center;
+            align-items: center;
+        }
+        #remote-content {
+            background-color: var(--surface);
+            color: var(--text);
+            padding: 24px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            text-align: center;
+            width: 90%;
+            max-width: 360px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+        #remote-content h2 { margin-top: 0; }
+        /* Two labelled groups side by side: JACK (extend/retract) and TIRES
+         * (forward/reverse). No d-pad cross. */
+        .remote-grid {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+        }
+        .remote-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .remote-label {
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+        }
+        .jogbtn {
+            flex: 1;            /* equal height across JACK/TIRES columns */
+            width: 100%;
+            padding: 14px 0;
+            margin: 0;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .jogbtn .ico {
+            font-size: 1.5rem;
+            line-height: 0.8;   /* tight so stacked arrows read as one glyph */
+        }
+        .jogbtn .lbl {
+            font-size: 0.72rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+        }
+        /* Solid green while held (mouse down / touch). */
+        .jogbtn:active { background-color: var(--green); color: #fff; }
+        .jogbtn:active .lbl { color: #fff; }
+        #rc_override_label {
+            display: block;
+            margin-top: 14px;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            cursor: pointer;
+        }
+        #rc_override_label input { margin-right: 6px; vertical-align: middle; }
+        /* When override is armed, ring the four jack/tires jog buttons red as a
+         * warning (FLUFF is outside .remote-grid, so it's excluded — override
+         * doesn't apply to it) and make the label stand out. */
+        #remote-content.override .remote-grid .jogbtn { outline: 2px solid var(--red); }
+        #remote-content.override #rc_override_label { color: var(--red); font-weight: bold; }
+        #remote_row { margin-top: 4px; }
+        #remote_btn { background-color: var(--blue); color: #fff; }
     </style>
 </head>
 <body>
@@ -254,6 +337,9 @@
     <div class="action_row">
         <button class="cmd cmd_action" id="action_btn" onclick="actionBtnClick()">START MOVE</button>
         <button class="cmd cmd_estop" onclick="sendCommand('stop')">E-STOP</button>
+    </div>
+    <div class="action_row" id="remote_row">
+        <button class="cmd" id="remote_btn" onclick="openRemoteModal()">REMOTE CONTROL</button>
     </div>
 
 
@@ -290,7 +376,7 @@
         </tr>
 
         <tr>
-            <td>Leash (ft)</td>
+            <td>Travel Limit (ft)</td>
             <td><input type="number" id="UX_REM_DIST" onchange="handleRemainingDistChange(this)"/></td>
         </tr>
         <tr>
@@ -306,12 +392,6 @@
             <td><input readonly="" id="voltage"/></td>
         </tr>
         <tr>
-            <td>Program RF Remote</td>
-            <td>
-            <button onclick="programRFSequence()">Program All Buttons</button>
-            </td>
-        </tr>
-        <tr>
             <td>Deep Sleep</td>
             <td>
             <button onclick="sendCommand('hibernate')">Enter Deep Sleep</button>
@@ -321,82 +401,8 @@
     
     <button id="cancel_btn" onclick="location.reload();" disabled>Discard</button>
     <button id="commit_btn" onclick="commitParams()" disabled>Save Changes</button>
-    
-    <br/>
-    <br/>
-    <details open>
-    <summary>REMOTE CONTROL</summary>
-    <br/>
-    <button class="sqbtn"
-	    onmousedown="startRemote('fwd', event)" 
-	    onmouseup="stopRemote()" 
-	    onmouseleave="stopRemote()"
-	    ontouchstart="startRemote('fwd', event)" 
-	    ontouchend="stopRemote()">
-	    FWD
-	  </button>
-	  <button class="sqbtn"
-	    onmousedown="startRemote('rev', event)" 
-	    onmouseup="stopRemote()" 
-	    onmouseleave="stopRemote()"
-	    ontouchstart="startRemote('rev', event)" 
-	    ontouchend="stopRemote()">
-	    REV
-	  </button>
-	  <button class="sqbtn"
-	    onmousedown="startRemote('extend', event)"
-	    onmouseup="stopRemote()"
-	    onmouseleave="stopRemote()"
-	    ontouchstart="startRemote('extend', event)"
-	    ontouchend="stopRemote()">
-	    EXTEND
-	  </button>
-	  <button class="sqbtn"
-	    onmousedown="startRemote('retract', event)"
-	    onmouseup="stopRemote()"
-	    onmouseleave="stopRemote()"
-	    ontouchstart="startRemote('retract', event)"
-	    ontouchend="stopRemote()">
-	    RETRACT
-	  </button>
-	  <button class="sqbtn"
-	    onmousedown="startRemote('aux', event)" 
-	    onmouseup="stopRemote()" 
-	    onmouseleave="stopRemote()"
-	    ontouchstart="startRemote('aux', event)" 
-	    ontouchend="stopRemote()">
-	    AUX
-	  </button>
-    </details>
-    <br/>
 
-    <details>
-    <summary>WiFi Settings</summary>
-    <table>
-        <!-- STA mode disabled pending network stack fixes
-        <tr>
-            <td>Network SSID</td>
-            <td><input type="text" id="PARAM_NET_SSID" onchange="markChanged(this)"/></td>
-        </tr>
-        <tr>
-            <td>Network Password</td>
-            <td><input type="text" id="PARAM_NET_PASS" onchange="markChanged(this)"/></td>
-        </tr>
-        -->
-        <tr>
-            <td>AP SSID</td>
-            <td><input type="text" id="PARAM_WIFI_SSID" onchange="markChanged(this)"/></td>
-        </tr>
-        <tr>
-            <td>AP Password</td>
-            <td><input type="text" id="PARAM_WIFI_PASS" onchange="markChanged(this)"/></td>
-        </tr>
-        <tr>
-            <td></td>
-            <td><button onclick="applyWifiSettings()">Apply WiFi Settings</button></td>
-        </tr>
-    </table>
-    </details>
+    <br/>
     <br/>
 
     <details id="log_viewer_details">
@@ -445,8 +451,24 @@
             <td>Log File</td>
             <td><button id="log_btn" onclick="downloadLogFile()">Download Log</button></td>
         </tr>
+        <tr>
+            <td>Program RF Remote</td>
+            <td><button onclick="programRFSequence()">Program All Buttons</button></td>
+        </tr>
+        <tr>
+            <td>AP SSID (WiFi name)</td>
+            <td><input type="text" id="PARAM_WIFI_SSID" onchange="markChanged(this)"/></td>
+        </tr>
+        <tr>
+            <td>AP Password</td>
+            <td><input type="text" id="PARAM_WIFI_PASS" onchange="markChanged(this)"/></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td><button onclick="applyWifiSettings()">Apply WiFi Settings</button></td>
+        </tr>
     </table>
-    
+
     <table id="table"></table>
     <button class="cmd" onclick="sendCommand('reboot')" style="background-color:var(--red); color:#fff">REBOOT</button>
     <button class="cmd" onclick="sendCommand('sleep')" style="background-color:var(--surface-2); color:var(--text)">SLEEP</button>
@@ -465,6 +487,45 @@
                 <input type="text" id="popup-input" placeholder="">
             </div>
         	<div id="popup-buttons"></div>
+        </div>
+    </div>
+
+    <!-- Remote-control modal: press-and-hold jog buttons in two labelled groups.
+         JACK: extend = diverging arrows (▲ over ▼), retract = converging (▼ over ▲).
+         TIRES: forward = ↑, reverse = ↓. FLUFF = aux motor. -->
+    <div id="remote-overlay" onclick="if(event.target===this)closeRemoteModal()">
+        <div id="remote-content">
+            <h2>Remote Control</h2>
+            <div class="remote-grid">
+                <div class="remote-col">
+                    <div class="remote-label">JACK</div>
+                    <button class="jogbtn" title="Extend jack"
+                        onmousedown="startRemote('extend', event)" onmouseup="stopRemote()"
+                        onmouseleave="stopRemote()" ontouchstart="startRemote('extend', event)"
+                        ontouchend="stopRemote()"><span class="ico">&#9650;<br>&#9660;</span><span class="lbl">ext</span></button>
+                    <button class="jogbtn" title="Retract jack"
+                        onmousedown="startRemote('retract', event)" onmouseup="stopRemote()"
+                        onmouseleave="stopRemote()" ontouchstart="startRemote('retract', event)"
+                        ontouchend="stopRemote()"><span class="ico">&#9660;<br>&#9650;</span><span class="lbl">ret</span></button>
+                </div>
+                <div class="remote-col">
+                    <div class="remote-label">TIRES</div>
+                    <button class="jogbtn" title="Drive forward"
+                        onmousedown="startRemote('fwd', event)" onmouseup="stopRemote()"
+                        onmouseleave="stopRemote()" ontouchstart="startRemote('fwd', event)"
+                        ontouchend="stopRemote()"><span class="ico">&#8593;</span><span class="lbl">fwd</span></button>
+                    <button class="jogbtn" title="Drive reverse"
+                        onmousedown="startRemote('rev', event)" onmouseup="stopRemote()"
+                        onmouseleave="stopRemote()" ontouchstart="startRemote('rev', event)"
+                        ontouchend="stopRemote()"><span class="ico">&#8595;</span><span class="lbl">rev</span></button>
+                </div>
+            </div>
+            <button class="jogbtn" title="Fluffer" style="margin-top:8px;font-size:1rem;"
+                onmousedown="startRemote('aux', event)" onmouseup="stopRemote()"
+                onmouseleave="stopRemote()" ontouchstart="startRemote('aux', event)"
+                ontouchend="stopRemote()">FLUFF</button>
+            <label id="rc_override_label"><input type="checkbox" id="rc_override" onchange="onOverrideToggle(this)"> Override limits</label>
+            <button class="cmd" onclick="closeRemoteModal()" style="margin-top:16px">Close</button>
         </div>
     </div>
     
@@ -557,12 +618,19 @@
             } else {
                 wlog('WS not open (readyState=' + (ws ? ws.readyState : 'null') + '), POST:', cmd);
             }
+            // Bound the fallback: the single-threaded httpd server can briefly
+            // stall (status push / a slow client), so a jog POST must not hang
+            // indefinitely — abort after 2 s and let the next 150 ms tick retry.
+            const ctrl = new AbortController();
+            const abortTimer = setTimeout(() => ctrl.abort(), 2000);
             fetch('./post', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({cmd})
+                body: JSON.stringify({cmd}),
+                signal: ctrl.signal
             }).then(r => wlog('POST', cmd, '->', r.status))
-              .catch(e => wlog('POST', cmd, 'failed', e));
+              .catch(e => wlog('POST', cmd, 'failed', e))
+              .finally(() => clearTimeout(abortTimer));
         }
         
         const ge = (id) => document.getElementById(id);
@@ -763,21 +831,34 @@
             );
         }
 
-        const warnedOfEOT = false;
-        
-        function showEOTModal() {
-        	if(warnedOfEOT) return;
-        	warnedOfEOT = true;
+        // Travel-limit prompt. Shown (once per episode) when the device is out of
+        // remaining distance, but only after any clock-sync prompt — see updateUI().
+        // Prompts for a new remaining distance and commits it so the device can move.
+        let warnedOfTravel = false;
+
+        function showTravelLimitModal() {
+        	if (warnedOfTravel) return;
+        	warnedOfTravel = true;
             showModal(
                 'Out of Travel',
-                'Device cannot move until more travel distance is allowed.',
+                'The device has hit its travel limit and cannot move.<br>Enter a new remaining distance to allow it to move again.',
                 [
-                    { 
-                        text: 'OK',
-                        value: true, 
-                        primary: true
+                    { text: 'Cancel', value: false },
+                    {
+                        text: 'Set Distance',
+                        value: true,
+                        primary: true,
+                        callback: async (result) => {
+                            const v = parseFloat(result && result.input);
+                            if (isNaN(v) || v <= 0) return;
+                            const inp = ge('UX_REM_DIST');
+                            inp.value = v;
+                            markChanged(inp);
+                            await commitParams();
+                        }
                     }
-                ]
+                ],
+                { showInput: true, inputType: 'number', inputValue: '', inputPlaceholder: 'Remaining distance (ft)' }
             );
         }
         
@@ -788,7 +869,11 @@
         	// send re-arms the firmware's pulse timeout (safety net if a stop
         	// is ever lost); sendCmd falls back to a fire-and-forget POST when
         	// the socket is down.
-        	sendCmd(command);
+        	// When Override is armed, jack/tires commands get the "_force" variant
+        	// that bypasses soft/position limits (e-fuse still protects). FLUFF
+        	// (aux) has no limit, so it's never forced.
+        	const c = (overrideActive && command !== 'aux') ? command + '_force' : command;
+        	sendCmd(c);
         	try {
         		navigator.vibrate(200);
         	} catch (error) {}
@@ -820,6 +905,47 @@
 		    intervalId = null;
 		  }
 		  sendCmd('stop_override');   // explicit halt on button release
+		}
+
+		// Override mode: while armed, jack/tires jog buttons use the "_force"
+		// firmware variants that bypass soft/position limits (e-fuse still stops
+		// them). Always starts OFF each time the modal opens; arming requires an
+		// explicit confirmation whose default (Enter/Escape) is Cancel.
+		let overrideActive = false;
+
+		function setOverride(on) {
+		  overrideActive = on;
+		  const cb = ge('rc_override');
+		  if (cb) cb.checked = on;
+		  ge('remote-content').classList.toggle('override', on);
+		}
+
+		function onOverrideToggle(cb) {
+		  if (!cb.checked) { setOverride(false); return; }
+		  // Arming — confirm. Both buttons are marked primary with Cancel first, so
+		  // Enter AND Escape both resolve to Cancel (the safe default); only an
+		  // explicit tap on "Enable override" arms it.
+		  showModal(
+		    'Override limits?',
+		    'Override lets the JACK and TIRES run past their normal travel / height limits.<br>Only the e-fuse (overcurrent) protection remains. Are you sure?',
+		    [
+		      { text: 'Cancel', value: false, primary: true, callback: () => setOverride(false) },
+		      { text: '⚠ Enable override', value: true, callback: () => setOverride(true) }
+		    ]
+		  );
+		}
+
+		function openRemoteModal() {
+		  // Opening remote control also acts as an E-STOP: halt any auto-move so
+		  // the operator takes over from a known-stopped state.
+		  sendCmd('stop');
+		  setOverride(false);                           // override always starts off
+		  ge('remote-overlay').style.display = 'flex';
+		}
+		function closeRemoteModal() {
+		  stopRemote();                                 // safety: halt any held motion
+		  setOverride(false);
+		  ge('remote-overlay').style.display = 'none';
 		}
         
         // Single action-button dispatcher. STATE_IDLE (0) → start, anything else
@@ -1175,8 +1301,13 @@
         }
 
         function updateUI() {
+        	// Prompt precedence: clock sync first, then out-of-travel, then drift.
+        	const travelHit = !!(data.errors && data.errors.travel_hit);
+        	if (!travelHit) warnedOfTravel = false;   // re-arm for the next episode
         	if (!data.rtc_set) {
         		showRTCSyncModal();
+        	} else if (travelHit) {
+        		showTravelLimitModal();
         	} else if (data.time !== undefined) {
         		// The device stores "local time as UTC" (same encoding commitParams uses).
         		// Compare against that same encoding, not raw Date.now(), to avoid
@@ -1200,7 +1331,7 @@
                     ['efuse_jack',  'JACK EFUSE',    'error'],
                     ['efuse_aux',   'AUX EFUSE',     'error'],
                     ['low_battery', 'LOW BATTERY',   'warn'],
-                    ['leash_hit',   'LEASH LIMIT',   'warn'],
+                    ['travel_hit',  'TRAVEL LIMIT',  'warn'],
                     ['rtc_not_set', 'CLOCK NOT SET', 'warn'],
                 ];
                 const errs = data.errors || {};
@@ -1807,6 +1938,7 @@
             'DRIVE_START_DELAY','DRIVE','DRIVE_END_DELAY','JACK_DOWN',
             'UNDO_JACK_START','CAL_JACK_DELAY','CAL_JACK_MOVE',
             'CAL_DRIVE_DELAY','CAL_DRIVE_MOVE','DRIVE_FLUFF_START',
+            'MOVE_JACK_RETRACT','MOVE_JACK_SETTLE',
         ];
         const LOG_TYPE_BAT = 100, LOG_TYPE_CRASH = 101, LOG_TYPE_BOOT = 102, LOG_TYPE_TIME_SET = 103;
         const LOG_RESET_REASONS = {
@@ -1862,7 +1994,7 @@
                 const payloadStart = i + 1;
                 const entry = { type };
                 try {
-                    if (type >= 0 && type <= 13 && payloadSize >= 19) {
+                    if (type >= 0 && type < LOG_FSM_NAMES.length && payloadSize >= 19) {
                         // Single-current FSM payload (25 bytes):
                         // ts(8) bat(4) current(4) counter(2) sensors(1)
                         // heat(4) i2c_out(2)
@@ -2038,7 +2170,15 @@
                 }
 
                 if (buf.length < 12) { msg.textContent = 'Log response too short.'; return; }
-                msg.textContent = `Parsing ${received} bytes...`;
+                // The download is finished here. What follows — header parse,
+                // entry parse, and especially the DOM table build in
+                // _renderLogEntries — is synchronous and can take several seconds
+                // on a large log. Show a "Rendering…" status and yield two frames
+                // so the browser actually paints it first; otherwise the message
+                // stays frozen on "Downloading… 100%" the whole time (this is the
+                // "stuck at 100%" the user saw — it was rendering, not downloading).
+                msg.textContent = `Rendering ${received} bytes…`;
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
                 const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
                 const jsonLen = dv.getUint32(0, false);
                 if (jsonLen > 65536 || 4 + jsonLen + 8 > buf.length) {

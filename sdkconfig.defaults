@@ -21,3 +21,9 @@ CONFIG_ESP_TASK_WDT_PANIC=y
 # low-latency remote-control commands (with stop-on-disconnect safety) and a 1 Hz
 # server-pushed status feed, replacing the old 2 s HTTP polling.
 CONFIG_HTTPD_WS_SUPPORT=y
+
+# Captive-portal fix: Android's connectivity-check request (to /generate_204 etc.)
+# sends larger HTTP headers than iOS/Windows. At the 512-byte default, esp_http_server
+# rejects it with "Header fields are too long", so Android showed that error instead of
+# the captive landing page. 1024 comfortably fits Android's probe headers.
+CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024

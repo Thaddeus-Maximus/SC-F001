@@ -76,7 +76,7 @@ cJSON* comms_build_status(void) {
     float low_v = get_param_value_t(PARAM_LOW_PROTECTION_V).f32;
     bool low_bat = (bat_v > 0 && bat_v < low_v);
     bool safety_trip = !get_is_safe();
-    bool leash_hit = (fsm_get_remaining_distance() <= 0);
+    bool travel_hit = (fsm_get_remaining_distance() <= 0);
 
     cJSON_AddBoolToObject(errors, "efuse_aux",   efuse_get(BRIDGE_AUX) != 0);
     cJSON_AddBoolToObject(errors, "efuse_jack",  efuse_get(BRIDGE_JACK) != 0);
@@ -84,12 +84,12 @@ cJSON* comms_build_status(void) {
     cJSON_AddBoolToObject(errors, "low_battery", low_bat);
     cJSON_AddBoolToObject(errors, "rtc_not_set", !rtc_is_set());
     cJSON_AddBoolToObject(errors, "safety_trip", safety_trip);
-    cJSON_AddBoolToObject(errors, "leash_hit",   leash_hit);
-    // LED error code: bit0=efuse/battery, bit1=RTC, bit2=safety/leash
+    cJSON_AddBoolToObject(errors, "travel_hit",  travel_hit);
+    // LED error code: bit0=efuse/battery, bit1=RTC, bit2=safety/travel-limit
     uint8_t led_code = 0;
     if (efuse_trip || low_bat)      led_code |= 0b001;
     if (!rtc_is_set())              led_code |= 0b010;
-    if (safety_trip || leash_hit)   led_code |= 0b100;
+    if (safety_trip || travel_hit)  led_code |= 0b100;
     if (fsm_get_error() != 0 && led_code == 0) led_code = 0b111;
     cJSON_AddNumberToObject(errors, "led_code", led_code);
     cJSON_AddItemToObject(root, "errors", errors);
@@ -114,8 +114,8 @@ cJSON* comms_build_status(void) {
             break;
     }
 
-    if (leash_hit)
-        cJSON_AddItemToArray(msg_array, cJSON_CreateString("DISTANCE LIMIT HIT"));
+    if (travel_hit)
+        cJSON_AddItemToArray(msg_array, cJSON_CreateString("TRAVEL LIMIT HIT"));
     // Per-bridge efuse messages. Preserve the original AUX → JACK → DRIVE
     // order via an explicit walk; bridge_t enum order is the opposite.
     static const bridge_t efuse_msg_order[] = { BRIDGE_AUX, BRIDGE_JACK, BRIDGE_DRIVE };
@@ -229,24 +229,47 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
             fsm_request(FSM_CMD_UNDO);
             cmd_executed = true;
         }
+        // Jog commands arrive over HTTP/WebSocket/UART — reliable TCP streams that
+        // can stall on Wi-Fi loss, so they use the longer WEB_PULSE_LENGTH deadman
+        // (pulse_override_web). The RF/BT remotes use the short pulse_override.
         else if (strcmp(cmd_str, "fwd") == 0) {
-            pulse_override(FSM_OVERRIDE_DRIVE_FWD);
+            pulse_override_web(FSM_OVERRIDE_DRIVE_FWD);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "rev") == 0) {
-            pulse_override(FSM_OVERRIDE_DRIVE_REV);
+            pulse_override_web(FSM_OVERRIDE_DRIVE_REV);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "extend") == 0) {
-            pulse_override(FSM_OVERRIDE_JACK_UP);
+            pulse_override_web(FSM_OVERRIDE_JACK_UP);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "retract") == 0) {
-            pulse_override(FSM_OVERRIDE_JACK_DOWN);
+            pulse_override_web(FSM_OVERRIDE_JACK_DOWN);
+            cmd_executed = true;
+        }
+        /* "Force" jog variants, armed by the remote Override checkbox. They bypass
+         * the soft/position limits (jack height cap, jack home sensor) but still
+         * respect the e-fuse. Drive fwd/rev have no soft limit, so their force
+         * variant maps to the normal drive override. */
+        else if (strcmp(cmd_str, "extend_force") == 0) {
+            pulse_override_web(FSM_OVERRIDE_JACK_UP_FORCE);
+            cmd_executed = true;
+        }
+        else if (strcmp(cmd_str, "retract_force") == 0) {
+            pulse_override_web(FSM_OVERRIDE_JACK_DOWN_FORCE);
+            cmd_executed = true;
+        }
+        else if (strcmp(cmd_str, "fwd_force") == 0) {
+            pulse_override_web(FSM_OVERRIDE_DRIVE_FWD);
+            cmd_executed = true;
+        }
+        else if (strcmp(cmd_str, "rev_force") == 0) {
+            pulse_override_web(FSM_OVERRIDE_DRIVE_REV);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "aux") == 0) {
-            pulse_override(FSM_OVERRIDE_AUX);
+            pulse_override_web(FSM_OVERRIDE_AUX);
             cmd_executed = true;
         }
         else if (strcmp(cmd_str, "stop_override") == 0) {

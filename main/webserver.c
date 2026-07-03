@@ -47,7 +47,12 @@
 #include "esp_partition.h"
 
 
-#define HOSTNAME "sc.local"
+/* mDNS label only — the mdns component and esp_netif append ".local"
+ * themselves, so this must be "sc", NOT "sc.local". Passing the full
+ * "sc.local" advertised the host as "sc.local.local", which is why Apple
+ * devices (which resolve .local names exclusively over mDNS) couldn't find
+ * "sc.local". */
+#define HOSTNAME "sc"
 #define SERVER_PORT  80
 
 static const char *TAG = "WEBSERVER";
@@ -739,54 +744,52 @@ static esp_err_t ota_post_handler_locked(httpd_req_t *req) {
 }
 
 
-static esp_err_t catchall_handler(httpd_req_t *req) {
-	//ESP_LOGI(TAG, "catchall_handler; %s", req->uri);
-    const char *uri = req->uri;
-    
-    // Windows NCSI
-    if (strcmp(uri, "/connecttest.txt") == 0) {
-        httpd_resp_set_type(req, "text/plain");
-        httpd_resp_set_hdr(req, "Connection", "close");
-        httpd_resp_sendstr(req, "Microsoft Connect Test");
-        return ESP_OK;
-    }
+/* Captive-portal landing page. Deliberately tiny: it renders inside the OS
+ * captive webview (Apple's Captive Network Assistant / Android's sign-in
+ * sheet), which can't reliably run the full SPA's WebSocket status push or
+ * OTA upload. So we don't serve the app here — we just confirm the connection
+ * and point the user at the full UI in a real browser. Palette/title mirror
+ * webpage.html (dark theme, tan accent, "Control Panel"). */
+static const char PORTAL_HTML[] =
+    "<!DOCTYPE html><html><head>"
+    "<meta charset=\"utf-8\">"
+    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+    "<title>ClusterCluck Drive</title><style>"
+    "body{font-family:-apple-system,system-ui,sans-serif;background:#1a1a1a;color:#f0f0f0;"
+    "margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center}"
+    ".c{padding:2rem;max-width:22rem}h1{font-size:1.4rem;margin:0 0 .4rem}"
+    ".ok{color:#38B000;font-weight:600}"
+    "a.b{display:inline-block;margin-top:1.6rem;padding:.9rem 1.7rem;background:#ba965b;"
+    "color:#1a1a1a;font-weight:600;text-decoration:none;border-radius:8px;font-size:1.1rem}"
+    "p{margin-top:1.6rem;font-size:.85rem;color:#a0a0a0;line-height:1.5}b{color:#f0f0f0}</style></head><body>"
+    "<div class=\"c\"><h1>ClusterCluck Drive</h1><div class=\"ok\">Connected &#10003;</div>"
+    "<a class=\"b\" href=\"http://192.168.4.1/\">Open Control Panel</a>"
+    "<p>For live status &amp; firmware updates, open<br><b>http://sc.local</b> or "
+    "<b>http://192.168.4.1</b> in your phone's browser.<br><br>"
+    "On iPhone, tap <b>Cancel</b> &rarr; <b>Use Without Internet</b>, then open it in Safari.</p>"
+    "</div></body></html>";
 
-    if (strncmp(uri, "/success.txt", 12) == 0) {  // Handles query params too
-        httpd_resp_set_type(req, "text/plain");
-        httpd_resp_set_hdr(req, "Connection", "close");
-        httpd_resp_sendstr(req, "Success");
-        return ESP_OK;
-    }
-
-    if (strcmp(uri, "/canonical.html") == 0) {
-        httpd_resp_set_type(req, "text/html");
-        httpd_resp_set_hdr(req, "Connection", "close");
-        httpd_resp_sendstr(req, "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>");
-        return ESP_OK;
-    }
-
-    // Android
-    if (strcmp(uri, "/generate_204") == 0 || strcmp(uri, "/gen_204") == 0) {
-        httpd_resp_set_status(req, "204 No Content");
-        httpd_resp_set_hdr(req, "Connection", "close");
-        httpd_resp_send(req, NULL, 0);
-        return ESP_OK;
-    }
-
-    // iOS/macOS — return 200 Success so the OS stops probing
-    if (strcmp(uri, "/hotspot-detect.html") == 0 ||
-        strcmp(uri, "/library/test/success.html") == 0) {
-        httpd_resp_set_type(req, "text/html");
-        httpd_resp_set_hdr(req, "Connection", "close");
-        httpd_resp_sendstr(req, "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>");
-        return ESP_OK;
-    }
-
-    // Default 404
+/* Serve the captive-portal landing page (HTTP 200). Returning real HTML —
+ * rather than each OS's expected "success" token — is exactly what makes
+ * iOS/Android/Windows decide the network is captive and pop their sign-in
+ * sheet. (The previous version returned the success tokens here, which is
+ * what suppressed the portal.) */
+static esp_err_t send_portal(httpd_req_t *req) {
+    httpd_resp_set_type(req, "text/html");
     httpd_resp_set_hdr(req, "Connection", "close");
-    httpd_resp_send_404(req);
-    
-    return ESP_OK;
+    return httpd_resp_send(req, PORTAL_HTML, HTTPD_RESP_USE_STRLEN);
+}
+
+/* Catch-all for every URL that isn't one of our registered endpoints. The
+ * wildcard DNS server resolves all names to 192.168.4.1, so the OS
+ * connectivity probes (Apple /hotspot-detect.html, Android /generate_204,
+ * Windows /connecttest.txt, …) all land here and get the portal page, which
+ * triggers the captive sheet. Stray asset requests (e.g. /favicon.ico) get it
+ * too, harmlessly. Our real endpoints (/, /get, /post, /log, /ota, /ws) are
+ * registered ahead of this wildcard, so they never reach here. */
+static esp_err_t catchall_handler(httpd_req_t *req) {
+    //ESP_LOGI(TAG, "catchall_handler; %s", req->uri);
+    return send_portal(req);
 }
 
 
