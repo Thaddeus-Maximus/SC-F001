@@ -182,10 +182,7 @@ void drive_leds(led_mode_t mode) {
 void app_main(void) {
     esp_task_wdt_add(NULL);
 
-    ESP_LOGI(TAG, "Firmware: %s", FIRMWARE_STRING);
-    ESP_LOGI(TAG, "Version:  %s", FIRMWARE_VERSION);
-    ESP_LOGI(TAG, "Branch:   %s", FIRMWARE_BRANCH);
-    ESP_LOGI(TAG, "Built:    %s", BUILD_DATE);
+    ESP_LOGI(TAG, "Firmware: %s", FIRMWARE_STRING);   // "V_<version> (<build date>)"
     
     // I2C first so we can light the LED immediately
     init_critical("I2C", i2c_init);

@@ -1,10 +1,11 @@
 // version.h.in
+//
+// Template for the generated ${CMAKE_BINARY_DIR}/version.h. Do not edit the
+// generated header — to change the version, edit main/version.txt.
 #ifndef VERSION_H
 #define VERSION_H
 
-#define FIRMWARE_VERSION "@GIT_VERSION@"
-#define FIRMWARE_BRANCH  "@GIT_BRANCH@"
-#define FIRMWARE_SHA     "@GIT_SHA@"
+#define FIRMWARE_VERSION "@FIRMWARE_VERSION@"
 #define BUILD_DATE       "@BUILD_DATE@"
 #define FIRMWARE_STRING  "V_" FIRMWARE_VERSION " (" BUILD_DATE ")"
 

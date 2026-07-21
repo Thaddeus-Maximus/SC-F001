@@ -1894,6 +1894,70 @@
             }
         }
         
+        // iOS (incl. iPadOS, which reports itself as a Mac with touch).
+        const IS_IOS = /iP(hone|ad|od)/.test(navigator.platform || '') ||
+                       (/Mac/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+
+        // Save a Blob to the user's device. Desktop/Android take the normal
+        // anchor-with-download path. iOS Safari ignores a *programmatic* click
+        // on an <a download> pointing at a blob: URL — it navigates to it
+        // instead, which renders the binary as gibberish in the tab. So on iOS
+        // we hand the blob to the share sheet ("Save to Files"), and if that
+        // isn't available (or its user-activation window expired while the log
+        // was downloading) we show a link the user taps themselves — a real
+        // user gesture on the anchor does honour `download`.
+        async function saveBlob(blob, filename) {
+            // Force the octet-stream type: Safari decides how to treat a blob
+            // URL from the blob's type, and will happily inline anything it
+            // thinks it can render.
+            if (blob.type !== 'application/octet-stream') {
+                blob = new Blob([blob], { type: 'application/octet-stream' });
+            }
+
+            if (IS_IOS) {
+                try {
+                    const file = new File([blob], filename, { type: 'application/octet-stream' });
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({ files: [file], title: filename });
+                        return;
+                    }
+                } catch (e) {
+                    if (e.name === 'AbortError') return;   // user cancelled the sheet
+                    // Anything else (NotAllowedError from an expired gesture,
+                    // unsupported type, ...) → fall through to the tap link.
+                }
+                await saveBlobViaTapLink(blob, filename);
+                return;
+            }
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.rel = 'noopener';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            // Safari aborts an in-flight download if the object URL is revoked
+            // synchronously after the click; give it time to start.
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        }
+
+        // Last-resort save path: put a real anchor in the modal and let the
+        // user tap it. Their tap is the user activation iOS wants.
+        function saveBlobViaTapLink(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const kb = (blob.size / 1024).toFixed(1);
+            return new Promise((resolve) => {
+                modalResolve = () => { setTimeout(() => URL.revokeObjectURL(url), 60000); resolve(); };
+                showModal('Save Log File',
+                    `<p>Tap the link below, then choose <b>Download</b> / <b>Save to Files</b>.</p>` +
+                    `<p><a href="${url}" download="${filename}" ` +
+                    `style="font-weight:bold;text-decoration:underline">${filename} (${kb} KB)</a></p>`,
+                    [{ text: 'Done', value: true, primary: true }]);
+            });
+        }
+
         async function downloadLogFile() {
           try {
             const response = await fetch('./log');
@@ -1902,7 +1966,7 @@
               return;
             }
             const blob = await response.blob();
-        
+
             // Get current date and time
             const now = new Date();
             const day = String(now.getDate()).padStart(2, '0');
@@ -1914,14 +1978,7 @@
         
             const formattedDate = `${day}${month}${year}-${hours}${minutes}`;
         
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `storage-${formattedDate}.bin`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            await saveBlob(blob, `storage-${formattedDate}.bin`);
           } catch (error) {
             await modalAlert(`Error downloading log file: ${error.message}`);
           }

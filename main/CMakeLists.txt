@@ -29,10 +29,9 @@ if(NOT CMAKE_BUILD_EARLY_EXPANSION)
     add_custom_target(generate_webpage_h DEPENDS ${COMPONENT_DIR}/webpage.h)
     add_dependencies(${COMPONENT_LIB} generate_webpage_h)
 
-    # Regenerate version.h on every build so git SHA / dirty flag stay
-    # current as commits land between builds. configure_file inside
-    # version.cmake is a no-op when the content matches, so rebuilds only
-    # cascade when something actually changed.
+    # Regenerate version.h on every build so BUILD_DATE is the time of the
+    # build rather than the time of the last `reconfigure`, and so an edit
+    # to version.txt is picked up without reconfiguring.
     add_custom_target(update_version ALL
         COMMAND ${CMAKE_COMMAND}
             -DSRC_DIR=${COMPONENT_DIR}
