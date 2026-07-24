@@ -1,0 +1,41 @@
+name: pages
+
+# Firmware is built and released LOCALLY (see release/release.sh); this workflow
+# does NOT build or flash anything. It only regenerates the GitHub Pages index
+# from the published Releases whenever a new release goes out. Run it by hand
+# from the Actions tab if you ever need to rebuild the site.
+
+on:
+  release:
+    types: [published, edited, deleted]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  pages:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate release site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 release/gen_pages.py --repo "$GITHUB_REPOSITORY" --out site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
