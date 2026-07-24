@@ -2,7 +2,8 @@
 CLI table output for SC-F001 logtool.
 """
 
-from parser import LOG_TYPE_BAT, LOG_TYPE_CRASH, LOG_TYPE_BOOT, LOG_TYPE_TIME_SET
+from parser import (LOG_TYPE_BAT, LOG_TYPE_CRASH, LOG_TYPE_BOOT,
+                    LOG_TYPE_TIME_SET, is_fsm_type)
 
 try:
     from tabulate import tabulate
@@ -23,7 +24,7 @@ def _row(e: dict) -> list:
     t = e.get('entry_type', -1)
     name = e.get('state_name', '?')
 
-    if 0 <= t <= 12:
+    if is_fsm_type(t):
         return [
             e.get('time_str', ''),
             name,
@@ -77,7 +78,7 @@ def print_table(entries: list, type_filter: str = None):
     if type_filter:
         tf = type_filter.lower()
         if tf == 'fsm':
-            entries = [e for e in entries if 0 <= e.get('entry_type', -1) <= 12]
+            entries = [e for e in entries if is_fsm_type(e.get('entry_type', -1))]
         elif tf == 'bat':
             entries = [e for e in entries if e.get('entry_type') == LOG_TYPE_BAT]
         elif tf == 'crash':
@@ -107,7 +108,7 @@ def print_summary(entries: list):
         print("(empty log)")
         return
 
-    fsm_entries      = [e for e in entries if 0 <= e.get('entry_type', -1) <= 12]
+    fsm_entries      = [e for e in entries if is_fsm_type(e.get('entry_type', -1))]
     bat_entries      = [e for e in entries if e.get('entry_type') == LOG_TYPE_BAT]
     crash_entries    = [e for e in entries if e.get('entry_type') == LOG_TYPE_CRASH]
     boot_entries     = [e for e in entries if e.get('entry_type') == LOG_TYPE_BOOT]

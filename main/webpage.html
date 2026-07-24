@@ -411,6 +411,7 @@
          room to breathe. The summary above stays inside the column. -->
     <div id="log_viewer_body" style="position:relative;width:100vw;left:50%;margin-left:-50vw;padding:0 8px;box-sizing:border-box;">
         <button onclick="loadLogViewer()" style="width:auto;padding:4px 12px;">Refresh</button>
+        <button onclick="downloadViewedLog()" style="width:auto;padding:4px 12px;">Download</button>
         <div id="log_viewer_msg" style="padding:8px;font-size:0.75rem;"></div>
         <div style="overflow-x:auto;">
             <table id="log_viewer_table" style="font-family:monospace;font-size:0.65rem;white-space:nowrap;"></table>
@@ -450,6 +451,12 @@
         <tr>
             <td>Log File</td>
             <td><button id="log_btn" onclick="downloadLogFile()">Download Log</button></td>
+        </tr>
+        <tr>
+            <td>Parameters</td>
+            <td><button onclick="exportParams()">Export JSON</button>
+            <input type="file" id="params_file" accept=".json,application/json" style="display:none;">
+            <button onclick="importParams()">Import JSON</button></td>
         </tr>
         <tr>
             <td>Program RF Remote</td>
@@ -1024,31 +1031,6 @@
             setTimeout(fetchStatus, 3000);
         }
 
-        async function calibrate(type) {
-            const cmdName = type === 'jack' ? 'cal_jack' : 'cal_drive';
-            
-            if (!await modalConfirm(`This will calibrate the ${type}. Continue?`))
-                return;
-            
-            try {
-                const response = await fetch('./post', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({cmd: cmdName})
-                });
-                
-                if (!response.ok) {
-                    await modalAlert(`Calibration failed: ${response.status} ${response.statusText}`);
-                    return;
-                }
-                
-                await modalAlert(`${type.charAt(0).toUpperCase() + type.slice(1)} calibration started.`);
-                setTimeout(fetchStatus, 200);
-            } catch (e) {
-                await modalAlert(`Network error: ${e.message}`);
-            }
-        }
-        
         function setTimeToNow() {
 		    const now = new Date();
 		    const input = ge('UX_TIME');
@@ -1763,51 +1745,114 @@
             }
         }
         
+        // Deadman-style calibration: the operator holds an on-screen button to
+        // run the axis and releases to stop, replacing the old flow that used
+        // the hardware button on the mover. The firmware walks IDLE→DELAY→MOVE
+        // on press (PREP + _go) and MOVE→IDLE on release (_end, which records
+        // the elapsed time + encoder count). If the release is ever lost the
+        // FSM's CALIBRATE_*_MAX_TIME timeout stops the move and still records.
         async function calibrate(axis) {
-            try {
-                // Start calibration
-                let response = await fetch('./post', {
+            const label = axis.charAt(0).toUpperCase() + axis.slice(1);
+            if (!await modalConfirm(
+                `${label} calibration: HOLD the on-screen button to run the ${axis}, ` +
+                `release to stop. Then enter how far it actually moved.\n\n` +
+                `Make sure the path is clear, then Continue.`,
+                `${label} Calibration`))
+                return;
+
+            let moving = false;   // is the axis energised right now?
+            let moved  = false;   // did at least one hold happen?
+
+            // Serialise the calibration commands so PREP→_go→_end always reach
+            // the device in order even though each is a separate POST.
+            let chain = Promise.resolve();
+            const send = (cmd) => (chain = chain.then(() =>
+                fetch('./post', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({cmd: `cal_${axis}_start`})
+                    body: JSON.stringify({ cmd })
+                }).catch(() => {})));
+
+            const startMove = () => {
+                if (moving) return;
+                moving = true; moved = true;
+                send(`cal_${axis}_start`);   // PREP:  IDLE  → DELAY
+                send(`cal_${axis}_go`);      // START: DELAY → MOVE (energise)
+                const b = ge('cal-hold-btn');
+                if (b) { b.textContent = 'MOVING — release to stop';
+                         b.style.background = 'var(--red)'; b.style.color = '#fff'; }
+                const s = ge('cal-status'); if (s) s.textContent = 'Moving…';
+            };
+            const stopMove = () => {
+                if (!moving) return;
+                moving = false;
+                send(`cal_${axis}_end`);     // END: MOVE → IDLE (record)
+                const b = ge('cal-hold-btn');
+                if (b) { b.textContent = 'HOLD TO MOVE'; b.style.background = ''; b.style.color = ''; }
+                const s = ge('cal-status'); if (s) s.textContent = 'Stopped. Press Done to enter distance.';
+            };
+            // Safety net: a hidden tab / lost focus releases the deadman.
+            const onHide = () => { if (document.hidden) stopMove(); };
+            document.addEventListener('visibilitychange', onHide);
+            window.addEventListener('blur', stopMove);
+
+            let outcome;
+            try {
+                outcome = await new Promise((resolve) => {
+                    modalResolve = resolve;
+                    showModal(`${label} Calibration`,
+                        `<p style="margin-bottom:12px;">Hold to run the ${axis}. Release to stop.</p>` +
+                        `<button id="cal-hold-btn" style="font-size:1.3rem;padding:20px;width:100%;` +
+                        `touch-action:none;user-select:none;-webkit-user-select:none;">HOLD TO MOVE</button>` +
+                        `<div id="cal-status" style="margin-top:12px;">Ready.</div>`,
+                        [{ text: 'Cancel', value: 'cancel' },
+                         { text: 'Done', value: 'done', primary: true }]);
+                    const b = ge('cal-hold-btn');
+                    b.addEventListener('pointerdown', (e) => { e.preventDefault(); startMove(); });
+                    for (const ev of ['pointerup', 'pointercancel', 'pointerleave'])
+                        b.addEventListener(ev, (e) => { e.preventDefault(); stopMove(); });
                 });
-                
-                if (!response.ok) {
-                    await modalAlert(`Failed to start ${axis} calibration: ${response.status}`);
-                    return;
-                }
-                
+            } finally {
+                document.removeEventListener('visibilitychange', onHide);
+                window.removeEventListener('blur', stopMove);
+                stopMove();        // never leave the modal with the axis energised
+                await chain;       // make sure the final _end has been delivered
+            }
+
+            if (outcome !== 'done' || !moved) return;   // cancelled / never moved
+
+            try {
                 // Prompt user for actual distance
                 const amt = await modalPrompt(
-                    `Press button on mover. Press button again to stop it.\n\nThen, type the actual travelled distance in inches:`,
-                    'Calibration'
+                    `Type the actual distance the ${axis} travelled, in inches:`,
+                    `${label} Calibration`
                 );
-                
+
                 if (amt === null || amt === '') {
                     await modalAlert('Calibration cancelled');
                     return;
                 }
-                
+
                 const distance = parseFloat(amt);
                 if (isNaN(distance) || distance <= 0) {
                     await modalAlert('Invalid distance entered. Please enter a positive number.');
                     return;
                 }
-                
+
                 // Get calibration data
-                response = await fetch('./post', {
+                const response = await fetch('./post', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({cmd: 'cal_get'})
                 });
-                
+
                 if (!response.ok) {
                     await modalAlert(`Failed to get calibration data: ${response.status}`);
                     return;
                 }
-                
+
                 const calData = await response.json();
-                
+
                 // Calculate and update parameters based on axis
                 if (axis === 'drive') {
                     // Convert inches to feet: divide by 12
@@ -1893,43 +1938,127 @@
                 await modalAlert('Network error: ' + e.message);
             }
         }
-        
+
+        // ---- Parameter import / export ---------------------------------
+        // Transplant parameters between devices as a JSON file. Export dumps
+        // the live `data.parameters` object; import POSTs it straight back
+        // through the same `parameters` path the param table uses, so a file
+        // holding only a few keys updates only those keys (the firmware
+        // ignores everything else).
+        async function exportParams() {
+            const params = data && data.parameters;
+            if (!params || typeof params !== 'object') {
+                await modalAlert('No parameters loaded yet — wait for the device to report status, then try again.');
+                return;
+            }
+            const json = JSON.stringify(params, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const mon = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][now.getMonth()];
+            const stamp = `${day}${mon}${now.getFullYear()}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+            await saveBlob(blob, `sc-params-${stamp}.json`, 'application/json');
+        }
+
+        async function importParams() {
+            const input = ge('params_file');
+            input.value = '';   // allow re-selecting the same file
+            const file = await new Promise((resolve) => {
+                input.onchange = () => resolve(input.files[0] || null);
+                input.click();
+            });
+            if (!file) return;
+
+            let obj;
+            try {
+                obj = JSON.parse(await file.text());
+            } catch (e) {
+                await modalAlert(`Not valid JSON: ${e.message}`);
+                return;
+            }
+            if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+                await modalAlert('Expected a JSON object of parameter key → value pairs.');
+                return;
+            }
+            const keys = Object.keys(obj);
+            if (keys.length === 0) {
+                await modalAlert('That file contains no parameters.');
+                return;
+            }
+            const preview = keys.slice(0, 12).join(', ') + (keys.length > 12 ? `, … (+${keys.length - 12} more)` : '');
+            if (!await modalConfirm(
+                `Apply ${keys.length} parameter${keys.length === 1 ? '' : 's'} from "${file.name}"?\n\n${preview}`,
+                'Import Parameters'))
+                return;
+
+            try {
+                const response = await fetch('./post', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ parameters: obj })
+                });
+                if (!response.ok) {
+                    await modalAlert(`Import failed: ${response.status} ${response.statusText}`);
+                    return;
+                }
+                const result = await response.json().catch(() => ({}));
+                const updated = result.params_updated ?? '?';
+                const failed  = result.params_failed ?? 0;
+                await modalAlert(
+                    `Imported ${updated} parameter${updated === 1 ? '' : 's'}.` +
+                    (failed ? `\n${failed} unknown/mismatched key${failed === 1 ? '' : 's'} skipped.` : ''));
+                await fetchStatus();
+            } catch (e) {
+                await modalAlert(`Import error: ${e.message}`);
+            }
+        }
+
         // iOS (incl. iPadOS, which reports itself as a Mac with touch).
         const IS_IOS = /iP(hone|ad|od)/.test(navigator.platform || '') ||
                        (/Mac/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+        const IS_ANDROID = /Android/.test(navigator.userAgent || '');
 
-        // Save a Blob to the user's device. Desktop/Android take the normal
-        // anchor-with-download path. iOS Safari ignores a *programmatic* click
-        // on an <a download> pointing at a blob: URL — it navigates to it
-        // instead, which renders the binary as gibberish in the tab. So on iOS
-        // we hand the blob to the share sheet ("Save to Files"), and if that
-        // isn't available (or its user-activation window expired while the log
-        // was downloading) we show a link the user taps themselves — a real
-        // user gesture on the anchor does honour `download`.
-        async function saveBlob(blob, filename) {
-            // Force the octet-stream type: Safari decides how to treat a blob
-            // URL from the blob's type, and will happily inline anything it
-            // thinks it can render.
-            if (blob.type !== 'application/octet-stream') {
-                blob = new Blob([blob], { type: 'application/octet-stream' });
+        // Save a Blob to the user's device.
+        //
+        // Programmatic `<a download>` of a blob: URL is the slick path on
+        // desktop but flaky on mobile: iOS Safari navigates to the blob (binary
+        // renders as gibberish) and some Android browsers silently no-op the
+        // click, especially when it fires from an async continuation (after the
+        // download await) rather than directly in the tap handler — which is
+        // why Android "doesn't reliably download". So on mobile we prefer the OS
+        // share sheet ("Save to Files" / Drive / Downloads), which reliably
+        // lands the file, and fall back to the anchor (Android) or a
+        // user-tapped link (iOS, which needs a real gesture on the anchor).
+        async function saveBlob(blob, filename, mimeType = 'application/octet-stream') {
+            // Normalise the type: Safari decides how to treat a blob: URL from
+            // its type and will happily inline anything it thinks it can render.
+            if (blob.type !== mimeType) {
+                blob = new Blob([blob], { type: mimeType });
             }
 
-            if (IS_IOS) {
+            // Mobile: try the share sheet first (Android + iOS).
+            if ((IS_IOS || IS_ANDROID) && navigator.canShare) {
                 try {
-                    const file = new File([blob], filename, { type: 'application/octet-stream' });
-                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    const file = new File([blob], filename, { type: mimeType });
+                    if (navigator.canShare({ files: [file] })) {
                         await navigator.share({ files: [file], title: filename });
                         return;
                     }
                 } catch (e) {
                     if (e.name === 'AbortError') return;   // user cancelled the sheet
-                    // Anything else (NotAllowedError from an expired gesture,
-                    // unsupported type, ...) → fall through to the tap link.
+                    // NotAllowedError (gesture expired), unsupported type, ...
+                    // → fall through to the platform's anchor path below.
                 }
+            }
+
+            // iOS with no usable share sheet: a link the user taps themselves —
+            // their tap is the user activation iOS demands to honour `download`.
+            if (IS_IOS) {
                 await saveBlobViaTapLink(blob, filename);
                 return;
             }
 
+            // Desktop, and Android when share was unavailable: anchor download.
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -1938,8 +2067,8 @@
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            // Safari aborts an in-flight download if the object URL is revoked
-            // synchronously after the click; give it time to start.
+            // Safari/Android abort an in-flight download if the object URL is
+            // revoked synchronously after the click; give it time to start.
             setTimeout(() => URL.revokeObjectURL(url), 60000);
         }
 
@@ -1958,28 +2087,91 @@
             });
         }
 
+        // Build the download filename from the phone's local clock:
+        //   sc-log-DDMONYYYY-HHMM.bin   e.g. sc-log-21JUL2026-1140.bin
+        function logFileName() {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const mon = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][now.getMonth()];
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            return `sc-log-${day}${mon}${now.getFullYear()}-${hh}${mm}.bin`;
+        }
+
+        // The log can be a few hundred KB over a slow AP link, so a bare
+        // fetch() looks like the button did nothing for 10+ seconds. Stream the
+        // body and drive a progress modal off Content-Length (the /log handler
+        // always sets it), with a Cancel that aborts the transfer.
         async function downloadLogFile() {
+          const filename = logFileName();
+
+          // Mobile browsers won't reliably save a blob: URL through a
+          // programmatic <a download> — Android over the device's plain-HTTP AP
+          // often no-ops it or saves the blob's UUID as the name (the
+          // "obnoxiously long filename"). Hand the URL to the browser's own
+          // download manager instead: it fetches ./log, honours the server's
+          // Content-Disposition filename (?name=), and shows its own progress.
+          if (IS_ANDROID || IS_IOS) {
+            const a = document.createElement('a');
+            a.href = `./log?name=${encodeURIComponent(filename)}`;
+            // No download attr: let the attachment disposition drive the save,
+            // which is what mobile browsers handle reliably.
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            await modalAlert(
+              `Saving <b>${filename}</b>.<br><br>Check your notification tray or ` +
+              `Downloads/Files for the file — a large log can take a moment.`,
+              'Download Log');
+            return;
+          }
+
+          const ctrl = new AbortController();
+          let cancelled = false;
+          showModal('Downloading Log',
+            `<div style="margin-bottom:10px;" id="dl-log-status">Connecting...</div>
+             <div style="background-color:var(--surface-2);border:1px solid var(--accent);height:14px;">
+               <div id="dl-log-bar" style="background-color:var(--accent);height:100%;width:0%;transition:width 0.1s linear;"></div>
+             </div>`,
+            [{ text: 'Cancel', value: false, callback: () => { cancelled = true; ctrl.abort(); } }]
+          );
+
           try {
-            const response = await fetch('./log');
+            const response = await fetch('./log', { signal: ctrl.signal });
             if (!response.ok) {
+              hideModal();
               await modalAlert(`Failed to download log file: ${response.status} ${response.statusText}`);
               return;
             }
-            const blob = await response.blob();
 
-            // Get current date and time
-            const now = new Date();
-            const day = String(now.getDate()).padStart(2, '0');
-            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-            const month = monthNames[now.getMonth()];
-            const year = now.getFullYear();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-        
-            const formattedDate = `${day}${month}${year}-${hours}${minutes}`;
-        
-            await saveBlob(blob, `storage-${formattedDate}.bin`);
+            const total = parseInt(response.headers.get('Content-Length') || '0', 10);
+            const reader = response.body.getReader();
+            const chunks = [];
+            let received = 0;
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+              received += value.length;
+              const statusEl = ge('dl-log-status');
+              const barEl = ge('dl-log-bar');
+              if (!statusEl) continue;          // modal was dismissed
+              const kb = (received / 1024).toFixed(1);
+              if (total) {
+                const pct = Math.round((received / total) * 100);
+                statusEl.textContent = `${kb} / ${(total / 1024).toFixed(1)} KB (${pct}%)`;
+                if (barEl) barEl.style.width = pct + '%';
+              } else {
+                statusEl.textContent = `${kb} KB`;
+              }
+            }
+
+            const blob = new Blob(chunks, { type: 'application/octet-stream' });
+            hideModal();
+            await saveBlob(blob, filename);
           } catch (error) {
+            hideModal();
+            if (cancelled || error.name === 'AbortError') return;
             await modalAlert(`Error downloading log file: ${error.message}`);
           }
         }
@@ -2003,6 +2195,7 @@
             5:'INT_WDT',6:'TASK_WDT',7:'WDT',8:'DEEPSLEEP',9:'BROWNOUT',10:'SDIO',
         };
         let logViewerLoaded = false;
+        let logRawBytes = null;   // the last full framed /log blob the viewer fetched
 
         const LOG_MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
         function _logFormatTs(tsMs) {
@@ -2117,8 +2310,11 @@
             ];
         }
 
-        function _appendRow(table, cells, opts = {}) {
-            const row = table.insertRow();
+        // Build a detached <tr> from a cell spec. Detached construction lets
+        // the caller batch inserts (append to a tbody, then attach once) so the
+        // browser reflows a single time instead of per row.
+        function _buildRow(cells, opts = {}) {
+            const row = document.createElement('tr');
             if (opts.className) row.className = opts.className;
             if (opts.hidden)    row.style.display = 'none';
             if (opts.onclick)   row.addEventListener('click', opts.onclick);
@@ -2142,12 +2338,18 @@
         function _renderLogEntries(entries) {
             const table = ge('log_viewer_table');
             table.innerHTML = '';
+            // Assemble into a detached tbody, then attach once at the end.
+            const tbody = document.createElement('tbody');
             const cols = ['Time','Type','Battery V','Current A','Counter','Sensors','Heat','I2C Out','Extra'];
-            _appendRow(table, cols.map(h => ({ text: h, bold: true })));
+            tbody.appendChild(_buildRow(cols.map(h => ({ text: h, bold: true }))));
 
             // Walk newest-first, group contiguous entries sharing the same
             // state name. Groups with ≥2 members render as a single clickable
-            // header row (default collapsed) followed by their entry rows.
+            // header row (default collapsed). The child rows are built LAZILY on
+            // first expand — big collapsed runs (thousands of IDLE / DRIVE
+            // entries) never create DOM nodes, which is what keeps rendering a
+            // large log fast: only singletons + one header per run are built up
+            // front instead of every entry.
             let groupId = 0;
             let i = entries.length - 1;
             while (i >= 0) {
@@ -2158,17 +2360,18 @@
                 i = j;
 
                 if (group.length === 1) {
-                    _appendRow(table, _entryCells(group[0]));
+                    tbody.appendChild(_buildRow(_entryCells(group[0])));
                     continue;
                 }
 
                 groupId++;
                 const rowClass = `log-group-${groupId}`;
-                let collapsed = true;
                 const firstTs = _logFormatTs(group[group.length - 1].ts_ms);
                 const lastTs  = _logFormatTs(group[0].ts_ms);
-                const header = _appendRow(table, [{
-                    text: `[+] ${name} × ${group.length}   ${firstTs}  →  ${lastTs}`,
+                const headerText = (isCollapsed) =>
+                    `[${isCollapsed ? '+' : '-'}] ${name} × ${group.length}   ${firstTs}  →  ${lastTs}`;
+                const header = _buildRow([{
+                    text: headerText(true),
                     colSpan: cols.length,
                     style: { cursor: 'pointer', background: 'var(--surface-2)',
                              color: 'var(--text)',
@@ -2176,19 +2379,30 @@
                 }], {
                     style: { background: 'var(--surface-2)' },
                 });
-                // Defer wiring the onclick until we've appended the child rows.
-                const childRows = group.map(e =>
-                    _appendRow(table, _entryCells(e), {
-                        className: rowClass,
-                        hidden: true,
-                    }));
+                tbody.appendChild(header);
+
+                let collapsed = true;
+                let built = false;
+                let childRows = [];
                 header.addEventListener('click', () => {
                     collapsed = !collapsed;
-                    childRows.forEach(r => r.style.display = collapsed ? 'none' : '');
-                    const cell = header.cells[0];
-                    cell.textContent = `[${collapsed ? '+' : '-'}] ${name} × ${group.length}   ${firstTs}  →  ${lastTs}`;
+                    if (!collapsed && !built) {
+                        // First expand: build this run's rows now, inserted
+                        // directly after the header (before whatever follows it).
+                        const anchor = header.nextSibling;
+                        childRows = group.map(e => {
+                            const r = _buildRow(_entryCells(e), { className: rowClass });
+                            tbody.insertBefore(r, anchor);
+                            return r;
+                        });
+                        built = true;
+                    } else if (built) {
+                        childRows.forEach(r => r.style.display = collapsed ? 'none' : '');
+                    }
+                    header.cells[0].textContent = headerText(collapsed);
                 });
             }
+            table.appendChild(tbody);
         }
 
         async function loadLogViewer() {
@@ -2246,10 +2460,24 @@
                 const entries = _parseLogEntries(logBytes);
                 _renderLogEntries(entries);
                 msg.textContent = `${entries.length} entries (${logBytes.length} bytes)`;
+                logRawBytes = buf;          // cache for the Download button (no re-fetch)
                 logViewerLoaded = true;
             } catch (err) {
                 msg.textContent = `Error: ${err.message}`;
             }
+        }
+
+        // Download button inside EVENT LOG. If the viewer has already fetched
+        // the log, save those bytes straight from memory — no second network
+        // round-trip. On mobile, in-memory blob saves are the unreliable path,
+        // so there we defer to downloadLogFile()'s download-manager route
+        // (which re-fetches but saves reliably with the right filename).
+        async function downloadViewedLog() {
+            if (!logRawBytes || IS_ANDROID || IS_IOS) {
+                return downloadLogFile();
+            }
+            const blob = new Blob([logRawBytes], { type: 'application/octet-stream' });
+            await saveBlob(blob, logFileName());
         }
 
         // Populate the first time the details section is opened.

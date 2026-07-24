@@ -157,7 +157,7 @@ def _run(args, is_http, resolved, bin_path, basename):
             if args.entry_type:
                 tf = args.entry_type.lower()
                 if tf == 'fsm':
-                    entries = [e for e in entries if 0 <= e.get('entry_type', -1) <= 12]
+                    entries = [e for e in entries if prs.is_fsm_type(e.get('entry_type', -1))]
                 elif tf == 'bat':
                     entries = [e for e in entries if e.get('entry_type') == prs.LOG_TYPE_BAT]
                 elif tf == 'crash':

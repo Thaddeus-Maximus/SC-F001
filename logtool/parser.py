@@ -74,9 +74,14 @@ def load_fsm_states(fw_path=None) -> dict:
         if not m:
             return dict(_FALLBACK_FSM_STATES)
 
+        # Drop /* ... */ block comments first. The enum documents the appended
+        # states with multi-line block comments; without this every comment line
+        # counts as an enumerator and shifts all following states' values.
+        body = re.sub(r'/\*.*?\*/', '', m.group(1), flags=re.DOTALL)
+
         states = {}
         value = 0
-        for line in m.group(1).splitlines():
+        for line in body.splitlines():
             line = line.strip().rstrip(',')
             if not line or line.startswith('//'):
                 continue
@@ -199,10 +204,23 @@ def _unpack_time_set(payload: bytes) -> dict:
     }
 
 
+MAX_FSM_STATE = max(_FALLBACK_FSM_STATES)
+
+
+def is_fsm_type(t) -> bool:
+    """True for FSM state-tagged entries (0..MAX_FSM_STATE).
+
+    Use this instead of open-coding the upper bound — hardcoded limits went
+    stale when states were appended to fsm_state_t, silently dropping the
+    newest states from filtered views.
+    """
+    return isinstance(t, int) and 0 <= t <= MAX_FSM_STATE
+
+
 def _is_valid_entry_type(t: int) -> bool:
     # FSM state-tagged entries are 0..max(FSM state). Keep this in lockstep with
     # the fsm_state_t enum (fallback map is updated when states are appended).
-    return (0 <= t <= max(_FALLBACK_FSM_STATES)) or \
+    return is_fsm_type(t) or \
         t in (LOG_TYPE_BAT, LOG_TYPE_CRASH, LOG_TYPE_BOOT, LOG_TYPE_TIME_SET)
 
 

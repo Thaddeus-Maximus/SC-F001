@@ -2,7 +2,7 @@
 Matplotlib GUI for SC-F001 logtool.
 """
 
-from parser import LOG_TYPE_BAT, LOG_TYPE_CRASH, _ts_to_str
+from parser import LOG_TYPE_BAT, LOG_TYPE_CRASH, _ts_to_str, is_fsm_type
 
 try:
     import matplotlib.pyplot as plt
@@ -19,11 +19,27 @@ def _check_mpl():
         raise ImportError("'matplotlib' and 'numpy' required for GUI mode. Install: pip install matplotlib")
 
 
+def _timed(entries: list) -> list:
+    """Entries carrying a usable wall-clock timestamp, sorted oldest-first.
+
+    Entries logged before the RTC was set have ts_ms == 0. The CLI prints them
+    as 00:00:00.000 rows and moves on, but on a time axis they land in 1970 and
+    stretch the shared x-limits across ~60 years — which squeezes the real data
+    into a one-pixel smear at the right edge and looks like "no data". Drop
+    them here rather than plotting a lie.
+
+    Sorting matters too: the log is a circular buffer, so the read can start
+    mid-wrap and hand back a couple of backward time steps.
+    """
+    return sorted((e for e in entries if e.get('ts_ms', 0) > 0),
+                  key=lambda e: e['ts_ms'])
+
+
 def _entries_to_arrays(entries: list) -> dict:
     """Split entries into typed arrays for plotting."""
-    fsm   = [e for e in entries if 0 <= e.get('entry_type', -1) <= 12]
-    bat   = [e for e in entries if e.get('entry_type') == LOG_TYPE_BAT]
-    crash = [e for e in entries if e.get('entry_type') == LOG_TYPE_CRASH]
+    fsm   = _timed([e for e in entries if is_fsm_type(e.get('entry_type', -1))])
+    bat   = _timed([e for e in entries if e.get('entry_type') == LOG_TYPE_BAT])
+    crash = _timed([e for e in entries if e.get('entry_type') == LOG_TYPE_CRASH])
     return {'fsm': fsm, 'bat': bat, 'crash': crash}
 
 
@@ -48,6 +64,12 @@ def show_plots(entries: list, title: str = "SC-F001 Log"):
     fsm = arrays['fsm']
     bat = arrays['bat']
     crash = arrays['crash']
+
+    untimed = sum(1 for e in entries if e.get('ts_ms', 0) <= 0)
+    if untimed:
+        print(f"Note: {untimed} entries have no timestamp (logged before the RTC "
+              f"was set) and are omitted from the plots; they are still in the "
+              f"CLI table.")
     crash_ts = [e.get('ts_ms', 0) / 1000.0 for e in crash]
 
     fig, axes = plt.subplots(4, 1, figsize=(14, 10), sharex=True)
@@ -163,9 +185,9 @@ def live_plot(url: str, interval_s: float = 2.0):
             print(f"[live_plot] fetch error: {exc}")
             return
 
-        fsm   = [e for e in all_entries if 0 <= e.get('entry_type', -1) <= 12]
-        bat   = [e for e in all_entries if e.get('entry_type') in (LOG_TYPE_BAT,) or 'bat_V' in e]
-        crash = [e for e in all_entries if e.get('entry_type') == LOG_TYPE_CRASH]
+        fsm   = _timed([e for e in all_entries if is_fsm_type(e.get('entry_type', -1))])
+        bat   = _timed([e for e in all_entries if e.get('entry_type') in (LOG_TYPE_BAT,) or 'bat_V' in e])
+        crash = _timed([e for e in all_entries if e.get('entry_type') == LOG_TYPE_CRASH])
 
         if fsm:
             ts = to_dt([e['ts_ms'] for e in fsm])
@@ -173,10 +195,7 @@ def live_plot(url: str, interval_s: float = 2.0):
             lines['state'].set_data(ts, [e.get('entry_type', 0) for e in fsm])
             lines['heat'].set_data(ts, [e.get('heat', 0) for e in fsm])
 
-        all_bat = sorted(
-            [e for e in all_entries if 'bat_V' in e],
-            key=lambda e: e.get('ts_ms', 0)
-        )
+        all_bat = _timed([e for e in all_entries if 'bat_V' in e])
         if all_bat:
             ts = to_dt([e['ts_ms'] for e in all_bat])
             lines['bat'].set_data(ts, [e['bat_V'] for e in all_bat])

@@ -358,6 +358,33 @@ esp_err_t comms_handle_post(cJSON *root, cJSON **response_json) {
             ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_PREP");
             cmd_executed = true;
         }
+        /* Phone-driven deadman calibration: instead of the hardware button
+         * energizing/stopping the move, the web UI sends _go on press and _end
+         * on release. The FSM command queue drains in order each tick, so
+         * sending PREP then _go back-to-back walks IDLE→DELAY→MOVE in one pass.
+         * If the release (_end) is ever lost, the FSM's CALIBRATE_*_MAX_TIME
+         * timeout stops the move and records the result — same backstop the
+         * hardware-button path already relies on. */
+        else if (strcmp(cmd_str, "cal_jack_go") == 0) {
+            fsm_request(FSM_CMD_CALIBRATE_JACK_START);
+            ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_START (web)");
+            cmd_executed = true;
+        }
+        else if (strcmp(cmd_str, "cal_jack_end") == 0) {
+            fsm_request(FSM_CMD_CALIBRATE_JACK_END);
+            ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_JACK_END (web)");
+            cmd_executed = true;
+        }
+        else if (strcmp(cmd_str, "cal_drive_go") == 0) {
+            fsm_request(FSM_CMD_CALIBRATE_DRIVE_START);
+            ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_START (web)");
+            cmd_executed = true;
+        }
+        else if (strcmp(cmd_str, "cal_drive_end") == 0) {
+            fsm_request(FSM_CMD_CALIBRATE_DRIVE_END);
+            ESP_LOGI(TAG, "FSM_CMD_CALIBRATE_DRIVE_END (web)");
+            cmd_executed = true;
+        }
         else if (strcmp(cmd_str, "cal_get") == 0) {
             ESP_LOGI(TAG, "CAL_GET");
             

@@ -180,6 +180,25 @@ static esp_err_t root_get_handler(httpd_req_t *req) {
 // Cache the storage partition pointer to avoid repeated lookups
 static const esp_partition_t *cached_log_partition = NULL;
 
+/* Copy a client-supplied download filename (from ?name=) into dst, keeping only
+ * characters safe in an HTTP header and on a filesystem ([A-Za-z0-9._-]).
+ * Everything else is dropped, which also blocks header/quote injection. Falls
+ * back to a default when the sanitised result would be empty. */
+static void sanitize_download_name(const char *src, char *dst, size_t dst_size) {
+    size_t j = 0;
+    for (size_t i = 0; src[i] != '\0' && j + 1 < dst_size; i++) {
+        char c = src[i];
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+            (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '_') {
+            dst[j++] = c;
+        }
+    }
+    dst[j] = '\0';
+    if (j == 0) {
+        snprintf(dst, dst_size, "sc_log.bin");
+    }
+}
+
 // In webserver.c - Replace the log_handler function
 
 static esp_err_t log_handler_locked(httpd_req_t *req);
@@ -193,11 +212,24 @@ static esp_err_t log_handler_locked(httpd_req_t *req) {
     }
     
     rtc_reset_shutdown_timer();
-    
+
     int32_t tail = -1;
-    
+    char download_name[48] = "sc_log.bin";
+
     if (req->method == HTTP_GET) {
-        // GET without parameters - return JSON + full log
+        // GET returns JSON + full log. An optional ?name=<file> lets the client
+        // (the web UI, or a browser download manager) pick the saved filename
+        // via Content-Disposition — this is the reliable mobile download path.
+        size_t qlen = httpd_req_get_url_query_len(req);
+        if (qlen > 0 && qlen < 200) {
+            char query[200];
+            if (httpd_req_get_url_query_str(req, query, sizeof(query)) == ESP_OK) {
+                char raw[64];
+                if (httpd_query_key_value(query, "name", raw, sizeof(raw)) == ESP_OK) {
+                    sanitize_download_name(raw, download_name, sizeof(download_name));
+                }
+            }
+        }
     }
     else if (req->method == HTTP_POST) {
         int ret = httpd_req_recv(req, http_buffer, sizeof(http_buffer));
@@ -299,7 +331,9 @@ static esp_err_t log_handler_locked(httpd_req_t *req) {
         return err;
     }
     
-    err = httpd_resp_set_hdr(req, "Content-Disposition", "attachment; filename=\"sc_log.bin\"");
+    char disposition[80];
+    snprintf(disposition, sizeof(disposition), "attachment; filename=\"%s\"", download_name);
+    err = httpd_resp_set_hdr(req, "Content-Disposition", disposition);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set content disposition: %s", esp_err_to_name(err));
         free(json_str);
