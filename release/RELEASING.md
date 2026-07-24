@@ -1,29 +1,34 @@
 # Releasing SC-F001 firmware
 
-This repo publishes firmware through **GitHub Releases** (the binaries) and a
-**GitHub Pages** site (the human-facing index). Both are produced automatically
-by `.github/workflows/release.yml` when you push a version tag.
+Firmware is built and released **locally** — GitHub Actions never builds or
+flashes anything. One script does the whole release; a tiny Pages workflow only
+regenerates the download index afterward.
 
 ```
-git tag v1.1.2 && git push origin v1.1.2
+idf.py build                 # build the image (your machine / ESP-IDF shell)
+./release/release.sh         # package + tag + publish the GitHub Release
 ```
 
-That's the whole release action. Everything below is context and one-time setup.
+## What `release.sh` does (all local)
 
-## What a tag push does
+1. Reads the version from `main/version.txt` (the single source of truth) and
+   forms the tag `vX.Y.Z`. Refuses if that tag already exists.
+2. Checks `build/SC-F001-<version>.bin` exists (fails with a nudge to build).
+3. `gen_manifest.py` stages `dist/`:
+   - `SC-F001-<version>.bin` — archival, versioned image
+   - `SC-F001.bin` — stable-name copy (permanent "latest" URL)
+   - `latest.json` — manifest: version, url, size, sha256, date
+4. Commits tracked changes, tags, and pushes `main` + tag to `origin`
+   (gitea **and** github via the dual push URLs).
+5. `gh release create` publishes the GitHub Release with those three assets.
 
-1. **Verifies** the tag matches `main/version.txt` (the single source of truth),
-   so `v1.1.2` and `version.txt: 1.1.2` can never drift.
-2. **Builds** the firmware with ESP-IDF v5.3.1 (target esp32).
-3. **Stages** the OTA payload with `release/gen_manifest.py`:
-   - `SC-F001-<version>.bin` — the archival, versioned app image
-   - `SC-F001.bin` — a stable-name copy (see the permanent URLs below)
-   - `latest.json` — manifest with `version`, `url`, `size`, `sha256`, `date`
-4. **Publishes** a GitHub Release with those three assets. Release notes come
-   from `release/notes/<version>.md` if present, else auto-generated from
-   commits.
-5. **Regenerates** the Pages site with `release/gen_pages.py` (lists every
-   release, newest first) and deploys it.
+## What the Action does (`.github/workflows/pages.yml`)
+
+Nothing but the site. On a **release published/edited/deleted** event (or a
+manual run), it regenerates `index.html` from the repo's Releases with
+`gen_pages.py` and deploys it to GitHub Pages. Pages deployment genuinely has to
+run in Actions (OIDC + the Pages environment) — that's the only reason any CI
+exists here. No firmware, no build.
 
 ## URLs the release produces
 
@@ -31,61 +36,57 @@ That's the whole release action. Everything below is context and one-time setup.
 | --- | --- |
 | Human index (Pages) | `https://thaddeus-maximus.github.io/SC-F001/` |
 | Latest image (stable) | `https://github.com/Thaddeus-Maximus/SC-F001/releases/latest/download/SC-F001.bin` |
-| Latest manifest | `https://github.com/Thaddeus-Maximus/SC-F001/releases/latest/download/latest.json` |
+| Latest manifest | `.../releases/latest/download/latest.json` |
 | A specific version | `.../releases/download/v1.1.2/SC-F001-1.1.2.bin` |
 
-The **stable latest** URLs never change — they always resolve to the newest
+The stable latest URLs never change — they always resolve to the newest
 release. That's what a future self-updating device polls, and what you hand to
 anyone who just needs "the current firmware."
 
-## Flashing (today)
+## Flashing
 
 Download the `.bin` from the Pages site (or the latest URL) and upload it via
 the device web UI: **DANGER ZONE → Upload Firmware**. For a dev-loop push
-straight to a device on the bench, `ota_deploy.py` still does build + upload
-over HTTP.
+straight to a device on the bench, `ota_deploy.py` still does build + upload.
 
-## One-time repo setup
+## One-time setup
 
-The release/mirror lives on GitHub at `git@github.com:Thaddeus-Maximus/SC-F001.git`.
+Release/mirror repo: `git@github.com:Thaddeus-Maximus/SC-F001.git`.
 
-1. **Mirror or move to GitHub.** Development can stay on the gitea origin; add
-   GitHub as a push mirror so CI runs there. From a normal shell (this is a git
-   change — do it yourself, not via the assistant):
+1. **gh CLI**, authed to GitHub (this is how the release is published):
    ```
-   git remote add github git@github.com:Thaddeus-Maximus/SC-F001.git
-   git push github main --tags
+   gh auth login
    ```
-   Or configure gitea's built-in **Settings → Repository → Mirror** to push to
-   the GitHub URL on a schedule.
-2. **Enable Pages:** GitHub repo **Settings → Pages → Build and deployment →
-   Source: GitHub Actions**. (First `deploy-pages` run needs this on.)
-3. Nothing else — the workflow uses the built-in `GITHUB_TOKEN`; no secrets.
+2. **Dual push** so `git push origin` reaches gitea + GitHub — see the SSH +
+   remote steps you already ran (also in the scratch notes).
+3. **Enable Pages:** GitHub repo **Settings → Pages → Source: GitHub Actions**.
+4. The Pages workflow uses the built-in token; no secrets.
+
+Override the repo the manifest/release point at with `SC_REPO=owner/name` if it
+ever moves.
 
 ## Cutting a release, step by step
 
-1. Land your changes on `main`.
-2. Bump `main/version.txt` (semver — see the guidance in `main/version.cmake`).
-3. Optionally write `release/notes/<version>.md`.
-4. Commit, then tag and push:
+1. Land changes on `main`, bump `main/version.txt` (semver — see
+   `main/version.cmake`).
+2. Optionally write `release/notes/<version>.md`.
+3. Build, then release:
    ```
-   git commit -am "release 1.1.2"
-   git tag v1.1.2
-   git push origin main --tags        # and to the github mirror if separate
+   idf.py build
+   ./release/release.sh                 # or: ./release/release.sh "notes..."
    ```
-5. Watch the **release** workflow. When it's green, the new `.bin` is on the
-   Pages site and at the latest URL.
+4. The Release appears on GitHub with the `.bin`; the Pages index refreshes
+   automatically.
 
 ## Follow-ups worth doing (not yet wired)
 
 - **OTA image guard (firmware).** `webserver.c`'s `/ota` handler validates the
   image but not its identity. Before circulating binaries from a URL, read
   `esp_app_desc` from the incoming image and reject a wrong `project_name`
-  (and optionally block downgrades). Cheap insurance against a mis-pasted link.
+  (and optionally block downgrades).
 - **Automatic OTA.** The device fetches `latest.json`, compares `version`
   against its own `esp_app_desc`, and `esp_https_ota`'s the `url` when newer.
   The manifest is already the right shape; this becomes mostly firmware +
   bundling a CA cert for the HTTPS fetch.
 - **Stop committing binaries to git.** `SC-F001-released.bin` and the loose
-  `*_*.bin` snapshots in the repo predate this pipeline; Releases hold images
-  now, so those can be removed to keep history from bloating.
+  `*_*.bin` snapshots predate this pipeline; Releases hold images now.
