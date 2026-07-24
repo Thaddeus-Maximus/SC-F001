@@ -2,12 +2,14 @@ name: pages
 
 # Firmware is built and released LOCALLY (see release/release.sh); this workflow
 # does NOT build or flash anything. It only regenerates the GitHub Pages index
-# from the published Releases whenever a new release goes out. Run it by hand
-# from the Actions tab if you ever need to rebuild the site.
+# from the published Releases.
+#
+# Triggered by dispatch only — release.sh runs `gh workflow run pages.yml
+# --ref main` after publishing a release. Running from main (not the release
+# tag) keeps it inside the github-pages environment's default deploy policy, so
+# no tag has to be whitelisted. Run it by hand from the Actions tab any time.
 
 on:
-  release:
-    types: [published, edited, deleted]
   workflow_dispatch:
 
 permissions:

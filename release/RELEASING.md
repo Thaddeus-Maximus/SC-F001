@@ -21,14 +21,19 @@ idf.py build                 # build the image (your machine / ESP-IDF shell)
 4. Commits tracked changes, tags, and pushes `main` + tag to `origin`
    (gitea **and** github via the dual push URLs).
 5. `gh release create` publishes the GitHub Release with those three assets.
+6. `gh workflow run pages.yml --ref main` kicks the Pages rebuild.
 
 ## What the Action does (`.github/workflows/pages.yml`)
 
-Nothing but the site. On a **release published/edited/deleted** event (or a
-manual run), it regenerates `index.html` from the repo's Releases with
-`gen_pages.py` and deploys it to GitHub Pages. Pages deployment genuinely has to
-run in Actions (OIDC + the Pages environment) — that's the only reason any CI
-exists here. No firmware, no build.
+Nothing but the site. It's **dispatch-only** — `release.sh` triggers it after
+publishing, and you can run it by hand from the Actions tab. It regenerates
+`index.html` from the repo's Releases with `gen_pages.py` and deploys to GitHub
+Pages. Pages deployment genuinely has to run in Actions (OIDC + the Pages
+environment) — that's the only reason any CI exists here. No firmware, no build.
+
+Dispatching from `main` (rather than deploying off the release tag) keeps the
+run inside the `github-pages` environment's default deploy policy, so no tag has
+to be whitelisted.
 
 ## URLs the release produces
 

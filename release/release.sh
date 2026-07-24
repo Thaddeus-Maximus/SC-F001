@@ -67,4 +67,11 @@ gh release create "$tag" --repo "$REPO" --verify-tag --title "SC-F001 $ver" \
   "${notes_args[@]}" \
   "dist/SC-F001-$ver.bin" "dist/SC-F001.bin" "dist/latest.json"
 
-echo ">> done: $tag published — the Pages index refreshes via the release workflow."
+# Refresh the Pages index. Dispatched against main (not the tag) so it stays
+# within the github-pages environment's default deploy policy. Non-fatal — the
+# release is already out if this step trips.
+echo ">> triggering Pages rebuild"
+gh workflow run pages.yml --repo "$REPO" --ref main || \
+  echo ">> WARN: couldn't trigger Pages (run it from the Actions tab)"
+
+echo ">> done: $tag published."
