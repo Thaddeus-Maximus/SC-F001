@@ -1,0 +1,25 @@
+SC-F001 Firmware — Proprietary License
+Copyright (c) 2026 Thaddeus Hughes. All Rights Reserved.
+
+This software, firmware, and all associated source files, binaries,
+documentation, and materials (the "Software") are the confidential and
+proprietary property of Thaddeus Hughes (the "Owner").
+
+No license or right of any kind is granted, whether by implication, estoppel,
+or otherwise, to use, copy, reproduce, modify, adapt, merge, publish,
+distribute, sublicense, sell, or otherwise exploit the Software, in whole or in
+part, except under a separate written agreement signed by the Owner.
+
+Unauthorized copying, distribution, disclosure, or use of the Software, in
+whole or in part, via any medium, is strictly prohibited.
+
+Firmware images published as release artifacts of this project are provided
+solely for use on hardware authorized by the Owner. Redistribution of those
+images is not permitted without written authorization.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+OWNER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

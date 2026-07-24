@@ -371,3 +371,12 @@ SC_ERR_LOW_BATTERY   = 0x230  // Voltage below threshold
 - **Build output:** `build/SC-F001.bin` (IDF's own name, used by flash/partition tooling) plus a versioned copy `build/SC-F001-<version>.bin`, e.g. `SC-F001-1.1.0.bin`. Old versions accumulate in `build/`, so an earlier image can be re-deployed without a rebuild.
 - **Bumping the version:** edit `main/version.txt` — that's the whole procedure. No tag, no commit needed; the next `idf.py build` picks it up (the file is a CMake configure dependency, so `PROJECT_VER` and the app descriptor refresh too).
 - **Deploying:** `python ota_deploy.py` builds and uploads the version in `version.txt`. `--version 1.0.0` uploads that archived image instead (and skips the build, since building would produce a different version). `--list` shows what's available.
+
+
+---
+
+## Releasing
+
+`git commit -am "message"`
+`git tag -a "v1.1.3"`
+`git push origin --tags`
