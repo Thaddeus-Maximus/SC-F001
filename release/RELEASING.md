@@ -39,7 +39,7 @@ to be whitelisted.
 
 | Purpose | URL |
 | --- | --- |
-| Human index (Pages) | `https://thaddeus-maximus.github.io/SC-F001/` |
+| Human index (Pages) | `https://thaddeus-maximus.github.io/SC-F001/` (→ `https://update.thestockcropper.com/`) |
 | Latest image (stable) | `https://github.com/Thaddeus-Maximus/SC-F001/releases/latest/download/SC-F001.bin` |
 | Latest manifest | `.../releases/latest/download/latest.json` |
 | A specific version | `.../releases/download/v1.1.2/SC-F001-1.1.2.bin` |
@@ -66,6 +66,23 @@ Release/mirror repo: `git@github.com:Thaddeus-Maximus/SC-F001.git`.
    remote steps you already ran (also in the scratch notes).
 3. **Enable Pages:** GitHub repo **Settings → Pages → Source: GitHub Actions**.
 4. The Pages workflow uses the built-in token; no secrets.
+
+### Moving the site to `update.thestockcropper.com`
+
+The page already carries the Stock Cropper branding — Montserrat, the gold/brown
+accents, and the logo in the header and footer, on a neutral dark-gray
+background — so the cutover is DNS plus one flag:
+
+1. Add a DNS `CNAME` record: `update` → `thaddeus-maximus.github.io`.
+2. Set the repo variable **Settings → Secrets and variables → Actions →
+   Variables → `SC_PAGES_CNAME` = `update.thestockcropper.com`**. The workflow
+   passes it to `gen_pages.py`, which writes `site/CNAME`.
+3. Re-run the `pages` workflow, then tick **Enforce HTTPS** under Settings →
+   Pages once the certificate is issued.
+
+Don't set the variable before the DNS record exists — Pages will start
+redirecting the `github.io` URL to a domain that doesn't resolve. Locally the
+same knob is `--cname update.thestockcropper.com`.
 
 Override the repo the manifest/release point at with `SC_REPO=owner/name` if it
 ever moves.

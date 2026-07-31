@@ -33,6 +33,9 @@ jobs:
       - name: Generate release site
         env:
           GH_TOKEN: ${{ github.token }}
+          # Set this repo variable to update.thestockcropper.com once DNS points
+          # there; until then the site stays on the github.io URL.
+          SC_PAGES_CNAME: ${{ vars.SC_PAGES_CNAME }}
         run: python3 release/gen_pages.py --repo "$GITHUB_REPOSITORY" --out site
 
       - uses: actions/upload-pages-artifact@v3
